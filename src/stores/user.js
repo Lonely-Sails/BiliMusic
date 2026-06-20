@@ -1,0 +1,153 @@
+import { defineStore } from 'pinia'
+import { ref, computed } from 'vue'
+import { useToast } from './toast'
+
+const FAV_FOLDER_KEY = 'bilimusic_fav_folder'
+
+export const useUserStore = defineStore('user', () => {
+  const loggedIn = ref(false)
+  const uid = ref('')
+  const nickname = ref('')
+  const avatar = ref('')
+  const level = ref(0)
+  const favFolderId = ref(null)
+  const favFolderName = ref('')
+  const favoritedBvids = ref(new Set())
+  const favoritedCount = computed(() => favoritedBvids.value.size)
+
+  const { showToast } = useToast()
+
+  // 从 localStorage 加载收藏夹设置
+  function loadFavFolderSetting() {
+    try {
+      const val = localStorage.getItem(FAV_FOLDER_KEY)
+      if (val) {
+        const parsed = JSON.parse(val)
+        favFolderId.value = parsed.id
+        favFolderName.value = parsed.name
+        if (favFolderId.value) {
+          loadFavoritedBvids()
+        }
+      }
+    } catch { /* ignore */ }
+  }
+
+  function saveFavFolderSetting(id, name) {
+    favFolderId.value = id
+    favFolderName.value = name
+    localStorage.setItem(FAV_FOLDER_KEY, JSON.stringify({ id, name }))
+    if (id) {
+      loadFavoritedBvids()
+    } else {
+      favoritedBvids.value = new Set()
+    }
+  }
+
+  function isFavorited(bvid) {
+    return favoritedBvids.value.has(bvid)
+  }
+
+  async function loadFavoritedBvids() {
+    if (!loggedIn.value || !favFolderId.value) return
+    try {
+      const result = await window.electronAPI.listFavResources(favFolderId.value, 1, 20)
+      if (result && result.resources) {
+        syncFavoritedBvids(result.resources)
+      }
+    } catch (e) {
+      console.error('加载收藏状态失败:', e)
+    }
+  }
+
+  async function toggleFav(item) {
+    if (!loggedIn.value || !favFolderId.value) return { success: false }
+    const bvid = item.bvid
+    const isFav = isFavorited(bvid)
+    // Bilibili API 对于 type=2（视频）需要传 AID（数字ID）作为 rid
+    const rid = item.aid || item.bvid
+    try {
+      if (isFav) {
+        const result = await window.electronAPI.removeFav(rid, favFolderId.value)
+        if (result?.success) {
+          const set = new Set(favoritedBvids.value)
+          set.delete(bvid)
+          favoritedBvids.value = set
+          showToast('已取消收藏', 'success')
+          return { success: true, action: 'removed' }
+        } else {
+          const errMsg = result?.error || '未知错误'
+          console.error('取消收藏失败:', errMsg)
+          showToast('取消收藏失败: ' + errMsg, 'error')
+        }
+      } else {
+        const result = await window.electronAPI.addFav(rid, favFolderId.value)
+        if (result?.success) {
+          const set = new Set(favoritedBvids.value)
+          set.add(bvid)
+          favoritedBvids.value = set
+          showToast('已收藏', 'success')
+          return { success: true, action: 'added' }
+        } else {
+          const errMsg = result?.error || '未知错误'
+          console.error('收藏失败:', errMsg)
+          showToast('收藏失败: ' + errMsg, 'error')
+        }
+      }
+    } catch (e) {
+      console.error('收藏操作失败:', e)
+      showToast('收藏操作失败: ' + e.message, 'error')
+    }
+    return { success: false }
+  }
+
+  async function checkLogin() {
+    try {
+      const result = await window.electronAPI.checkLogin()
+      if (result.loggedIn) {
+        loggedIn.value = true
+        uid.value = result.uid
+        nickname.value = result.nickname
+        avatar.value = result.avatar
+        level.value = result.level || 0
+        loadFavFolderSetting()
+      } else {
+        reset()
+      }
+      return result
+    } catch {
+      reset()
+      return { loggedIn: false }
+    }
+  }
+
+  async function logout() {
+    try {
+      await window.electronAPI.logout()
+      reset()
+    } catch (e) {
+      console.error('Logout failed:', e)
+    }
+  }
+
+  function reset() {
+    loggedIn.value = false
+    uid.value = ''
+    nickname.value = ''
+    avatar.value = ''
+    level.value = 0
+    favFolderId.value = null
+    favFolderName.value = ''
+    favoritedBvids.value = new Set()
+    localStorage.removeItem(FAV_FOLDER_KEY)
+  }
+
+  function syncFavoritedBvids(bvidsArray) {
+    const set = new Set()
+    for (const r of bvidsArray) {
+      if (r.bvid) set.add(r.bvid)
+    }
+    favoritedBvids.value = set
+  }
+
+  return { loggedIn, uid, nickname, avatar, level, favFolderId, favFolderName, favoritedBvids, favoritedCount, checkLogin, logout, reset, loadFavFolderSetting, saveFavFolderSetting, isFavorited, loadFavoritedBvids, toggleFav, syncFavoritedBvids }
+})

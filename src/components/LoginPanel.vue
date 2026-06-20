@@ -1,0 +1,194 @@
+<template>
+  <div class="login-panel">
+    <div v-if="user.loggedIn" class="user-info">
+      <AvatarRoot class="user-avatar-root">
+        <AvatarImage
+          class="user-avatar"
+          :src="user.avatar + '@96w_96h.webp'"
+          :alt="user.nickname"
+        />
+        <AvatarFallback class="user-avatar-fallback">
+          <Icon icon="mdi:account" />
+        </AvatarFallback>
+      </AvatarRoot>
+      <span class="user-name">{{ user.nickname }}</span>
+      <button class="logout-btn" @click="handleLogout">
+        <Icon icon="mdi:logout" />
+      </button>
+    </div>
+
+    <button v-else class="login-btn" @click="dialogOpen = true">
+      <Icon icon="mdi:account-circle-outline" class="login-icon" />
+      <span>登录B站</span>
+    </button>
+
+    <!-- Reka UI Dialog -->
+    <DialogRoot v-model:open="dialogOpen">
+      <DialogPortal>
+        <DialogOverlay class="dialog-overlay" />
+        <DialogContent class="dialog-content">
+          <DialogClose class="dialog-close-btn">
+            <Icon icon="mdi:close" />
+          </DialogClose>
+
+          <div class="dialog-body">
+            <DialogTitle class="dialog-title">扫码登录</DialogTitle>
+            <DialogDescription class="dialog-desc">
+              使用B站App扫描二维码登录
+            </DialogDescription>
+
+            <div class="qr-status-wrap">
+              <template v-if="qrStatus === 'loading'">
+                <div class="spinner"></div>
+                <p class="qr-status-text">获取二维码中...</p>
+              </template>
+
+              <template v-else-if="qrStatus === 'pending'">
+                <img :src="qrDataURL" alt="QR Code" class="qr-image" />
+                <p class="qr-status-text active">请用B站App扫码</p>
+              </template>
+
+              <template v-else-if="qrStatus === 'scanning'">
+                <div class="spinner"></div>
+                <p class="qr-status-text highlight">已扫码，请在手机上确认</p>
+              </template>
+
+              <template v-else-if="qrStatus === 'success'">
+                <Icon icon="mdi:check-circle" class="qr-success-icon" />
+                <p class="qr-status-text success">登录成功！</p>
+              </template>
+
+              <template v-else-if="qrStatus === 'expired'">
+                <Icon icon="mdi:alert-circle-outline" class="qr-error-icon" />
+                <p class="qr-status-text error">二维码已过期</p>
+                <button @click="startQRLogin" class="retry-btn">重新获取</button>
+              </template>
+
+              <template v-else-if="qrStatus === 'error'">
+                <Icon icon="mdi:alert-circle-outline" class="qr-error-icon" />
+                <p class="qr-status-text error">{{ qrError }}</p>
+                <button @click="startQRLogin" class="retry-btn">重试</button>
+              </template>
+            </div>
+          </div>
+        </DialogContent>
+      </DialogPortal>
+    </DialogRoot>
+  </div>
+</template>
+
+<script>
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
+import { useUserStore } from '../stores/user'
+import QRCode from 'qrcode'
+import { Icon } from '@iconify/vue'
+import {
+  DialogRoot, DialogPortal, DialogOverlay, DialogContent,
+  DialogClose, DialogTitle, DialogDescription,
+  AvatarRoot, AvatarImage, AvatarFallback
+} from 'reka-ui'
+
+export default {
+  name: 'LoginPanel',
+  components: {
+    Icon,
+    DialogRoot, DialogPortal, DialogOverlay, DialogContent,
+    DialogClose, DialogTitle, DialogDescription,
+    AvatarRoot, AvatarImage, AvatarFallback
+  },
+  setup() {
+    const user = useUserStore()
+    const dialogOpen = ref(false)
+    const qrStatus = ref('idle')
+    const qrDataURL = ref('')
+    const qrKey = ref('')
+    const qrError = ref('')
+    let pollTimer = null
+
+    onMounted(() => user.checkLogin())
+    onBeforeUnmount(() => stopPolling())
+
+    watch(dialogOpen, async (val) => {
+      if (val) {
+        // Double-check login status before showing QR
+        await user.checkLogin()
+        if (user.loggedIn) {
+          dialogOpen.value = false
+          return
+        }
+        startQRLogin()
+      } else {
+        stopPolling()
+        qrStatus.value = 'idle'
+      }
+    })
+
+    async function startQRLogin() {
+      // Clear any stale cookies to ensure clean QR login flow
+      await window.electronAPI.clearAuth()
+      qrStatus.value = 'loading'
+      qrError.value = ''
+      try {
+        const result = await window.electronAPI.getQrcode()
+        if (result.error) { qrStatus.value = 'error'; qrError.value = result.error; return }
+        qrKey.value = result.qrcodeKey
+        qrDataURL.value = await QRCode.toDataURL(result.url, {
+          width: 200, margin: 2,
+          color: { dark: '#fb7299', light: '#16213e' }
+        })
+        qrStatus.value = 'pending'
+        startPolling()
+      } catch (e) {
+        qrStatus.value = 'error'
+        qrError.value = e.message
+      }
+    }
+
+    function startPolling() {
+      stopPolling()
+      pollTimer = setInterval(async () => {
+        try {
+          const result = await window.electronAPI.pollLogin(qrKey.value)
+
+          // Debug: log raw poll result
+          console.log('[QR Poll]', JSON.stringify(result))
+
+          if (result.status === 'scanning') {
+            qrStatus.value = 'scanning'
+          } else if (result.status === 'success') {
+            // Verify login actually succeeded before showing success
+            const verified = await user.checkLogin()
+            if (verified.loggedIn) {
+              qrStatus.value = 'success'
+              stopPolling()
+              setTimeout(() => { dialogOpen.value = false }, 1500)
+            } else {
+              // Poll said success but checkLogin failed — must be stale state
+              qrStatus.value = 'pending'
+            }
+          } else if (result.status === 'expired') {
+            qrStatus.value = 'expired'
+            stopPolling()
+          } else if (result.status === 'error') {
+            qrStatus.value = 'error'; qrError.value = result.message
+            stopPolling()
+          }
+        } catch (e) {
+          qrStatus.value = 'error'; qrError.value = e.message
+          stopPolling()
+        }
+      }, 2000)
+    }
+
+    function stopPolling() {
+      if (pollTimer) { clearInterval(pollTimer); pollTimer = null }
+    }
+
+    async function handleLogout() {
+      await user.logout()
+    }
+
+    return { user, dialogOpen, qrStatus, qrDataURL, qrError, startQRLogin, handleLogout }
+  }
+}
+</script>
