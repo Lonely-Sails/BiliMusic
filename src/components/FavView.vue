@@ -61,52 +61,13 @@
 
     <!-- 已设置收藏夹 - 显示内容 -->
     <div v-else class="fav-content">
-      <div class="fav-list">
-        <div
+      <div class="results-grid">
+        <SongCard
           v-for="item in resources"
           :key="item.bvid"
-          class="fav-list-item"
-          @click="player.playTrack(item)"
-        >
-          <Icon icon="mdi:music-note" class="list-item-icon" />
-          <div class="list-item-info">
-            <span class="list-item-title" :title="item.title">{{ item.title }}</span>
-            <span class="list-item-meta">
-              <Icon icon="mdi:account-outline" class="meta-icon" />
-              {{ item.author }}
-              <Icon icon="mdi:clock-outline" class="meta-icon" style="margin-left:8px" />
-              {{ formatDuration(item.duration) }}
-            </span>
-          </div>
-          <div class="list-item-actions">
-            <TooltipRoot>
-              <TooltipTrigger as-child>
-                <button class="list-add-btn" @click.stop="player.addToPlaylist(item)">
-                  <Icon icon="mdi:plus" />
-                </button>
-              </TooltipTrigger>
-              <TooltipPortal>
-                <TooltipContent class="tooltip-content" :data-state="'instant-open'" side="top">
-                  添加到播放列表
-                  <TooltipArrow class="tooltip-arrow" />
-                </TooltipContent>
-              </TooltipPortal>
-            </TooltipRoot>
-            <TooltipRoot>
-              <TooltipTrigger as-child>
-                <button class="list-del-btn" @click.stop="removeFav(item)">
-                  <Icon icon="mdi:heart-off-outline" />
-                </button>
-              </TooltipTrigger>
-              <TooltipPortal>
-                <TooltipContent class="tooltip-content" :data-state="'instant-open'" side="top">
-                  取消收藏
-                  <TooltipArrow class="tooltip-arrow" />
-                </TooltipContent>
-              </TooltipPortal>
-            </TooltipRoot>
-          </div>
-        </div>
+          :item="item"
+          @fav-change="onFavChange($event, item)"
+        />
       </div>
 
       <!-- 分页 -->
@@ -129,18 +90,11 @@ import { ref, onMounted, watch } from 'vue'
 import { useUserStore } from '../stores/user'
 import { usePlayerStore } from '../stores/player'
 import { Icon } from '@iconify/vue'
-import {
-  TooltipRoot, TooltipTrigger, TooltipPortal, TooltipContent, TooltipArrow,
-  TooltipProvider
-} from 'reka-ui'
+import SongCard from './SongCard.vue'
 
 export default {
   name: 'FavView',
-  components: {
-    Icon,
-    TooltipRoot, TooltipTrigger, TooltipPortal, TooltipContent, TooltipArrow,
-    TooltipProvider
-  },
+  components: { Icon, SongCard },
   setup() {
     const user = useUserStore()
     const player = usePlayerStore()
@@ -198,16 +152,7 @@ export default {
       await loadResources()
     }
 
-    function formatDuration(duration) {
-      if (!duration) return '--:--'
-      if (typeof duration === 'string' && duration.includes(':')) return duration
-      const m = Math.floor(duration / 60)
-      const s = duration % 60
-      return `${m}:${String(s).padStart(2, '0')}`
-    }
-
-    async function removeFav(item) {
-      const result = await user.toggleFav(item)
+    function onFavChange(result, item) {
       if (result?.success && result.action === 'removed') {
         resources.value = resources.value.filter(r => r.bvid !== item.bvid)
         total.value = Math.max(0, total.value - 1)
@@ -222,7 +167,7 @@ export default {
       player.playTrack(items[0])
     }
 
-    return { user, player, resources, loading, loadError, page, total, totalPages, loadResources, goToPage, formatDuration, removeFav, playAll }
+    return { user, player, resources, loading, loadError, page, total, totalPages, loadResources, goToPage, onFavChange, playAll }
   }
 }
 </script>
@@ -231,7 +176,7 @@ export default {
 .fav-view {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 24px;
   padding: 28px 32px;
 }
 
@@ -310,94 +255,11 @@ export default {
   background: var(--accent-hover);
 }
 
-/* ===== List layout ===== */
-.fav-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.fav-list-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all var(--transition);
-}
-
-.fav-list-item:hover {
-  background: var(--bg-hover);
-  border-color: var(--accent-dim);
-}
-
-.list-item-icon {
-  font-size: 22px;
-  color: var(--accent);
-  flex-shrink: 0;
-}
-
-.list-item-info {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.list-item-title {
-  font-size: 14px;
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.list-item-meta {
-  font-size: 12px;
-  color: var(--text-muted);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.list-item-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-}
-
-.list-add-btn,
-.list-del-btn {
-  background: transparent;
-  color: var(--text-muted);
-  border: 1px solid var(--border);
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  font-size: 16px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all var(--transition);
-  flex-shrink: 0;
-}
-
-.list-add-btn:hover {
-  background: var(--accent);
-  color: var(--bg-deep);
-  border-color: var(--accent);
-}
-
-.list-del-btn:hover {
-  background: var(--danger);
-  color: #fff;
-  border-color: var(--danger);
+/* ===== Grid layout ===== */
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
 }
 
 /* ===== Pagination ===== */

@@ -104,6 +104,10 @@
       <!-- Sidebar -->
       <aside class="sidebar">
         <nav class="sidebar-nav">
+          <router-link to="/home" class="nav-item" active-class="active">
+            <Icon icon="mdi:fire" class="nav-icon" />
+            <span class="nav-text">推荐</span>
+          </router-link>
           <router-link to="/playlist" class="nav-item" active-class="active">
             <Icon icon="mdi:playlist-music" class="nav-icon" />
             <span class="nav-text">播放列表</span>
@@ -306,6 +310,11 @@ export default {
       }
 
       loadHistory()
+
+      // 启动时初始化 B站 session（buvid cookie + 可能的登录态）
+      window.electronAPI.ensureSession().catch((e) => {
+        console.warn('Session init failed:', e)
+      })
     })
 
     async function doSearch() {

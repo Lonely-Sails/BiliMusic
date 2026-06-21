@@ -223,10 +223,11 @@ export const usePlayerStore = defineStore('player', () => {
     try {
       let cid = track.cid
       if (!cid) {
-        const info = await window.electronAPI.getVideoInfo(track.bvid)
+        const info = await window.electronAPI.getVideoInfo(track.bvid || '', track.aid || 0)
         if (info && info.cid) {
           cid = info.cid
           track.cid = cid
+          track.bvid = info.bvid || track.bvid
           track.title = track.title || info.title
           track.cover = track.cover || info.cover
           track.duration = track.duration || info.duration

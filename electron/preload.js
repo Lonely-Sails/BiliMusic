@@ -5,9 +5,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
   searchVideo: (keyword, page) => ipcRenderer.invoke('search:video', keyword, page),
   getSearchSuggest: (term) => ipcRenderer.invoke('search:suggest', term),
   getHotSearch: () => ipcRenderer.invoke('search:hot'),
+  getPopular: (pn) => ipcRenderer.invoke('popular:get', pn),
+  // Session
+  ensureSession: () => ipcRenderer.invoke('session:ensure'),
+  // Music Center
+  getMusicBanner: () => ipcRenderer.invoke('music:banner'),
+  getHotToplist: () => ipcRenderer.invoke('music:hot-toplist'),
+  getHotRank: () => ipcRenderer.invoke('music:hot-rank'),
+  getNewMusic: () => ipcRenderer.invoke('music:new-music'),
+  getComprehensiveRank: (pn, ps) => ipcRenderer.invoke('music:comprehensive-rank', pn, ps),
 
   // Player
-  getVideoInfo: (bvid) => ipcRenderer.invoke('player:get-video-info', bvid),
+  getVideoInfo: (bvid, aid) => ipcRenderer.invoke('player:get-video-info', bvid, aid),
   getAudioUrl: (bvid, cid) => ipcRenderer.invoke('player:get-audio-url', bvid, cid),
 
   // Auth
@@ -32,6 +41,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   listLocalLyrics: () => ipcRenderer.invoke('lyric:list-local'),
   readLocalLyric: (fileName) => ipcRenderer.invoke('lyric:read-local', fileName),
   saveLocalLyric: (fileName, content) => ipcRenderer.invoke('lyric:save-local', fileName, content),
+  openLyricsFolder: () => ipcRenderer.invoke('lyric:open-folder'),
+  clearLocalLyrics: () => ipcRenderer.invoke('lyric:clear-local'),
 
   // Tray
   minimizeToTray: () => ipcRenderer.send('window:minimize-to-tray'),

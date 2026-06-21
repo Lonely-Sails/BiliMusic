@@ -70,7 +70,38 @@
         </div>
       </div>
 
-      <!-- 占位：后续可添加更多卡片 -->
+      <!-- 歌词卡片 -->
+      <div class="setting-card">
+        <div class="setting-card-header">
+          <Icon icon="mdi:music-note-outline" class="card-icon" />
+          <span>歌词</span>
+        </div>
+
+        <div class="setting-card-body">
+          <div class="setting-row">
+            <span class="setting-label">桌面歌词</span>
+            <button
+              class="setting-btn setting-btn-accent"
+              @click="toggleDesktopLyrics"
+            >
+              <Icon :icon="desktopLyricsVisible ? 'mdi:eye-off-outline' : 'mdi:music-note-outline'" />
+              {{ desktopLyricsVisible ? '隐藏' : '打开' }}
+            </button>
+          </div>
+          <div class="setting-row">
+            <span class="setting-label">本地歌词文件夹</span>
+            <button class="setting-btn" @click="openLyricsFolder">
+              <Icon icon="mdi:folder-open-outline" /> 打开文件夹
+            </button>
+          </div>
+          <div class="setting-row setting-row-footer">
+            <span class="setting-label"></span>
+            <button class="setting-btn setting-btn-danger" @click="clearLocalLyrics">
+              <Icon icon="mdi:delete-outline" /> 清理本地歌词
+            </button>
+          </div>
+        </div>
+      </div>
 
       <!-- 高级卡片 -->
       <div class="setting-card">
@@ -140,6 +171,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useUserStore } from '../stores/user'
 import { usePlayerStore } from '../stores/player'
+import { useToast } from '../stores/toast'
 import { Icon } from '@iconify/vue'
 import {
   SelectRoot, SelectTrigger, SelectValue, SelectPortal,
@@ -160,10 +192,12 @@ export default {
   setup() {
     const user = useUserStore()
     const player = usePlayerStore()
+    const { showToast } = useToast()
     const folders = ref([])
     const selectedFavFolder = ref(user.favFolderId ? String(user.favFolderId) : '__none__')
     const loadingFolders = ref(false)
     const cacheInfo = reactive({ audio: { size: 0, max: 0 }, lyric: { size: 0, max: 0 } })
+    const desktopLyricsVisible = ref(false)
     const audioLimit = ref(100)
     const lyricLimit = ref(20)
 
@@ -180,6 +214,12 @@ export default {
       refreshCacheInfo()
       audioLimit.value = cacheInfo.audio.max
       lyricLimit.value = cacheInfo.lyric.max
+
+      if (window.electronAPI?.onDesktopLyricsVisibility) {
+        window.electronAPI.onDesktopLyricsVisibility((visible) => {
+          desktopLyricsVisible.value = visible
+        })
+      }
     })
 
     async function loadFolders() {
@@ -225,12 +265,39 @@ export default {
       refreshCacheInfo()
     }
 
+    function toggleDesktopLyrics() {
+      if (window.electronAPI?.desktopLyricsToggle) {
+        window.electronAPI.desktopLyricsToggle()
+      }
+    }
+
+    function openLyricsFolder() {
+      if (window.electronAPI?.openLyricsFolder) {
+        window.electronAPI.openLyricsFolder()
+      }
+    }
+
+    async function clearLocalLyrics() {
+      if (!window.electronAPI?.clearLocalLyrics) return
+      const result = await window.electronAPI.clearLocalLyrics()
+      if (result?.success) {
+        const count = result.cleared || 0
+        if (count > 0) {
+          showToast(`已清理 ${count} 个本地歌词文件`)
+        } else {
+          showToast('没有本地歌词需要清理')
+        }
+      } else if (result?.error) {
+        showToast('清理失败: ' + result.error, 'error')
+      }
+    }
+
     function clearCache() {
       player.clearAllCaches()
       refreshCacheInfo()
     }
 
-    return { user, player, folders, selectedFavFolder, loadingFolders, cacheInfo, audioLimit, lyricLimit, onSelectFavFolder, onAudioLimitChange, onLyricLimitChange, clearCache, refreshCacheInfo }
+    return { user, player, folders, selectedFavFolder, loadingFolders, cacheInfo, audioLimit, lyricLimit, desktopLyricsVisible, onSelectFavFolder, onAudioLimitChange, onLyricLimitChange, toggleDesktopLyrics, openLyricsFolder, clearLocalLyrics, clearCache, refreshCacheInfo }
   }
 }
 </script>
@@ -407,6 +474,27 @@ export default {
 
 .hint-icon {
   font-size: 14px;
+}
+
+/* ── 歌词卡片 ── */
+.setting-btn-accent {
+  border-color: var(--accent-dim);
+  color: var(--accent);
+}
+
+.setting-btn-accent:hover {
+  border-color: var(--accent);
+  background: rgba(99, 102, 241, 0.08);
+}
+
+.setting-btn-danger {
+  color: var(--danger, #ef4444);
+}
+
+.setting-btn-danger:hover {
+  border-color: var(--danger, #ef4444);
+  color: var(--danger, #ef4444);
+  background: rgba(239, 68, 68, 0.06);
 }
 
 /* ── 高级卡片 ── */

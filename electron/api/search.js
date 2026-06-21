@@ -65,6 +65,7 @@ async function getSearchSuggest(term) {
 
 /**
  * 获取热搜列表（搜索框推荐）
+ * 搜索时会自动限制音乐区（tids=3），此处仅展示热搜词供快速搜索
  * GET https://s.search.bilibili.com/main/hotword
  */
 async function getHotSearch() {

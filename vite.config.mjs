@@ -11,7 +11,7 @@ export default defineConfig({
   },
   build: {
     crossorigin: false,
-    rollupOptions: {
+    rolldownOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
         'desktop-lyrics': resolve(__dirname, 'pages/desktop-lyrics/index.html'),
@@ -27,7 +27,7 @@ export default defineConfig({
         vite: {
           build: {
             outDir: 'dist-electron',
-            rollupOptions: {
+            rolldownOptions: {
               external: ['electron']
             }
           }
@@ -41,7 +41,7 @@ export default defineConfig({
         vite: {
           build: {
             outDir: 'dist-electron',
-            rollupOptions: {
+            rolldownOptions: {
               external: ['electron']
             }
           }

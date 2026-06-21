@@ -1,8 +1,8 @@
 import { sign } from './sign'
 import { apiGet } from './client'
 
-async function getVideoInfo(bvid) {
-  const params = await sign({ bvid })
+async function getVideoInfo(bvid, aid) {
+  const params = await sign(bvid ? { bvid } : { aid })
   const data = await apiGet('https://api.bilibili.com/x/web-interface/wbi/view', params)
 
   if (data.code !== 0) {

@@ -1,14 +1,16 @@
-import { app, BrowserWindow, ipcMain, protocol, net, screen, Tray, Menu, nativeImage } from 'electron'
+import { app, BrowserWindow, ipcMain, protocol, net, screen, shell, Tray, Menu, nativeImage } from 'electron'
 import { join } from 'path'
-import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync } from 'fs'
+import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, unlinkSync } from 'fs'
 
 // API handlers
-import { loadSession } from './api/client'
+import { loadSession, apiGet, parseSetCookie, getSession } from './api/client'
 import { searchVideo, getSearchSuggest, getHotSearch } from './api/search'
 import { getVideoInfo, getAudioUrl } from './api/video'
 import { getQrcode, pollLogin, completeLogin, checkLogin, logout, saveSession, clearAuth } from './api/auth'
 import { listFavFolders, listFavResources, addFav, removeFav } from './api/fav'
 import { getLyric, searchCandidates, fetchLyric } from './api/lyric'
+import { getPopular } from './api/popular'
+import { getMusicBanner, getHotToplist, getHotRank, getNewMusic, getComprehensiveRank } from './api/musicCenter'
 
 let mainWindow = null
 let tray = null
@@ -319,7 +321,49 @@ function notifyMainDesktopLyricsVisibility(visible) {
   }
 }
 
+async function ensureBiliSession() {
+  // Step 1: 获取设备指纹 buvid3/buvid4（最低可用配置）
+  try {
+    const fp = await apiGet('https://api.bilibili.com/x/frontend/finger/spi')
+    if (fp.code === 0 && fp.data) {
+      const cookies = getSession().cookies
+      if (fp.data.b_3 && !cookies.find((c) => c.name === 'buvid3')) {
+        parseSetCookie([`buvid3=${fp.data.b_3}; path=/; domain=.bilibili.com`])
+      }
+      if (fp.data.b_4 && !cookies.find((c) => c.name === 'buvid4')) {
+        parseSetCookie([`buvid4=${fp.data.b_4}; path=/; domain=.bilibili.com`])
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to fetch fingerprint:', e)
+  }
+
+  // Step 2: 访问 nav 接口，触发 WBI 密钥缓存和完整的 Cookie 设置
+  try {
+    const navResp = await apiGet('https://api.bilibili.com/x/web-interface/nav')
+    if (navResp.code === 0 && navResp.data) {
+      return {
+        loggedIn: !!navResp.data.isLogin,
+        uid: navResp.data.mid || '',
+        nickname: navResp.data.uname || '',
+        avatar: navResp.data.face || ''
+      }
+    }
+  } catch (e) {
+    console.warn('Nav check failed:', e)
+  }
+  return { loggedIn: false, uid: '', nickname: '', avatar: '' }
+}
+
 function setupIPC() {
+  ipcMain.handle('session:ensure', async () => {
+    try {
+      return await ensureBiliSession()
+    } catch (e) {
+      return { loggedIn: false, error: e.message }
+    }
+  })
+
   ipcMain.handle('search:video', async (event, keyword, page) => {
     try {
       return await searchVideo(keyword, page || 1)
@@ -344,9 +388,58 @@ function setupIPC() {
     }
   })
 
-  ipcMain.handle('player:get-video-info', async (event, bvid) => {
+  ipcMain.handle('popular:get', async (event, pn) => {
     try {
-      return await getVideoInfo(bvid)
+      return await getPopular(pn || 1)
+    } catch (e) {
+      return { error: e.message }
+    }
+  })
+
+  // ── Music Center APIs ──
+  ipcMain.handle('music:banner', async () => {
+    try {
+      return await getMusicBanner()
+    } catch (e) {
+      return { error: e.message }
+    }
+  })
+
+  ipcMain.handle('music:hot-toplist', async () => {
+    try {
+      return await getHotToplist()
+    } catch (e) {
+      return { error: e.message }
+    }
+  })
+
+  ipcMain.handle('music:hot-rank', async () => {
+    try {
+      return await getHotRank()
+    } catch (e) {
+      return { error: e.message }
+    }
+  })
+
+  ipcMain.handle('music:new-music', async () => {
+    try {
+      return await getNewMusic()
+    } catch (e) {
+      return { error: e.message }
+    }
+  })
+
+  ipcMain.handle('music:comprehensive-rank', async (event, pn, ps) => {
+    try {
+      return await getComprehensiveRank(pn || 1, ps || 20)
+    } catch (e) {
+      return { error: e.message }
+    }
+  })
+
+  ipcMain.handle('player:get-video-info', async (event, bvid, aid) => {
+    try {
+      return await getVideoInfo(bvid, aid)
     } catch (e) {
       return { error: e.message }
     }
@@ -526,6 +619,29 @@ function setupIPC() {
         mainWindow.webContents.send('lyrics-editor:saved')
       }
       return { success: true }
+    } catch (e) {
+      return { error: e.message }
+    }
+  })
+
+  ipcMain.handle('lyric:open-folder', async () => {
+    try {
+      const dir = getLyricsDir()
+      await shell.openPath(dir)
+      return { success: true }
+    } catch (e) {
+      return { error: e.message }
+    }
+  })
+
+  ipcMain.handle('lyric:clear-local', async () => {
+    try {
+      const dir = getLyricsDir()
+      const files = readdirSync(dir).filter(f => f.endsWith('.lrc'))
+      for (const file of files) {
+        unlinkSync(join(dir, file))
+      }
+      return { success: true, cleared: files.length }
     } catch (e) {
       return { error: e.message }
     }
