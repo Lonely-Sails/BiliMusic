@@ -3,6 +3,7 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 import './styles/main.css'
+import './styles/ui.css'
 
 // Global error handler for debugging
 window.onerror = (msg, url, line, col, err) => {

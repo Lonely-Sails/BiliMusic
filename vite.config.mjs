@@ -15,6 +15,7 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, 'index.html'),
         'desktop-lyrics': resolve(__dirname, 'pages/desktop-lyrics/index.html'),
+        'lyrics-editor': resolve(__dirname, 'pages/lyrics-editor/index.html'),
       }
     }
   },

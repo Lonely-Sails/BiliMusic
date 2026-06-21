@@ -14,8 +14,8 @@
       @toggle-play="togglePlay"
       @close="closeWindow"
       @dragstart="onDragStart"
-      @mouseenter="onToolbarEnterLocked"
-      @mouseleave="onToolbarLeaveLocked"
+      @lock-enter="onLockEnter"
+      @lock-leave="onLockLeave"
     />
 
     <!-- 歌词区域 -->
@@ -182,14 +182,14 @@ function applyLockState() {
   }
 }
 
-/* 锁定状态下悬浮工具栏时取消穿透，离开恢复 */
-function onToolbarEnterLocked() {
+/* 锁定状态下悬浮解锁按钮时取消穿透，离开恢复 */
+function onLockEnter() {
   if (locked.value) {
     window.desktopLyricsAPI?.setIgnoreEvents(false)
   }
 }
 
-function onToolbarLeaveLocked() {
+function onLockLeave() {
   if (locked.value) {
     window.desktopLyricsAPI?.setIgnoreEvents(true)
   }

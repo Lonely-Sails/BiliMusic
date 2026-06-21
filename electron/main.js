@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, protocol, net, screen } from 'electron'
 import { join } from 'path'
-import { existsSync, readFileSync, writeFileSync } from 'fs'
+import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync } from 'fs'
 
 // API handlers
 import { loadSession } from './api/client'
@@ -12,6 +12,7 @@ import { getLyric, searchCandidates, fetchLyric } from './api/lyric'
 
 let mainWindow = null
 let desktopLyricsWindow = null
+let lyricsEditorWindow = null
 let SESSION_PATH = ''
 let currentLyricsData = { lyrics: [], currentTime: 0 }
 let currentTrackInfo = null
@@ -116,7 +117,6 @@ function createDesktopLyricsWindow() {
   })
 
   desktopLyricsWindow.setVisibleOnAllWorkspaces(true)
-  desktopLyricsWindow.openDevTools()
 
   // Load desktop lyrics – use Vite dev server in dev, built files in production
   if (process.env.VITE_DEV_SERVER_URL) {
@@ -186,6 +186,48 @@ function syncDesktopLyricsData() {
   if (currentLyricsData.lyrics.length > 0) {
     desktopLyricsWindow.webContents.send('desktop-lyrics:update', currentLyricsData)
   }
+}
+
+// ── Lyrics Editor Window ──
+function createLyricsEditorWindow() {
+  if (lyricsEditorWindow && !lyricsEditorWindow.isDestroyed()) {
+    lyricsEditorWindow.show()
+    lyricsEditorWindow.focus()
+    return
+  }
+
+  lyricsEditorWindow = new BrowserWindow({
+    width: 960,
+    height: 680,
+    minWidth: 600,
+    minHeight: 400,
+    frame: false,
+    title: '歌词编辑',
+    webPreferences: {
+      preload: process.env.VITE_DEV_SERVER_URL
+        ? join(PROJECT_ROOT, 'electron/preload/lyricsEditor.js')
+        : join(__dirname, 'preload/lyricsEditor.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      webSecurity: false
+    },
+    show: false,
+    backgroundColor: '#0f0f1a'
+  })
+
+  if (process.env.VITE_DEV_SERVER_URL) {
+    lyricsEditorWindow.loadURL(process.env.VITE_DEV_SERVER_URL + 'pages/lyrics-editor/index.html')
+  } else {
+    lyricsEditorWindow.loadFile(join(__dirname, '../dist/pages/lyrics-editor/index.html'))
+  }
+
+  lyricsEditorWindow.once('ready-to-show', () => {
+    lyricsEditorWindow.show()
+  })
+
+  lyricsEditorWindow.on('closed', () => {
+    lyricsEditorWindow = null
+  })
 }
 
 // Load session on startup
@@ -349,6 +391,91 @@ function setupIPC() {
       return await fetchLyric(source, id)
     } catch (e) {
       return { error: e.message }
+    }
+  })
+
+  // ── Lyrics Editor IPC ──
+  function getLyricsDir() {
+    const dir = join(app.getPath('userData'), 'lyrics')
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true })
+    }
+    return dir
+  }
+
+  ipcMain.handle('lyric:list-local', async () => {
+    try {
+      const dir = getLyricsDir()
+      const files = readdirSync(dir).filter(f => f.endsWith('.lrc'))
+      const results = []
+      for (const file of files) {
+        const filePath = join(dir, file)
+        const content = readFileSync(filePath, 'utf-8')
+        const lines = content.split('\n').filter(l => l.trim())
+        // Extract song name from first metadata line or filename
+        const titleLine = lines.find(l => l.startsWith('[ti:'))
+        const song = titleLine ? titleLine.replace('[ti:', '').replace(']', '').trim() : file.replace('.lrc', '')
+        const artistLine = lines.find(l => l.startsWith('[ar:'))
+        const artist = artistLine ? artistLine.replace('[ar:', '').replace(']', '').trim() : ''
+        const sourceLine = lines.find(l => l.startsWith('[source:'))
+        const sourceName = sourceLine ? sourceLine.replace('[source:', '').replace(']', '').trim() : ''
+        results.push({
+          fileName: file,
+          filePath,
+          song,
+          artist,
+          lineCount: lines.filter(l => l.startsWith('[')).length,
+          sourceName,
+          source: 'local'
+        })
+      }
+      return results
+    } catch (e) {
+      return []
+    }
+  })
+
+  ipcMain.handle('lyric:read-local', async (event, fileName) => {
+    try {
+      const dir = getLyricsDir()
+      const filePath = join(dir, fileName)
+      if (!existsSync(filePath)) return null
+      const content = readFileSync(filePath, 'utf-8')
+      return content
+    } catch (e) {
+      return null
+    }
+  })
+
+  ipcMain.handle('lyric:save-local', async (event, fileName, content) => {
+    try {
+      const dir = getLyricsDir()
+      const filePath = join(dir, fileName)
+      writeFileSync(filePath, content, 'utf-8')
+      // 通知主窗口清除歌词缓存
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('lyrics-editor:saved')
+      }
+      return { success: true }
+    } catch (e) {
+      return { error: e.message }
+    }
+  })
+
+  // ── Lyrics Editor IPC ──
+  ipcMain.on('lyrics-editor:open', (_event, trackInfo) => {
+    createLyricsEditorWindow()
+    if (lyricsEditorWindow && trackInfo) {
+      lyricsEditorWindow.webContents.on('did-finish-load', () => {
+        lyricsEditorWindow.webContents.send('lyrics-editor:track', trackInfo)
+      }, { once: true })
+    }
+  })
+
+  ipcMain.on('lyrics-editor:close', () => {
+    if (lyricsEditorWindow && !lyricsEditorWindow.isDestroyed()) {
+      lyricsEditorWindow.close()
+      lyricsEditorWindow = null
     }
   })
 

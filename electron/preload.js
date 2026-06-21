@@ -27,6 +27,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getLyric: (bvid, cid, title) => ipcRenderer.invoke('lyric:get', bvid, cid, title),
   searchLyricCandidates: (title) => ipcRenderer.invoke('lyric:search-candidates', title),
   fetchLyric: (source, id) => ipcRenderer.invoke('lyric:fetch', source, id),
+  // Lyrics Editor
+  openLyricsEditor: (trackInfo) => ipcRenderer.send('lyrics-editor:open', trackInfo),
+  listLocalLyrics: () => ipcRenderer.invoke('lyric:list-local'),
+  readLocalLyric: (fileName) => ipcRenderer.invoke('lyric:read-local', fileName),
+  saveLocalLyric: (fileName, content) => ipcRenderer.invoke('lyric:save-local', fileName, content),
 
   // Desktop Lyrics
   desktopLyricsToggle: () => ipcRenderer.send('desktop-lyrics:toggle'),
@@ -43,5 +48,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('player:prev', () => callback('prev'))
     ipcRenderer.on('player:next', () => callback('next'))
     ipcRenderer.on('player:toggle-play', () => callback('togglePlay'))
+  },
+  onLyricsEditorSaved: (callback) => {
+    ipcRenderer.on('lyrics-editor:saved', () => callback())
   }
 })

@@ -40,15 +40,10 @@ export const usePlayerStore = defineStore('player', () => {
   // Watch for track changes to update desktop lyrics
   watch(currentTrack, (track) => {
     sendDesktopLyricsTrack()
-    sendDesktopLyricsPlayState(isPlaying.value)
   })
   watch(currentLyrics, (lyrics) => {
     sendDesktopLyricsUpdate()
   }, { deep: true })
-
-  watch(isPlaying, (val) => {
-    sendDesktopLyricsPlayState(val)
-  })
 
   // --- Actions ---
   function setAudioElement(el) {
@@ -128,11 +123,6 @@ export const usePlayerStore = defineStore('player', () => {
     window.electronAPI.desktopLyricsUpdateTrack(toPlainObject(track))
   }
 
-  function sendDesktopLyricsPlayState(playing) {
-    if (!window.electronAPI?.desktopLyricsUpdatePlayState) return
-    window.electronAPI.desktopLyricsUpdatePlayState(playing)
-  }
-
   // Simple in-memory cache for lyrics and audio URLs
   // 使用 LRU (Least Recently Used) 淘汰策略
   const CACHE_LIMITS = {
@@ -198,6 +188,10 @@ export const usePlayerStore = defineStore('player', () => {
 
   function clearAllCaches() {
     audioCache.clear()
+    lyricCache.clear()
+  }
+
+  function clearLyricCache() {
     lyricCache.clear()
   }
 
@@ -295,8 +289,22 @@ export const usePlayerStore = defineStore('player', () => {
           lyricCandidates.value.unshift({ source: 'subtitle', sourceName: 'B站字幕', id: 'subtitle', song: currentTrack.value?.title || '', singer: '' })
           lyricCandidateId.value = 'subtitle'
         } else {
-          const first = lyricCandidates.value.find((c) => c.source === lyricSource.value)
-          lyricCandidateId.value = first?.id || ''
+          const firstSrc = lyricCandidates.value.find((c) => c.source === lyricSource.value)
+          lyricCandidateId.value = firstSrc?.id || ''
+
+          // 首次播放无歌词时自动拉取第一个候选并塞入缓存
+          if (!currentLyrics.value.length && lyricCandidates.value.length > 0) {
+            const first = lyricCandidates.value[0]
+            const autoResult = await window.electronAPI.fetchLyric(first.source, first.id)
+            if (autoResult?.lyrics?.length) {
+              currentLyrics.value = autoResult.lyrics
+              lyricSource.value = autoResult.source
+              lyricCandidateId.value = first.id
+              // 缓存结果（不生成本地文件）
+              lyricCache.set(lyricCacheKey, { source: autoResult.source, lyrics: autoResult.lyrics })
+              sendDesktopLyricsUpdate()
+            }
+          }
         }
       } catch {
         lyricCandidates.value = []
@@ -413,7 +421,7 @@ export const usePlayerStore = defineStore('player', () => {
     togglePlay, nextTrack, prevTrack, seek, setVolume,
     cyclePlayMode, updateTime, setDuration, onEnded,
     loadLyrics, selectLyricCandidate,
-    updateCacheLimits, getCacheInfo, clearAllCaches
+    updateCacheLimits, getCacheInfo, clearAllCaches, clearLyricCache
   }
 })
 

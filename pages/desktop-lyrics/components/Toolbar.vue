@@ -5,6 +5,8 @@
         class="tb-btn"
         :class="{ active: locked }"
         @click="$emit('toggleLock')"
+        @mouseenter="$emit('lockEnter')"
+        @mouseleave="$emit('lockLeave')"
         :title="locked ? '点击解锁' : '锁定（点击穿透）'"
       >
         <Icon :icon="locked ? 'mdi:lock-open-variant' : 'mdi:lock'" />
@@ -41,7 +43,7 @@ defineProps({
   trackTitle: String,
 })
 
-defineEmits(['toggleLock', 'prev', 'next', 'togglePlay', 'close', 'dragstart'])
+defineEmits(['toggleLock', 'prev', 'next', 'togglePlay', 'close', 'dragstart', 'lockEnter', 'lockLeave'])
 
 </script>
 

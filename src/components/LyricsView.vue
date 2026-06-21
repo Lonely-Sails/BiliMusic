@@ -6,35 +6,10 @@
         歌词
       </h2>
       <div class="lyrics-header-right">
-        <span v-if="player.lyricCandidates.length <= 1 && player.lyricSource" class="lyrics-source">
-          <Icon :icon="sourceIcon" />
-          {{ sourceLabel }}
-        </span>
-        <SelectRoot v-else-if="player.lyricCandidates.length > 1" v-model="selectedSourceValue">
-          <SelectTrigger class="lyric-select-trigger">
-            <img v-if="selectedCandidate?.cover" :src="selectedCandidate.cover + '@64w_64h'" class="lyric-select-cover" />
-            <SelectValue />
-            <Icon icon="mdi:chevron-down" class="lyric-select-chevron" />
-          </SelectTrigger>
-          <SelectPortal>
-            <SelectContent class="lyric-select-content" side="bottom" align="end">
-              <SelectViewport>
-                <SelectItem
-                  v-for="c in player.lyricCandidates"
-                  :key="c.source + c.id"
-                  :value="c.source + '|' + c.id"
-                  class="lyric-select-item"
-                >
-                  <img v-if="c.cover" :src="c.cover + '@64w_64h'" class="lyric-select-cover" />
-                  <div class="lyric-select-item-info">
-                    <SelectItemText>{{ c.sourceName }}</SelectItemText>
-                    <span class="lyric-select-item-song">{{ c.song }}</span>
-                  </div>
-                </SelectItem>
-              </SelectViewport>
-            </SelectContent>
-          </SelectPortal>
-        </SelectRoot>
+        <button class="lyrics-edit-btn" @click="openLyricsEditor">
+          <Icon icon="mdi:playlist-edit" />
+          编辑
+        </button>
       </div>
     </div>
 
@@ -76,57 +51,32 @@ import { ref, computed, watch } from 'vue'
 import { usePlayerStore } from '../stores/player'
 import { Icon } from '@iconify/vue'
 import {
-  SelectRoot, SelectTrigger, SelectValue,
-  SelectPortal, SelectContent, SelectViewport,
-  SelectItem, SelectItemText,
   ScrollAreaRoot, ScrollAreaViewport,
   ScrollAreaScrollbar, ScrollAreaThumb, ScrollAreaCorner
 } from 'reka-ui'
-
-const SOURCE_LABELS = {
-  subtitle: { label: 'B站字幕', icon: 'mdi:closed-caption' },
-  qqmusic: { label: 'QQ音乐', icon: 'mdi:music-note' },
-  netease: { label: '网易云音乐', icon: 'mdi:cloud-outline' },
-}
 
 export default {
   name: 'LyricsView',
   components: {
     Icon,
-    SelectRoot, SelectTrigger, SelectValue,
-    SelectPortal, SelectContent, SelectViewport,
-    SelectItem, SelectItemText,
     ScrollAreaRoot, ScrollAreaViewport,
     ScrollAreaScrollbar, ScrollAreaThumb, ScrollAreaCorner
   },
   setup() {
     const player = usePlayerStore()
     const lyricsScrollArea = ref(null)
-    const sourceLabel = ref('')
-    const sourceIcon = ref('')
     let lastActiveIndex = -1
 
-    watch(() => player.lyricSource, (val) => {
-      const info = SOURCE_LABELS[val]
-      sourceLabel.value = info?.label || ''
-      sourceIcon.value = info?.icon || ''
-    }, { immediate: true })
-
-    const selectedCandidate = computed(() => {
-      return player.lyricCandidates.find(c => c.id === player.lyricCandidateId) || player.lyricCandidates[0]
-    })
-
-    const selectedSourceValue = computed({
-      get: () => {
-        const c = selectedCandidate.value
-        return c ? `${c.source}|${c.id}` : undefined
-      },
-      set: (val) => {
-        if (!val) return
-        const [source, id] = val.split('|')
-        player.selectLyricCandidate(source, id)
+    function openLyricsEditor() {
+      if (window.electronAPI?.openLyricsEditor) {
+        const track = player.currentTrack
+        window.electronAPI.openLyricsEditor(track ? {
+          title: track.title || '',
+          bvid: track.bvid || '',
+          cid: track.cid || ''
+        } : null)
       }
-    })
+    }
 
     const activeIndex = computed(() => {
       const lyrics = player.currentLyrics
@@ -155,7 +105,7 @@ export default {
       }
     })
 
-    return { player, lyricsScrollArea, sourceLabel, sourceIcon, selectedCandidate, selectedSourceValue, activeIndex }
+    return { player, lyricsScrollArea, activeIndex, openLyricsEditor }
   }
 }
 </script>
@@ -218,16 +168,27 @@ export default {
   flex-shrink: 0;
 }
 
-/* ── 来源标签 ── */
-.lyrics-source {
-  font-size: 12px;
-  color: var(--text-muted);
-  background: var(--bg-card);
-  padding: 4px 12px;
-  border-radius: var(--radius-xl);
-  display: flex;
+/* ── 歌词编辑按钮 ── */
+.lyrics-edit-btn {
+  display: inline-flex;
   align-items: center;
   gap: 4px;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+  font-family: inherit;
+}
+
+.lyrics-edit-btn:hover {
+  background: var(--bg-hover);
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 /* ── 歌词滚动区 ── */
@@ -285,67 +246,6 @@ export default {
   font-size: 22px;
   font-weight: 700;
   text-shadow: 0 0 20px var(--accent-glow);
-}
-
-/* ── 来源选择器 (Reka UI Select) ── */
-.lyric-select-trigger {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  border-radius: var(--radius-xl);
-  border: 1px solid var(--border);
-  background: var(--bg-card);
-  color: var(--text-secondary);
-  font-size: 12px;
-  cursor: pointer;
-  transition: all var(--transition);
-  outline: none;
-  white-space: nowrap;
-}
-
-.lyric-select-trigger:hover {
-  border-color: var(--accent);
-  color: var(--text-primary);
-}
-
-.lyric-select-trigger:focus-visible {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent);
-}
-
-.lyric-select-cover {
-  width: 20px;
-  height: 20px;
-  border-radius: 4px;
-  object-fit: cover;
-  flex-shrink: 0;
-}
-
-.lyric-select-chevron {
-  font-size: 14px;
-  opacity: 0.6;
-  transition: transform 0.2s;
-}
-
-.lyric-select-trigger[data-state="open"] .lyric-select-chevron {
-  transform: rotate(180deg);
-}
-
-.lyric-select-item-info {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-}
-
-.lyric-select-item-song {
-  font-size: 11px;
-  color: var(--text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 160px;
 }
 
 /* ── 空状态 ── */
