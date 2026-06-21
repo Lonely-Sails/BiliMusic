@@ -5,7 +5,7 @@
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && mkdir -p dist-electron/preload && cp electron/preload/desktopLyrics.js electron/preload/lyricsEditor.js dist-electron/preload/",
+    "build": "vite build && cp -rf electron/preload dist-electron/",
     "preview": "vite preview",
     "start": "electron dist-electron/main.js",
     "pack": "npm run build && electron-builder --dir",
@@ -33,6 +33,7 @@
       "dist-electron/**/*"
     ],
     "mac": {
+      "icon": "icons/icon.icns",
       "target": [
         "dmg",
         "zip"
