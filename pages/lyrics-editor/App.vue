@@ -83,7 +83,8 @@
                   </span>
                 </div>
                 <template v-if="item.cover && !isCoverErrored(item)">
-                  <img :src="item.cover + '@48w_48h'" class="le-list-item-cover" @error="onCoverError(item)" />
+                  <img v-if="item.sourceName.includes('QQ')" :src="item.cover + '@48w_48h'" class="le-list-item-cover" @error="onCoverError(item)" />
+                  <img v-else :src="item.cover" class="le-list-item-cover" @error="onCoverError(item)" />
                 </template>
                 <div v-else-if="isCoverErrored(item)" class="le-list-item-cover-fallback">
                   <Icon icon="mdi:music" />

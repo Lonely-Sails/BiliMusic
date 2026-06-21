@@ -33,6 +33,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   readLocalLyric: (fileName) => ipcRenderer.invoke('lyric:read-local', fileName),
   saveLocalLyric: (fileName, content) => ipcRenderer.invoke('lyric:save-local', fileName, content),
 
+  // Tray
+  minimizeToTray: () => ipcRenderer.send('window:minimize-to-tray'),
+
   // Desktop Lyrics
   desktopLyricsToggle: () => ipcRenderer.send('desktop-lyrics:toggle'),
   desktopLyricsOpen: () => ipcRenderer.send('desktop-lyrics:open'),

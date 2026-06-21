@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, protocol, net, screen } from 'electron'
+import { app, BrowserWindow, ipcMain, protocol, net, screen, Tray, Menu, nativeImage } from 'electron'
 import { join } from 'path'
 import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync } from 'fs'
 
@@ -11,6 +11,7 @@ import { listFavFolders, listFavResources, addFav, removeFav } from './api/fav'
 import { getLyric, searchCandidates, fetchLyric } from './api/lyric'
 
 let mainWindow = null
+let tray = null
 let desktopLyricsWindow = null
 let lyricsEditorWindow = null
 let SESSION_PATH = ''
@@ -44,6 +45,14 @@ function createWindow() {
     mainWindow.show()
   })
 
+  // 点击关闭按钮时隐藏到托盘（不退出）
+  mainWindow.on('close', (event) => {
+    if (tray) {
+      event.preventDefault()
+      mainWindow.hide()
+    }
+  })
+
   // Add Referer header for Bilibili CDN resources (images/avatars) to avoid 403
   mainWindow.webContents.session.webRequest.onBeforeSendHeaders(
     { urls: ['*://i0.hdslb.com/*', '*://i1.hdslb.com/*', '*://i2.hdslb.com/*'] },
@@ -68,6 +77,66 @@ function createWindow() {
   } else {
     mainWindow.loadFile(join(__dirname, '../dist/index.html'))
   }
+}
+
+// ── Tray Icon ──
+function createTray() {
+  if (tray) return
+
+  const iconPath = join(__dirname, '../icons/tray_icon.png')
+  const icon = nativeImage.createFromPath(iconPath)
+
+  // macOS 标记为模板图像，自动适配亮暗模式
+  if (process.platform === 'darwin') {
+    icon.setTemplateImage(true)
+  }
+
+  tray = new Tray(icon)
+
+  tray.setToolTip('BiliMusic')
+
+  // 左键点击：显示/聚焦主窗口
+  tray.on('click', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      if (mainWindow.isMinimized()) mainWindow.restore()
+      mainWindow.show()
+      mainWindow.focus()
+    }
+  })
+
+  // 右键菜单
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: '显示主窗口',
+      click: () => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          if (mainWindow.isMinimized()) mainWindow.restore()
+          mainWindow.show()
+          mainWindow.focus()
+        }
+      }
+    },
+    {
+      label: '桌面歌词',
+      click: () => {
+        if (desktopLyricsWindow && !desktopLyricsWindow.isDestroyed() && desktopLyricsWindow.isVisible()) {
+          saveDesktopLyricsPosition()
+          desktopLyricsWindow.hide()
+        } else {
+          createDesktopLyricsWindow()
+        }
+      }
+    },
+    { type: 'separator' },
+    {
+      label: '退出',
+      click: () => {
+        app.quit()
+      }
+    }
+  ])
+
+  tray.setContextMenu(contextMenu)
 }
 
 // ── Desktop Lyrics Window ──
@@ -589,6 +658,13 @@ function setupIPC() {
     }
   })
 
+  // ── Tray IPC ──
+  ipcMain.on('window:minimize-to-tray', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.hide()
+    }
+  })
+
   // Handle window hide from desktop lyrics (隐藏而非销毁)
   ipcMain.on('desktop-lyrics:hide', () => {
     if (desktopLyricsWindow && !desktopLyricsWindow.isDestroyed()) {
@@ -620,6 +696,7 @@ app.whenReady().then(() => {
   initSession()
   setupIPC()
   createWindow()
+  createTray()
 
   // 如果上次桌面歌词是打开的，自动重新打开
   try {
@@ -633,10 +710,26 @@ app.whenReady().then(() => {
   } catch (e) {}
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.show()
+      mainWindow.focus()
+    } else {
+      createWindow()
+    }
   })
 })
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit()
+  // 有托盘图标时不退出，仅隐藏窗口
+  if (!tray) {
+    if (process.platform !== 'darwin') app.quit()
+  }
+})
+
+// 点击关闭按钮时隐藏而非退出
+app.on('before-quit', () => {
+  if (tray) {
+    tray.destroy()
+    tray = null
+  }
 })
