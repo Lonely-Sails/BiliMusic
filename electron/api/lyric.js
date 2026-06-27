@@ -3,7 +3,7 @@ import { join } from 'path'
 import { existsSync, readFileSync, mkdirSync, readdirSync } from 'fs'
 import { sign } from './sign'
 import { apiGet } from './client'
-import { parseLRC } from './lrc'
+import { parseLRC, mergeTranslations } from './lrc'
 import { searchCandidates, fetchLyric } from './lyricSources'
 
 function getLyricsDir() {
@@ -95,11 +95,17 @@ async function getLyric(bvid, cid, title) {
     const candidates = await searchCandidates(title)
     for (const c of candidates) {
       const result = await fetchLyric(c.source, c.id)
-      if (result) return result
+      if (result) {
+        // Merge translations into lyrics array
+        if (result.trans && result.trans.length > 0) {
+          result.lyrics = mergeTranslations(result.lyrics, result.trans)
+        }
+        return result
+      }
     }
   }
 
   return { source: 'none', lyrics: [] }
 }
 
-export { getLyric, parseLRC, searchCandidates, fetchLyric }
+export { getLyric, parseLRC, mergeTranslations, searchCandidates, fetchLyric }

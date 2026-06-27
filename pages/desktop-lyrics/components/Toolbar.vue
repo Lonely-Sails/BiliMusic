@@ -5,8 +5,8 @@
         class="tb-btn"
         :class="{ active: locked }"
         @click="$emit('toggleLock')"
-        @mouseenter="$emit('lockEnter')"
-        @mouseleave="$emit('lockLeave')"
+        @mouseenter="onLockEnter"
+        @mouseleave="onLockLeave"
         :title="locked ? '点击解锁' : '锁定（点击穿透）'"
       >
         <Icon :icon="locked ? 'mdi:lock-open-variant' : 'mdi:lock'" />
@@ -15,19 +15,19 @@
     </div>
 
     <div class="tb-center">
-      <button class="tb-btn ctrl-btn" @click="$emit('prev')" title="上一首">
+      <button class="tb-btn ctrl-btn" @click="prevTrack" title="上一首">
         <Icon icon="mdi:skip-previous" />
       </button>
-      <button class="tb-btn play-btn" @click="$emit('togglePlay')" title="播放/暂停">
-        <Icon :icon="playing ? 'mdi:pause' : 'mdi-play'" />
+      <button class="tb-btn play-btn" @click="togglePlay" title="播放/暂停">
+        <Icon :icon="playing ? 'mdi:pause' : 'mdi:play'" />
       </button>
-      <button class="tb-btn ctrl-btn" @click="$emit('next')" title="下一首">
+      <button class="tb-btn ctrl-btn" @click="nextTrack" title="下一首">
         <Icon icon="mdi:skip-next" />
       </button>
     </div>
 
     <div class="tb-right">
-      <button class="tb-btn" @click="$emit('close')" title="关闭桌面歌词">
+      <button class="tb-btn" @click="closeWindow" title="关闭桌面歌词">
         <Icon icon="mdi:close" />
       </button>
     </div>
@@ -37,13 +37,41 @@
 <script setup>
 import { Icon } from '@iconify/vue'
 
-defineProps({
+const props = defineProps({
   locked: Boolean,
   playing: Boolean,
   trackTitle: String,
 })
 
-defineEmits(['toggleLock', 'prev', 'next', 'togglePlay', 'close', 'dragstart', 'lockEnter', 'lockLeave'])
+defineEmits(['toggleLock', 'dragstart'])
+
+function prevTrack() {
+  window.desktopLyricsAPI?.prevTrack()
+}
+
+function nextTrack() {
+  window.desktopLyricsAPI?.nextTrack()
+}
+
+function togglePlay() {
+  window.desktopLyricsAPI?.togglePlay()
+}
+
+function closeWindow() {
+  window.desktopLyricsAPI?.hide()
+}
+
+function onLockEnter() {
+  if (props.locked) {
+    window.desktopLyricsAPI?.setIgnoreEvents(false)
+  }
+}
+
+function onLockLeave() {
+  if (props.locked) {
+    window.desktopLyricsAPI?.setIgnoreEvents(true)
+  }
+}
 
 </script>
 

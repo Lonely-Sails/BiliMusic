@@ -167,22 +167,25 @@
                 v-for="(line, i) in lyricLines"
                 :key="i"
                 class="le-lyric-line"
-                :class="{ selected: i === selectedLineIdx, 'after-selected': selectedLineIdx >= 0 && i > selectedLineIdx }"
+                :class="{ selected: i === selectedLineIdx, 'after-selected': selectedLineIdx >= 0 && i > selectedLineIdx, 'has-trans': !!line.trans }"
                 @click="selectLine(i)"
                 @dblclick="startEdit(i)"
               >
                 <span class="le-lyric-time">{{ formatTimeTag(line.time) }}</span>
-                <template v-if="editingLineIdx === i">
-                  <input
-                    ref="editInputRef"
-                    v-model="editText"
-                    class="le-lyric-edit-input"
-                    @blur="finishEdit(i)"
-                    @keyup.enter="finishEdit(i)"
-                    @keyup.escape="cancelEdit"
-                  />
-                </template>
-                <span v-else class="le-lyric-text">{{ line.text }}</span>
+                <div class="le-lyric-content">
+                  <template v-if="editingLineIdx === i">
+                    <input
+                      ref="editInputRef"
+                      v-model="editText"
+                      class="le-lyric-edit-input"
+                      @blur="finishEdit(i)"
+                      @keyup.enter="finishEdit(i)"
+                      @keyup.escape="cancelEdit"
+                    />
+                  </template>
+                  <span v-else class="le-lyric-text">{{ line.text }}</span>
+                  <span v-if="line.trans" class="le-lyric-trans">{{ line.trans }}</span>
+                </div>
                 <button
                   class="le-lyric-add-btn"
                   :class="{ show: hoveredLineIdx === i }"
@@ -441,7 +444,7 @@ export default {
     function parseLRC(lrcText) {
       if (!lrcText) return []
       const lines = lrcText.split('\n')
-      const result = []
+      const raw = []
       const timeRegex = /\[(\d{2}):(\d{2})\.(\d{2,3})\]/
       for (const line of lines) {
         const match = line.match(timeRegex)
@@ -452,10 +455,25 @@ export default {
           if (match[3].length === 2) millis *= 10
           const time = minutes * 60 + seconds + millis / 1000
           const text = line.replace(timeRegex, '').trim()
-          if (text) result.push({ time, text })
+          if (text) raw.push({ time, text })
         }
       }
-      return result.sort((a, b) => a.time - b.time)
+      raw.sort((a, b) => a.time - b.time)
+
+      // Merge consecutive lines with same timestamp into original + translation pairs
+      const result = []
+      for (let i = 0; i < raw.length; i++) {
+        const cur = raw[i]
+        const next = raw[i + 1]
+        if (next && Math.abs(next.time - cur.time) < 0.01) {
+          // Pair: original + translation
+          result.push({ time: cur.time, text: cur.text, trans: next.text })
+          i++ // skip the next line
+        } else {
+          result.push({ time: cur.time, text: cur.text })
+        }
+      }
+      return result
     }
 
     function serializeLRC(lines, songName, sourceName, bvid) {
@@ -468,12 +486,21 @@ export default {
         `[re:本歌词来源自网络搜索，仅供个人学习交流使用，请勿用于商业用途]`,
         ''
       ].filter(Boolean)
-      const body = lines.map(l => {
-        const m = Math.floor(l.time / 60)
-        const s = Math.floor(l.time % 60)
-        const ms = Math.floor((l.time % 1) * 100)
-        return `[${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${String(ms).padStart(2, '0')}]${l.text}`
-      })
+
+      function fmtTime(time) {
+        const m = Math.floor(time / 60)
+        const s = Math.floor(time % 60)
+        const ms = Math.floor((time % 1) * 100)
+        return `[${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${String(ms).padStart(2, '0')}]`
+      }
+
+      const body = []
+      for (const l of lines) {
+        body.push(`${fmtTime(l.time)}${l.text}`)
+        if (l.trans) {
+          body.push(`${fmtTime(l.time)}${l.trans}`)
+        }
+      }
       return [...header, ...body].join('\n')
     }
 
@@ -757,11 +784,26 @@ export default {
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.5px;
 }
-.le-lyric-text {
-  flex: 1; color: var(--text-primary);
-  line-height: 1.6; min-width: 0;
+.le-lyric-content {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; gap: 1px;
 }
+.le-lyric-text {
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+.le-lyric-line.has-trans .le-lyric-text { line-height: 1.4; }
 .le-lyric-line.selected .le-lyric-text { color: var(--accent); }
+.le-lyric-trans {
+  font-size: 11px;
+  color: var(--text-secondary);
+  opacity: 0.7;
+  line-height: 1.4;
+}
+.le-lyric-line.selected .le-lyric-trans {
+  color: var(--accent);
+  opacity: 0.6;
+}
 
 .le-lyric-edit-input {
   flex: 1; min-width: 0;

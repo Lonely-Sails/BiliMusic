@@ -6,6 +6,15 @@
         歌词
       </h2>
       <div class="lyrics-header-right">
+        <button
+          class="lyrics-edit-btn"
+          :class="{ active: player.showTranslation }"
+          :title="player.showTranslation ? '隐藏翻译' : '显示翻译'"
+          @click="player.toggleTranslation()"
+        >
+          <Icon icon="mdi:translate" />
+          {{ player.showTranslation ? '译' : '译' }}
+        </button>
         <button class="lyrics-edit-btn" @click="openLyricsEditor">
           <Icon icon="mdi:playlist-edit" />
           编辑
@@ -34,7 +43,12 @@
             class="lyric-line"
             :class="{ active: index === activeIndex }"
           >
-            {{ line.text || '♫' }}
+            <span class="lyric-line-text">{{ line.text || '♫' }}</span>
+            <span
+              v-if="player.showTranslation && line.trans"
+              class="lyric-line-trans"
+              :class="{ 'active-trans': index === activeIndex }"
+            >{{ line.trans }}</span>
           </div>
         </div>
       </ScrollAreaViewport>
@@ -191,6 +205,12 @@ export default {
   border-color: var(--accent);
 }
 
+.lyrics-edit-btn.active {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+
 /* ── 歌词滚动区 ── */
 .lyrics-scrollarea {
   flex: 1;
@@ -246,6 +266,29 @@ export default {
   font-size: 22px;
   font-weight: 700;
   text-shadow: 0 0 20px var(--accent-glow);
+}
+
+/* ── 歌词翻译 ── */
+.lyric-line-text {
+  display: block;
+}
+
+.lyric-line-trans {
+  display: block;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  opacity: 0.8;
+  line-height: 1.5;
+  margin-top: 2px;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.lyric-line-trans.active-trans {
+  color: var(--accent);
+  opacity: 0.75;
+  font-size: 15px;
+  text-shadow: 0 0 12px rgba(251, 114, 153, 0.25);
 }
 
 /* ── 空状态 ── */

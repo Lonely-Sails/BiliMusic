@@ -99,6 +99,14 @@
             <button class="toplist-play-btn" @click.stop="playToplist(item)">
               <Icon icon="mdi:play-circle-outline" />
             </button>
+            <button
+              v-if="user.loggedIn && user.favFolderId"
+              class="toplist-fav-btn"
+              :class="{ favorited: user.isFavorited(item.mv_bvid) }"
+              @click.stop="toggleToplistFav(item)"
+            >
+              <Icon :icon="user.isFavorited(item.mv_bvid) ? 'mdi:heart' : 'mdi:heart-outline'" />
+            </button>
           </div>
         </div>
       </section>
@@ -168,6 +176,7 @@ import { ref, onMounted, computed } from 'vue'
 import { Icon } from '@iconify/vue'
 import SongCard from './SongCard.vue'
 import { usePlayerStore } from '../stores/player'
+import { useUserStore } from '../stores/user'
 import {
   ProgressRoot, ProgressIndicator,
   ScrollAreaRoot, ScrollAreaViewport, ScrollAreaScrollbar, ScrollAreaThumb, ScrollAreaCorner
@@ -182,6 +191,7 @@ export default {
   },
   setup() {
     const player = usePlayerStore()
+    const user = useUserStore()
     const loading = ref(true)
     const error = ref('')
 
@@ -285,7 +295,7 @@ export default {
 
     function mapNewMusicItem(item) {
       return {
-        bvid: '',
+        bvid: item.bvid || '',
         aid: item.aid || 0,
         title: item.music_title,
         cover: item.cover || '',
@@ -305,6 +315,16 @@ export default {
       }
       if (track.bvid || track.aid) {
         player.playTrack(track)
+      }
+    }
+
+    async function toggleToplistFav(item) {
+      const favItem = {
+        bvid: item.mv_bvid || '',
+        aid: item.mv_aid || 0
+      }
+      if (favItem.bvid || favItem.aid) {
+        await user.toggleFav(favItem)
       }
     }
 
@@ -338,7 +358,8 @@ export default {
       banner, toplist, hotRank, newMusic,
       hero, maxHeat,
       loadAll, mapHotRankItem, playToplist, playHero,
-      addHeroToPlaylist, playNewMusic, formatHeat, player
+      addHeroToPlaylist, playNewMusic, formatHeat,
+      player, user, toggleToplistFav
     }
   }
 }
@@ -750,6 +771,34 @@ export default {
 .toplist-play-btn:hover {
   color: var(--accent);
   background: var(--accent-dim);
+}
+
+.toplist-fav-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  transition: all var(--transition);
+  border-radius: 50%;
+  margin-left: 2px;
+}
+
+.toplist-item:hover .toplist-fav-btn {
+  opacity: 1;
+}
+
+.toplist-fav-btn:hover {
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.toplist-fav-btn.favorited {
+  color: var(--accent);
 }
 
 

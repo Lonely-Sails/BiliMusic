@@ -15,7 +15,7 @@
             </button>
           </TooltipTrigger>
           <TooltipPortal>
-            <TooltipContent class="tooltip-content" :data-state="'instant-open'" side="top">
+            <TooltipContent class="tooltip-content" side="top">
               将当前页全部添加到播放列表
               <TooltipArrow class="tooltip-arrow" />
             </TooltipContent>
@@ -91,10 +91,17 @@ import { useUserStore } from '../stores/user'
 import { usePlayerStore } from '../stores/player'
 import { Icon } from '@iconify/vue'
 import SongCard from './SongCard.vue'
+import {
+  TooltipRoot, TooltipTrigger, TooltipPortal, TooltipContent, TooltipArrow,
+  TooltipProvider
+} from 'reka-ui'
 
 export default {
   name: 'FavView',
-  components: { Icon, SongCard },
+  components: { Icon, SongCard,
+    TooltipRoot, TooltipTrigger, TooltipPortal, TooltipContent, TooltipArrow,
+    TooltipProvider
+  },
   setup() {
     const user = useUserStore()
     const player = usePlayerStore()

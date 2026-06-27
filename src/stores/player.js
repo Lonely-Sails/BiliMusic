@@ -20,6 +20,7 @@ export const usePlayerStore = defineStore('player', () => {
   const lyricSource = ref('')
   const lyricCandidates = ref([])
   const lyricCandidateId = ref('')
+  const showTranslation = ref(loadFromStorage('bilimusic_show_translation', true))
 
   // Reference to the <audio> element (set by App.vue)
   let audioElement = null
@@ -36,6 +37,9 @@ export const usePlayerStore = defineStore('player', () => {
   watch(playlist, (val) => saveToStorage(STORAGE_KEYS.playlist, val), { deep: true })
   watch(volume, (val) => { saveToStorage(STORAGE_KEYS.volume, val); if (audioElement) audioElement.volume = val })
   watch(playMode, (val) => saveToStorage(STORAGE_KEYS.playMode, val))
+
+  // Persist showTranslation
+  watch(showTranslation, (val) => saveToStorage('bilimusic_show_translation', val))
 
   // Watch for track changes to update desktop lyrics
   watch(currentTrack, (track) => {
@@ -222,7 +226,8 @@ export const usePlayerStore = defineStore('player', () => {
 
     try {
       let cid = track.cid
-      if (!cid) {
+      // bvid 为空时也需要调用 getVideoInfo 拿到真实的 bvid
+      if (!cid || !track.bvid) {
         const info = await window.electronAPI.getVideoInfo(track.bvid || '', track.aid || 0)
         if (info && info.cid) {
           cid = info.cid
@@ -282,29 +287,27 @@ export const usePlayerStore = defineStore('player', () => {
 
     sendDesktopLyricsUpdate()
 
+    // 已有歌词（本地文件/字幕），不再搜索在线候选
+    if (currentLyrics.value.length > 0) {
+      lyricCandidates.value = []
+      return
+    }
+
     if (keyword) {
       try {
         const candidates = await window.electronAPI.searchLyricCandidates(keyword)
         lyricCandidates.value = candidates || []
-        if (lyricSource.value === 'subtitle') {
-          lyricCandidates.value.unshift({ source: 'subtitle', sourceName: 'B站字幕', id: 'subtitle', song: currentTrack.value?.title || '', singer: '' })
-          lyricCandidateId.value = 'subtitle'
-        } else {
-          const firstSrc = lyricCandidates.value.find((c) => c.source === lyricSource.value)
-          lyricCandidateId.value = firstSrc?.id || ''
-
-          // 首次播放无歌词时自动拉取第一个候选并塞入缓存
-          if (!currentLyrics.value.length && lyricCandidates.value.length > 0) {
-            const first = lyricCandidates.value[0]
-            const autoResult = await window.electronAPI.fetchLyric(first.source, first.id)
-            if (autoResult?.lyrics?.length) {
-              currentLyrics.value = autoResult.lyrics
-              lyricSource.value = autoResult.source
-              lyricCandidateId.value = first.id
-              // 缓存结果（不生成本地文件）
-              lyricCache.set(lyricCacheKey, { source: autoResult.source, lyrics: autoResult.lyrics })
-              sendDesktopLyricsUpdate()
-            }
+        // 首次播放无歌词时自动拉取第一个候选并塞入缓存
+        if (lyricCandidates.value.length > 0) {
+          const first = lyricCandidates.value[0]
+          const autoResult = await window.electronAPI.fetchLyric(first.source, first.id)
+          if (autoResult?.lyrics?.length) {
+            currentLyrics.value = autoResult.lyrics
+            lyricSource.value = autoResult.source
+            lyricCandidateId.value = first.id
+            // 缓存结果（不生成本地文件）
+            lyricCache.set(lyricCacheKey, { source: autoResult.source, lyrics: autoResult.lyrics })
+            sendDesktopLyricsUpdate()
           }
         }
       } catch {
@@ -345,11 +348,12 @@ export const usePlayerStore = defineStore('player', () => {
   function togglePlay() {
     if (!currentTrack.value) return
     if (!audioElement) return
+    if (!audioElement.src) return
 
     if (isPlaying.value) {
       audioElement.pause()
     } else {
-      audioElement.play()
+      audioElement.play().catch(() => {})
     }
     isPlaying.value = !isPlaying.value
   }
@@ -412,16 +416,20 @@ export const usePlayerStore = defineStore('player', () => {
     }
   }
 
+  function toggleTranslation() {
+    showTranslation.value = !showTranslation.value
+  }
+
   return {
     playlist, currentIndex, isPlaying, currentTime, duration,
     volume, playMode, currentLyrics, lyricSource, lyricCandidates,
-    lyricCandidateId,
+    lyricCandidateId, showTranslation,
     currentTrack, audioElement,
     setAudioElement, playTrack, addToPlaylist, playAtIndex,
     removeFromPlaylist, clearPlaylist, loadAndPlay,
     togglePlay, nextTrack, prevTrack, seek, setVolume,
     cyclePlayMode, updateTime, setDuration, onEnded,
-    loadLyrics, selectLyricCandidate,
+    loadLyrics, selectLyricCandidate, toggleTranslation,
     updateCacheLimits, getCacheInfo, clearAllCaches, clearLyricCache
   }
 })

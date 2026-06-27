@@ -35,7 +35,7 @@ const SOURCES = [
     },
     extractId: (item) => item.id,
     extractLyric: (data) => data.data?.lrc,
-    extractTrans: () => null,
+    extractTrans: (data) => data.data?.tlyric?.lyric || null,
   },
 ]
 

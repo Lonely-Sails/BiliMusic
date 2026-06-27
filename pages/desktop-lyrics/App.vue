@@ -9,23 +9,24 @@
       :playing="isPlaying"
       :track-title="trackTitle"
       @toggle-lock="toggleLock"
-      @prev="prevTrack"
-      @next="nextTrack"
-      @toggle-play="togglePlay"
-      @close="closeWindow"
       @dragstart="onDragStart"
-      @lock-enter="onLockEnter"
-      @lock-leave="onLockLeave"
     />
 
     <!-- 歌词区域 -->
-    <div class="lyrics-container">
+    <div class="lyrics-container" ref="containerRef">
       <div class="empty-text" v-if="!hasTrack">暂无播放</div>
       <div class="empty-text" v-else-if="lyrics.length === 0">暂无歌词</div>
-      <div class="lyrics-list" v-else ref="listRef">
-        <div class="lyric-line" />
-        <div class="lyric-line" />
-        <div class="lyric-line" />
+      <div v-else class="lyrics-list" :style="scrollStyle">
+        <div
+          class="lyric-line"
+          ref="lyricsRef"
+          v-for="(line, index) in lyrics"
+          :key="index"
+          :class="{ active: index === activeIdx, next: index === activeIdx + 1 }"
+        >
+          <span class="lyric-text">{{ line.text || '♫' }}</span>
+          <span class="lyric-trans" v-if="line.trans">{{ line.trans }}</span>
+        </div>
       </div>
     </div>
   </div>
@@ -49,7 +50,8 @@ const trackTitle   = ref('未在播放')
 const hasTrack     = ref(false)
 const isPlaying    = ref(false)
 const locked       = ref(false)
-const listRef      = ref(null)
+const containerRef = ref(null)
+const lyricsRef    = ref([])
 
 /* =========================
    自定义拖拽状态
@@ -72,6 +74,11 @@ const activeIdx = computed(() => {
     else if (t >= cur.time && t < nxt.time) return i
   }
   return -1
+})
+
+const scrollStyle = computed(() => {
+  if (activeIdx.value < 0 || (!lyricsRef.value.length)) return 0
+  return { transform: `translateY(-${lyricsRef.value[activeIdx.value].offsetTop}px)` }
 })
 
 /* =========================
@@ -140,12 +147,9 @@ function loadSettings() {
 /* =========================
    工具栏 — 鼠标进入窗口显示，离开窗口隐藏
    ========================= */
-let toolbarTimer
-
 function showToolbar() {
   clearTimeout(toolbarTimer)
   document.body.classList.add('hover')
-  // 锁定状态不显示背景
   if (!locked.value) {
     document.body.style.setProperty('--bg-alpha', '0.3')
   }
@@ -157,8 +161,7 @@ function hideToolbar() {
   document.body.style.setProperty('--bg-alpha', '0')
 }
 
-function onToolbarEnter() { showToolbar() }
-function onToolbarLeave() { hideToolbar() }
+let toolbarTimer
 
 /* =========================
    锁定 — 点击穿透
@@ -182,35 +185,6 @@ function applyLockState() {
   }
 }
 
-/* 锁定状态下悬浮解锁按钮时取消穿透，离开恢复 */
-function onLockEnter() {
-  if (locked.value) {
-    window.desktopLyricsAPI?.setIgnoreEvents(false)
-  }
-}
-
-function onLockLeave() {
-  if (locked.value) {
-    window.desktopLyricsAPI?.setIgnoreEvents(true)
-  }
-}
-
-function closeWindow() {
-  window.desktopLyricsAPI?.hide()
-}
-
-function prevTrack() {
-  window.desktopLyricsAPI?.prevTrack()
-}
-
-function nextTrack() {
-  window.desktopLyricsAPI?.nextTrack()
-}
-
-function togglePlay() {
-  window.desktopLyricsAPI?.togglePlay()
-}
-
 /* =========================
    IPC 通信
    ========================= */
@@ -221,13 +195,6 @@ function setupIPC() {
   api.onLyricsUpdate((data) => {
     const newLyrics = data.lyrics || []
     const newTime   = data.currentTime || 0
-
-    // 检测是否切歌（歌词长度变化或第一句文字变化）
-    // const isNewSong = newLyrics.length !== lyrics.value.length ||
-    //   (newLyrics.length > 0 && lyrics.value.length > 0 &&
-    //     newLyrics[0].text !== lyrics.value[0]?.text)
-
-    // if (isNewSong) resetSlots()
 
     lyrics.value      = newLyrics
     currentTime.value = newTime
@@ -257,100 +224,11 @@ function onKeyDown(e) {
   }
 }
 
-/** 重置状态 */
-function resetSlots(startIdx) {
-  const list = listRef.value
-  const arr = lyrics.value
-  if (!list || !arr.length || list.children.length < 3) return
-
-  for (const child of list.children) {
-    child.style = ''
-    child.className = 'lyric-line'
-    child.getAnimations().forEach(a => a.cancel())
-  }
-
-  const idx0 = startIdx
-  const idx1 = startIdx + 1
-  const idx2 = startIdx + 2
-
-  const ch = list.children
-  ch[0].textContent = arr[idx0]?.text || '♫'
-  ch[1].textContent = idx1 < arr.length ? (arr[idx1]?.text || '♫') : ''
-  ch[2].textContent = idx2 < arr.length ? (arr[idx2]?.text || '♫') : ''
-}
-
-watch(activeIdx, (newIdx, oldIdx) => {
-  nextTick(async () => {
-    const list = listRef.value
-    const arr = lyrics.value
-    if (!list || newIdx < 0 || !arr.length || list.children.length < 3) return
-
-    const ch = list.children
-
-    const activeEl  = ch[0]
-    const nextEl    = ch[1]
-    const standbyEl = ch[2]
-
-    if (newIdx !== oldIdx + 1) {
-      // ── 初始化（切歌/拖动进度/切换歌词） ──
-      resetSlots(newIdx)
-
-      activeEl.className = 'lyric-line active'
-      nextEl.className = 'lyric-line next'
-      standbyEl.className = 'lyric-line standby'
-
-      return
-    }
-
-    const fontSize = calcFontSize()
-
-    // 取消所有正在运行的动画和 onfinish 回调，防止旧动画干扰
-    resetSlots(newIdx - 1)
-
-    // ── 旧 active：向上淡出 ──
-    activeEl.style = ''
-    activeEl.className = 'lyric-line standby'
-    const activeAnimation = activeEl.animate([
-      { opacity: '1', transform: 'translateY(0)' },
-      { opacity: '0', transform: `translateY(-${fontSize}px)` },
-    ], { duration: 600, easing: 'cubic-bezier(0.22,1,0.36,1)', fill: 'forwards' })
-    activeAnimation.onfinish = () => {
-      // ── 回收旧 active → 移至底部，作为新 standby ──
-      const standbyIdx = newIdx + 2
-      activeEl.textContent = standbyIdx < arr.length ? (arr[standbyIdx]?.text || '♫') : ''
-      activeEl.style.position = ''
-      activeEl.className = 'lyric-line standby'
-      list.appendChild(activeEl)
-    }
-    activeEl.style.position = 'absolute'
-    // 设置偏移保持重拍后位置不变
-    nextEl.style.transform = `translateY(${fontSize}px)`
-    standbyEl.style.transform = `translateY(${fontSize}px)`
-
-    // ── 原 next → 新 active ──
-    nextEl.className = 'lyric-line active'
-    const nextAnimation = nextEl.animate([
-      { opacity: '0', transform: `translateY(${fontSize}px)` },
-      { opacity: '1', transform: 'translateY(0)' },
-    ], { duration: 700, easing: 'cubic-bezier(0.22,1,0.36,1)', fill: 'forwards' })
-    nextAnimation.onfinish = () => nextEl.style = ''
-
-    // ── 原 standby → 新 next，从下淡入 ──
-    // standbyEl.textContent = arr[standbyIdx]?.text || '♫'
-    standbyEl.className = 'lyric-line next'
-    // standbyEl.getAnimations().forEach(a => a.cancel())
-    const standbyAnimation = standbyEl.animate([
-      { opacity: '0', transform: `translateY(${fontSize}px)` },
-      { opacity: '1', transform: 'translateY(0)' },
-    ], { duration: 1000, easing: 'cubic-bezier(0.22,1,0.36,1)', fill: 'forwards' })
-    standbyAnimation.onfinish = () => standbyEl.style = ''
-  })
-})
-
 /* =========================
    窗口 resize
    ========================= */
 function onResize() {
+  currentTime.value = currentTime.value // 触发滚动
   applyFontSize()
 }
 
@@ -376,7 +254,6 @@ onUnmounted(() => {
   window.removeEventListener('resize', onResize)
   document.documentElement.removeEventListener('mouseenter', showToolbar)
   document.documentElement.removeEventListener('mouseleave', hideToolbar)
-  // 清理拖拽状态
   document.removeEventListener('mousemove', onDragMove)
   document.removeEventListener('mouseup', onDragEnd)
 })
@@ -387,12 +264,8 @@ onUnmounted(() => {
 
 :root {
   --lyric-font-size: 20px;
-  --toolbar-h: 32px;
-  --body-radius: 12px;
-  --body-pad: 4px;
   --accent: #fb7299;
   --text: #e8e8f0;
-  --text-dim: #9494b8;
 }
 
 html, body {
@@ -409,8 +282,8 @@ body {
   display: flex;
   flex-direction: column;
   background: rgba(0,0,0,var(--bg-alpha, 0));
-  border-radius: var(--body-radius);
-  padding: var(--body-pad);
+  border-radius: var(--body-radius, 12px);
+  padding: var(--body-pad, 4px);
   position: relative;
 }
 
@@ -422,9 +295,6 @@ body {
   position: relative;
 }
 
-/* ===========================
-   工具栏 — 可见性由 body.hover 控制
-   =========================== */
 .desktop-toolbar {
   flex-shrink: 0;
   visibility: hidden;
@@ -439,7 +309,6 @@ body.hover {
 
 body.locked .desktop-toolbar { display: flex; }
 
-/* 悬停触发条 – 覆盖窗口顶部区域 */
 .hover-trigger {
   position: absolute;
   top: 0; left: 0; right: 0;
@@ -447,16 +316,7 @@ body.locked .desktop-toolbar { display: flex; }
   z-index: 5;
 }
 
-
-
-/* ===========================
-   歌词容器
-   =========================== */
 .lyrics-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
   padding: 8px 16px;
   overflow: hidden;
   z-index: 1;
@@ -467,31 +327,53 @@ body.locked .desktop-toolbar { display: flex; }
   text-align: center;
   width: 100%;
   will-change: transform;
+  transition: transform .5s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .lyric-line {
   padding: 4px 0;
   font-size: var(--lyric-font-size);
-  color: rgba(232,232,240,0.4);
-  transition: color 0.7s cubic-bezier(0.22,1,0.36,1),
-              text-shadow 0.7s cubic-bezier(0.22,1,0.36,1),
-              font-size 0.7s cubic-bezier(0.22,1,0.36,1);
+  color: rgb(121, 121, 121);
+  /* transition: color, opacity, text-shadow 0.7s cubic-bezier(0.22,1,0.36,1); */
+  transition: color 1s cubic-bezier(0.22, 1, 0.36, 1),
+              opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+              text-shadow 0.7s,
+              transform 1.5s cubic-bezier(0.22, 1, 0.36, 1);
+  transform: translateY(20px);
   line-height: 1.4;
   white-space: nowrap;
-  overflow: hidden;
+  /* overflow: hidden; */
   text-overflow: ellipsis;
-  will-change: transform, opacity;
   width: 100%;
+  opacity: 0;
+  will-change: opacity, transform, color, text-shadow;
+}
+
+.lyric-text { display: block; }
+
+.lyric-trans {
+  display: block;
+  font-size: 0.65em;
+  font-weight: 400;
+  line-height: 1.3;
+}
+
+.lyric-line.active .lyric-trans {
+  font-weight: 600;
+  color: rgba(251,114,153,0.8);
+}
+
+.lyric-line.next, .lyric-line.active {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .lyric-line.active {
   color: var(--accent);
   font-weight: 700;
-  font-size: calc(var(--lyric-font-size) * 1.1);
-  text-shadow: 0 0 24px rgba(251,114,153,0.5), 0 0 48px rgba(251,114,153,0.15);
+  transform: scale(1.05);
+  text-shadow: 0 0 12px rgba(251,114,153,0.5), 0 0 24px rgba(251,114,153,0.15);
 }
-.lyric-line.next { color: rgba(232,232,240,0.45); }
-.lyric-line.standby { opacity: 0; }
 
 .empty-text {
   color: rgba(232,232,240,0.6);
@@ -500,5 +382,6 @@ body.locked .desktop-toolbar { display: flex; }
   text-align: center;
   letter-spacing: 2px;
   text-shadow: 0 2px 16px rgba(0,0,0,0.5);
+  line-height: 2.5;
 }
 </style>
