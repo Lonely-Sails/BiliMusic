@@ -341,7 +341,7 @@ export default {
 
     function playNewMusic(item) {
       const track = mapNewMusicItem(item)
-      if (track.aid) {
+      if (track.bvid || track.aid) {
         player.playTrack(track)
       }
     }
@@ -593,7 +593,6 @@ export default {
 .toplist {
   display: flex;
   flex-direction: column;
-  gap: 4px;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);

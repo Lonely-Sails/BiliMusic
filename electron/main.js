@@ -138,7 +138,9 @@ function createTray() {
     }
   ])
 
-  tray.setContextMenu(contextMenu)
+  tray.on('right-click', () => {
+    tray.popUpContextMenu(contextMenu)
+  })
 }
 
 // ── Desktop Lyrics Window ──

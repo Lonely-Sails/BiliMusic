@@ -225,7 +225,7 @@ export const usePlayerStore = defineStore('player', () => {
     clearCurrentState()
 
     try {
-      let cid = track.cid
+      let cid = track.cid === '0' ? null : track.cid
       // bvid 为空时也需要调用 getVideoInfo 拿到真实的 bvid
       if (!cid || !track.bvid) {
         const info = await window.electronAPI.getVideoInfo(track.bvid || '', track.aid || 0)
@@ -254,6 +254,7 @@ export const usePlayerStore = defineStore('player', () => {
           audioCache.set(audioCacheKey, audioData)
         }
       }
+      console.log(audioData)
       if (audioData?.url) {
         const proxyUrl = 'bili://' + encodeURIComponent(audioData.url)
         audioElement.src = proxyUrl
