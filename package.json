@@ -2,36 +2,34 @@
   "name": "bili-music",
   "version": "1.0.0",
   "description": "Bilibili video-based music player",
+  "author": "LonelySail",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
     "start": "electron dist-electron/main.js",
-    "pack": "npm run build && electron-builder --dir",
-    "dist": "npm run build && electron-builder",
-    "dist:mac": "npm run build && electron-builder --mac --publish never",
-    "dist:win": "npm run build && electron-builder --win --publish never",
-    "dist:linux": "npm run build && electron-builder --linux --publish never"
+    "pack": "bun run build && electron-builder --dir",
+    "dist": "bun run build && electron-builder",
+    "dist:mac": "bun run build && electron-builder --mac --publish never",
+    "dist:win": "bun run build && electron-builder --win --publish never",
+    "dist:linux": "bun run build && electron-builder --linux --publish never"
   },
   "dependencies": {
-    "@iconify/vue": "^5.0.1",
-    "pinia": "^3.0.4",
-    "qrcode": "^1.5.4",
-    "reka-ui": "^2.10.1",
-    "vue": "^3.5.39",
-    "vue-router": "^4.6.4"
+    "qrcode": "^1.5.4"
   },
   "build": {
     "appId": "com.bilimusic.app",
     "productName": "BiliMusic",
+    "electronLanguages": ["en-US", "zh-CN"],
     "directories": {
       "output": "release"
     },
     "files": [
       "dist/**/*",
       "dist-electron/**/*",
-      "icons/tray_icon.png"
+      "icons/tray_icon.png",
+      "!node_modules/**/*"
     ],
     "mac": {
       "icon": "icons/app/macos/icon.icns",
@@ -42,13 +40,13 @@
       "category": "public.app-category.music"
     },
     "win": {
-      "icon": "icons/app/windows/icon_256x256.png",
+      "icon": "icons/app/icon.png",
       "target": [
         "nsis"
       ]
     },
     "linux": {
-      "icon": "icons/app/windows/icon_256x256.png",
+      "icon": "icons/app/icon.png",
       "target": [
         "AppImage"
       ],
@@ -61,6 +59,11 @@
     "electron-builder": "^26.15.3",
     "vite": "^6.4.3",
     "vite-plugin-electron": "^0.29.1",
-    "vite-plugin-electron-renderer": "^0.14.7"
+    "vite-plugin-electron-renderer": "^0.14.7",
+    "reka-ui": "^2.10.1",
+    "vue": "^3.5.39",
+    "vue-router": "^4.6.4",
+    "pinia": "^3.0.4",
+    "@iconify/vue": "^5.0.1"
   }
 }
