@@ -42,11 +42,13 @@
       "category": "public.app-category.music"
     },
     "win": {
+      "icon": "icons/app/windows/icon.ico",
       "target": [
         "nsis"
       ]
     },
     "linux": {
+      "icon": "icons/app/windows",
       "target": [
         "AppImage"
       ],

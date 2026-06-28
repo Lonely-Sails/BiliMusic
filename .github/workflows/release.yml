@@ -1,0 +1,105 @@
+name: Build and Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  # ── Linux x64 (AppImage) ──
+  build-linux:
+    name: 🐧 Linux (AppImage)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build & package
+        run: bun run dist:linux
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/*.AppImage
+            release/*.AppImage.blockmap
+          tag_name: ${{ github.event.release.tag_name }}
+
+  # ── macOS Intel (x64) ──
+  build-mac-x64:
+    name: 🍎 macOS (x64)
+    runs-on: macos-13
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build & package
+        run: bun run dist:mac
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/*.dmg
+            release/*.dmg.blockmap
+          tag_name: ${{ github.event.release.tag_name }}
+
+  # ── macOS Apple Silicon (arm64) ──
+  build-mac-arm64:
+    name: 🍎 macOS (arm64)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build & package
+        run: bun run dist:mac
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/*.dmg
+            release/*.dmg.blockmap
+          tag_name: ${{ github.event.release.tag_name }}
+
+  # ── Windows x64 (NSIS Installer) ──
+  build-win:
+    name: 🪟 Windows (NSIS)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build & package
+        run: bun run dist:win
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/*.exe
+            release/*.exe.blockmap
+          tag_name: ${{ github.event.release.tag_name }}
