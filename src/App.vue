@@ -1,14 +1,27 @@
 <template>
   <div class="app-container">
     <!-- Header -->
-    <header class="app-header">
+    <header class="app-header" :class="{ 'is-mac': isMac }">
+      <!-- 窗口控制按钮 (Win/Linux) -->
+      <div class="window-controls" v-if="!isMac">
+        <button class="win-btn win-btn-minimize" @click="minimizeWindow" title="最小化">
+          <Icon icon="mdi:window-minimize" />
+        </button>
+        <button class="win-btn win-btn-maximize" @click="maximizeWindow" :title="isMaxed ? '还原' : '最大化'">
+          <Icon :icon="isMaxed ? 'mdi:window-restore' : 'mdi:window-maximize'" />
+        </button>
+        <button class="win-btn win-btn-close" @click="closeWindow" title="关闭">
+          <Icon icon="mdi:close" />
+        </button>
+      </div>
+
       <div class="header-left drag-region">
         <div class="logo">
           <Icon icon="mdi:music-note" class="logo-icon" />
           <span class="logo-text">BiliMusic</span>
         </div>
       </div>
-      <div class="header-center search-wrapper">
+      <div class="drag-region header-center search-wrapper">
         <AutocompleteRoot
           class="autocomplete-root"
           v-model="searchQuery"
@@ -231,6 +244,14 @@ export default {
     const history = ref([])
     let suggestTimer = null
 
+    // 平台检测 & 窗口控制
+    const isMac = ref(navigator.platform.startsWith('Mac'))
+    const isMaxed = ref(false)
+
+    function minimizeWindow() { window.electronAPI?.minimizeWindow() }
+    function maximizeWindow() { window.electronAPI?.maximizeWindow() }
+    function closeWindow() { window.electronAPI?.closeWindow() }
+
     function loadHistory() {
       try {
         const raw = localStorage.getItem(HISTORY_KEY)
@@ -311,6 +332,14 @@ export default {
 
       loadHistory()
 
+      // 窗口最大化状态
+      window.electronAPI?.isMaximized().then(maximized => {
+        isMaxed.value = maximized
+      })
+      window.electronAPI?.onMaximizeChange((maximized) => {
+        isMaxed.value = maximized
+      })
+
       // 启动时初始化 B站 session（buvid cookie + 可能的登录态）
       window.electronAPI.ensureSession().catch((e) => {
         console.warn('Session init failed:', e)
@@ -332,7 +361,8 @@ export default {
     return {
       searchQuery, audioRef, player, user, doSearch, toasts,
       showDropdown, suggestions, hotSearch, history,
-      onInput, clearHistory, selectSuggestion
+      onInput, clearHistory, selectSuggestion,
+      isMac, isMaxed, minimizeWindow, maximizeWindow, closeWindow
     }
   }
 }

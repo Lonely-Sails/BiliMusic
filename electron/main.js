@@ -26,13 +26,17 @@ let currentTrackInfo = null
 const PROJECT_ROOT = join(__dirname, '..')
 
 function createWindow() {
+  const isMac = process.platform === 'darwin'
+
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     minWidth: 900,
     minHeight: 600,
-    titleBarStyle: 'hiddenInset',
-    frame: true,
+    ...(isMac
+      ? { titleBarStyle: 'hiddenInset', trafficLightPosition: { x: 18, y: 22 } }
+      : { frame: false }
+    ),
     webPreferences: {
       preload: join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -45,6 +49,14 @@ function createWindow() {
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show()
+  })
+
+  // 最大化/还原通知
+  mainWindow.on('maximize', () => {
+    mainWindow.webContents.send('window:maximize-change', true)
+  })
+  mainWindow.on('unmaximize', () => {
+    mainWindow.webContents.send('window:maximize-change', false)
   })
 
   // 点击关闭按钮时隐藏到托盘（不退出）
@@ -773,6 +785,33 @@ function setupIPC() {
   ipcMain.on('desktop-lyrics:minimize', () => {
     if (desktopLyricsWindow && !desktopLyricsWindow.isDestroyed()) {
       desktopLyricsWindow.minimize()
+    }
+  })
+
+  // ── Window Controls ──
+  ipcMain.on('window:minimize', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.minimize()
+    }
+  })
+
+  ipcMain.on('window:maximize', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      if (mainWindow.isMaximized()) {
+        mainWindow.unmaximize()
+      } else {
+        mainWindow.maximize()
+      }
+    }
+  })
+
+  ipcMain.handle('window:is-maximized', () => {
+    return mainWindow && !mainWindow.isDestroyed() && mainWindow.isMaximized()
+  })
+
+  ipcMain.on('window:close-app', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.close()
     }
   })
 

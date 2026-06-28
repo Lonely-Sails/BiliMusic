@@ -169,9 +169,9 @@
 
 <script>
 import { ref, reactive, onMounted } from 'vue'
-import { useUserStore } from '../stores/user'
-import { usePlayerStore } from '../stores/player'
-import { useToast } from '../stores/toast'
+import { useUserStore } from '../../stores/user'
+import { usePlayerStore } from '../../stores/player'
+import { useToast } from '../../stores/toast'
 import { Icon } from '@iconify/vue'
 import {
   SelectRoot, SelectTrigger, SelectValue, SelectPortal,

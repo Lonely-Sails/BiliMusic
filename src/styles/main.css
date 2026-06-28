@@ -79,18 +79,71 @@ html, body {
   -webkit-app-region: drag;
 }
 
+/* macOS: 给原生红绿灯留出空间 */
+.app-header.is-mac {
+  padding-left: 80px;
+}
+
 .drag-region { -webkit-app-region: drag; }
+
+/* ===== Window Controls (Win/Linux) ===== */
+.window-controls {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-shrink: 0;
+  -webkit-app-region: no-drag;
+  margin-left: -20px;       /* 抵消 header 的 padding-left */
+  height: var(--header-height);
+}
+
+.win-btn {
+  width: 46px;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: background 0.15s, color 0.15s;
+  -webkit-app-region: no-drag;
+}
+
+.win-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+.win-btn-close:hover {
+  background: #e81123;
+  color: #ffffff;
+}
+
+.win-btn svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+}
+
+.win-btn-minimize svg {
+  width: 12px;
+  height: 12px;
+}
 
 .header-left {
   display: flex;
   align-items: center;
   min-width: 140px;
+  padding-left: 16px;
 }
 
 .logo {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 4px;
 }
 
 .logo-icon { font-size: 26px; color: var(--accent); }

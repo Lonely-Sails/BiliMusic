@@ -44,6 +44,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openLyricsFolder: () => ipcRenderer.invoke('lyric:open-folder'),
   clearLocalLyrics: () => ipcRenderer.invoke('lyric:clear-local'),
 
+  // Window Controls
+  minimizeWindow: () => ipcRenderer.send('window:minimize'),
+  maximizeWindow: () => ipcRenderer.send('window:maximize'),
+  closeWindow: () => ipcRenderer.send('window:close-app'),
+  isMaximized: () => ipcRenderer.invoke('window:is-maximized'),
+  onMaximizeChange: (callback) => {
+    ipcRenderer.on('window:maximize-change', (event, maximized) => callback(maximized))
+  },
+  getPlatform: () => process.platform,
+
   // Tray
   minimizeToTray: () => ipcRenderer.send('window:minimize-to-tray'),
 

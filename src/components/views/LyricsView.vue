@@ -62,7 +62,7 @@
 
 <script>
 import { ref, computed, watch } from 'vue'
-import { usePlayerStore } from '../stores/player'
+import { usePlayerStore } from '../../stores/player'
 import { Icon } from '@iconify/vue'
 import {
   ScrollAreaRoot, ScrollAreaViewport,

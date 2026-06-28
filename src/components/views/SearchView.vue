@@ -44,9 +44,9 @@
 <script>
 import { ref, watch, inject } from 'vue'
 import { useRoute } from 'vue-router'
-import { usePlayerStore } from '../stores/player'
+import { usePlayerStore } from '../../stores/player'
 import { Icon } from '@iconify/vue'
-import SongCard from './SongCard.vue'
+import SongCard from '../SongCard.vue'
 
 export default {
   name: 'SearchView',

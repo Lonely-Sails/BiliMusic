@@ -87,10 +87,10 @@
 
 <script>
 import { ref, onMounted, watch } from 'vue'
-import { useUserStore } from '../stores/user'
-import { usePlayerStore } from '../stores/player'
+import { useUserStore } from '../../stores/user'
+import { usePlayerStore } from '../../stores/player'
 import { Icon } from '@iconify/vue'
-import SongCard from './SongCard.vue'
+import SongCard from '../SongCard.vue'
 import {
   TooltipRoot, TooltipTrigger, TooltipPortal, TooltipContent, TooltipArrow,
   TooltipProvider

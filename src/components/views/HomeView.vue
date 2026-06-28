@@ -174,9 +174,9 @@
 <script>
 import { ref, onMounted, computed } from 'vue'
 import { Icon } from '@iconify/vue'
-import SongCard from './SongCard.vue'
-import { usePlayerStore } from '../stores/player'
-import { useUserStore } from '../stores/user'
+import SongCard from '../SongCard.vue'
+import { usePlayerStore } from '../../stores/player'
+import { useUserStore } from '../../stores/user'
 import {
   ProgressRoot, ProgressIndicator,
   ScrollAreaRoot, ScrollAreaViewport, ScrollAreaScrollbar, ScrollAreaThumb, ScrollAreaCorner

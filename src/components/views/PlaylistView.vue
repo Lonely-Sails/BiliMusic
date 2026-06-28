@@ -92,8 +92,8 @@
 </template>
 
 <script>
-import { usePlayerStore } from '../stores/player'
-import { useUserStore } from '../stores/user'
+import { usePlayerStore } from '../../stores/player'
+import { useUserStore } from '../../stores/user'
 import { Icon } from '@iconify/vue'
 import {
   TooltipRoot, TooltipTrigger, TooltipPortal, TooltipContent, TooltipArrow,
