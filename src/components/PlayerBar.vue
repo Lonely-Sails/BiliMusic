@@ -1,7 +1,7 @@
 <template>
   <div class="player-bar">
     <!-- Track Info -->
-    <div class="player-track-info">
+    <div class="player-track-info" @click="openLyricsOverlay" :style="{ cursor: player.currentTrack ? 'pointer' : 'default' }">
       <div class="player-cover" v-if="player.currentTrack">
         <img :src="player.currentTrack.cover + '@96w_96h.webp'" :alt="player.currentTrack.title" />
       </div>
@@ -84,9 +84,9 @@
 
           <TooltipRoot>
             <TooltipTrigger as-child>
-              <router-link to="/lyrics" class="ctrl-btn" :class="{ active: isLyricsRoute }">
+              <button class="ctrl-btn" @click="openLyricsOverlay" :disabled="!player.currentTrack">
                 <Icon icon="mdi:microphone" />
-              </router-link>
+              </button>
             </TooltipTrigger>
             <TooltipPortal>
               <TooltipContent class="tooltip-content" :data-state="'instant-open'" side="top">
@@ -154,8 +154,7 @@
 </template>
 
 <script>
-import { computed, ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed, ref, onMounted, inject } from 'vue'
 import { usePlayerStore } from '../stores/player'
 import { Icon } from '@iconify/vue'
 import {
@@ -174,10 +173,10 @@ export default {
   },
   setup() {
     const player = usePlayerStore()
-    const route = useRoute()
     const muted = ref(false)
     const prevVolume = ref(0.7)
     const desktopLyricsOpen = ref(false)
+    const toggleLyricsOverlay = inject('toggleLyricsOverlay', () => {})
 
     // 监听桌面歌词窗口可见性变化，同步状态
     onMounted(() => {
@@ -195,7 +194,11 @@ export default {
       }
     })
 
-    const isLyricsRoute = computed(() => route.path === '/lyrics')
+    function openLyricsOverlay() {
+      if (player.currentTrack) {
+        toggleLyricsOverlay()
+      }
+    }
 
     const modeIcon = computed(() => {
       return ['mdi:repeat', 'mdi:shuffle', 'mdi:repeat-once'][player.playMode]
@@ -235,7 +238,7 @@ export default {
       return `${m}:${String(s).padStart(2, '0')}`
     }
 
-    return { player, route, muted, desktopLyricsOpen, isLyricsRoute, modeIcon, modeText, volumeIcon, toggleMute, toggleDesktopLyrics, formatTime }
+    return { player, muted, desktopLyricsOpen, modeIcon, modeText, volumeIcon, toggleMute, toggleDesktopLyrics, formatTime, openLyricsOverlay }
   }
 }
 </script>

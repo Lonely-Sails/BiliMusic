@@ -130,10 +130,7 @@
             <Icon icon="mdi:star-outline" class="nav-icon" />
             <span class="nav-text">收藏夹</span>
           </router-link>
-          <router-link to="/lyrics" class="nav-item" active-class="active">
-            <Icon icon="mdi:microphone" class="nav-icon" />
-            <span class="nav-text">歌词</span>
-          </router-link>
+          <!-- 歌词已改为封面点击滑入弹层 -->
         </nav>
         <div class="sidebar-spacer"></div>
         <nav class="sidebar-nav sidebar-nav-bottom">
@@ -160,6 +157,12 @@
 
     <!-- Player Bar -->
     <PlayerBar />
+
+    <!-- Lyrics Overlay (从下滑入) -->
+    <LyricsOverlay
+      :visible="showLyricsOverlay"
+      @close="showLyricsOverlay = false"
+    />
 
     <!-- Hidden audio element -->
     <audio
@@ -201,6 +204,7 @@ import { useUserStore } from './stores/user'
 import { useToast } from './stores/toast'
 import { Icon } from '@iconify/vue'
 import PlayerBar from './components/PlayerBar.vue'
+import LyricsOverlay from './components/LyricsOverlay.vue'
 import LoginPanel from './components/LoginPanel.vue'
 import {
   ScrollAreaRoot, ScrollAreaViewport,
@@ -218,7 +222,7 @@ const MAX_HISTORY = 20
 export default {
   name: 'App',
   components: {
-    PlayerBar, LoginPanel, Icon,
+    PlayerBar, LyricsOverlay, LoginPanel, Icon,
     ScrollAreaRoot, ScrollAreaViewport,
     ScrollAreaScrollbar, ScrollAreaThumb, ScrollAreaCorner,
     AutocompleteRoot, AutocompleteAnchor, AutocompleteInput,
@@ -235,7 +239,12 @@ export default {
     const { toasts } = useToast()
     const router = useRouter()
     const searchKey = ref(0)
+    // 歌词弹层状态
+    const showLyricsOverlay = ref(false)
     provide('searchKey', searchKey)
+    provide('toggleLyricsOverlay', () => {
+      showLyricsOverlay.value = !showLyricsOverlay.value
+    })
 
     // 搜索下拉面板
     const showDropdown = ref(false)
@@ -359,7 +368,7 @@ export default {
     }
 
     return {
-      searchQuery, audioRef, player, user, doSearch, toasts,
+      searchQuery, audioRef, player, user, doSearch, toasts, showLyricsOverlay,
       showDropdown, suggestions, hotSearch, history,
       onInput, clearHistory, selectSuggestion,
       isMac, isMaxed, minimizeWindow, maximizeWindow, closeWindow

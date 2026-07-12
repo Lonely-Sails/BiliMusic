@@ -28,8 +28,7 @@
     "files": [
       "dist/**/*",
       "dist-electron/**/*",
-      "icons/tray_icon.png",
-      "!node_modules/**/*"
+      "icons/tray_icon.png"
     ],
     "mac": {
       "icon": "icons/app/macos/icon.icns",

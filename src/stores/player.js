@@ -18,6 +18,7 @@ export const usePlayerStore = defineStore('player', () => {
   const playMode = ref(loadFromStorage(STORAGE_KEYS.playMode, 0))
   const currentLyrics = ref([])
   const lyricSource = ref('')
+  const lyricFileName = ref('')
   const lyricCandidates = ref([])
   const lyricCandidateId = ref('')
   const showTranslation = ref(loadFromStorage('bilimusic_show_translation', true))
@@ -281,6 +282,20 @@ export const usePlayerStore = defineStore('player', () => {
       }
       currentLyrics.value = result.lyrics || []
       lyricSource.value = result.source || ''
+      // 记录原始 LRC 文件名（和编辑器行为一致：本地文件用原名，其他用标题生成）
+      lyricFileName.value = ''
+      if (result?.source === 'local' && window.electronAPI?.listLocalLyrics) {
+        try {
+          const localFiles = await window.electronAPI.listLocalLyrics()
+          const kw = keyword.toLowerCase()
+          const matched = localFiles.find(f => {
+            const fName = f.fileName.replace('.lrc', '').toLowerCase()
+            const fSong = (f.song || '').toLowerCase()
+            return fSong === kw || fName === kw || fSong.includes(kw) || kw.includes(fSong)
+          })
+          if (matched) lyricFileName.value = matched.fileName
+        } catch {}
+      }
     } catch {
       currentLyrics.value = []
       lyricSource.value = ''
@@ -423,7 +438,7 @@ export const usePlayerStore = defineStore('player', () => {
 
   return {
     playlist, currentIndex, isPlaying, currentTime, duration,
-    volume, playMode, currentLyrics, lyricSource, lyricCandidates,
+    volume, playMode, currentLyrics, lyricSource, lyricFileName, lyricCandidates,
     lyricCandidateId, showTranslation,
     currentTrack, audioElement,
     setAudioElement, playTrack, addToPlaylist, playAtIndex,
