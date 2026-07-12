@@ -5,20 +5,21 @@
     "": {
       "name": "bili-music",
       "dependencies": {
-        "@iconify/vue": "^5.0.1",
-        "pinia": "^3.0.4",
         "qrcode": "^1.5.4",
-        "reka-ui": "^2.10.1",
-        "vue": "^3.5.39",
-        "vue-router": "^4.6.4",
       },
       "devDependencies": {
+        "@iconify/json": "^2.2.498",
+        "@iconify/vue": "^5.0.1",
         "@vitejs/plugin-vue": "^5.2.4",
-        "electron": "42.4.0",
+        "electron": "^42.4.0",
         "electron-builder": "^26.15.3",
+        "pinia": "^3.0.4",
+        "reka-ui": "^2.10.1",
         "vite": "^6.4.3",
         "vite-plugin-electron": "^0.29.1",
         "vite-plugin-electron-renderer": "^0.14.7",
+        "vue": "^3.5.39",
+        "vue-router": "^4.6.4",
       },
     },
   },
@@ -108,6 +109,8 @@
     "@floating-ui/utils": ["@floating-ui/utils@0.2.11", "", {}, "sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg=="],
 
     "@floating-ui/vue": ["@floating-ui/vue@1.1.11", "", { "dependencies": { "@floating-ui/dom": "^1.7.6", "@floating-ui/utils": "^0.2.11", "vue-demi": ">=0.13.0" } }, "sha512-HzHKCNVxnGS35r9fCHBc3+uCnjw9IWIlCPL683cGgM9Kgj2BiAl8x1mS7vtvP6F9S/e/q4O6MApwSHj8hNLGfw=="],
+
+    "@iconify/json": ["@iconify/json@2.2.498", "", { "dependencies": { "@iconify/types": "*", "pathe": "^2.0.3" } }, "sha512-aHeANR4JvpCcGZBOHXwsPDf8C5YtrZjZjb7NwC8kwoVRtA2vyQImp5U3wzqe8HIbKgQgjAtqYEPPVHtqIj62JA=="],
 
     "@iconify/types": ["@iconify/types@2.0.0", "", {}, "sha512-+wluvCrRhXrhyOmRDJ3q8mux9JkKy5SJ/v8ol2tu4FVjyYvtEzkc/3pK15ET6RKg4b4w4BmTk1+gsCUhf21Ykg=="],
 
@@ -578,6 +581,8 @@
     "path-is-absolute": ["path-is-absolute@1.0.1", "", {}, "sha512-AVbw3UJ2e9bq64vSaS9Am0fje1Pa8pbGqTTsmXfaIiMpnr5DlDhfJOuLj9Sf95ZPVDAUerDfEk88MPmPe7UCQg=="],
 
     "path-key": ["path-key@3.1.1", "", {}, "sha512-ojmeN0qd+y0jszEtoY48r0Peq5dwMEkIlCOu6Q5f41lfkswXuKtYrhgoTpLnyIcHm24Uhqx+5Tqm2InSwLhE6Q=="],
+
+    "pathe": ["pathe@2.0.3", "", {}, "sha512-WUjGcAqP1gQacoQe+OBJsFA7Ld4DyXuUIjZ5cc75cLHvJ7dtNsTugphxIADwspS+AraAUePCKrSVtPLFj/F88w=="],
 
     "pe-library": ["pe-library@0.4.1", "", {}, "sha512-eRWB5LBz7PpDu4PUlwT0PhnQfTQJlDDdPa35urV4Osrm0t0AqQFGn+UIkU3klZvwJ8KPO3VbBFsXquA6p6kqZw=="],
 

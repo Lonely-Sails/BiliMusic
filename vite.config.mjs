@@ -11,6 +11,7 @@ export default defineConfig({
   },
   build: {
     crossorigin: false,
+    chunkSizeWarningLimit: 4000,
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),

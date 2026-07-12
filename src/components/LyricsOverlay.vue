@@ -55,28 +55,35 @@
               </button>
             </div>
 
-            <!-- 歌词时间轴偏移（直接修改歌词时间戳） -->
-            <div class="lo-offset" v-if="player.currentLyrics.length > 0">
-              <button class="lo-offset-btn" @click="shiftLyrics(-1)" title="歌词时间提前1秒">
-                <Icon icon="mdi:minus" />
-              </button>
-              <span class="lo-offset-label">歌词时间</span>
-              <button class="lo-offset-btn" @click="shiftLyrics(1)" title="歌词时间推迟1秒">
-                <Icon icon="mdi:plus" />
-              </button>
-            </div>
-
             <!-- 工具栏 -->
             <div class="lo-tools">
               <button
                 class="lo-tool-btn"
                 :class="{ active: player.showTranslation }"
                 @click="player.toggleTranslation()"
+                title="显示翻译"
               >
                 <Icon icon="mdi:translate" />
               </button>
-              <button class="lo-tool-btn" @click="openLyricsEditor">
+              <button class="lo-tool-btn" @click="openLyricsEditor" title="编辑歌词">
                 <Icon icon="mdi:playlist-edit" />
+              </button>
+              <span class="lo-tools-divider"></span>
+              <button
+                class="lo-tool-btn"
+                @click="shiftLyrics(-1)"
+                title="歌词提前1秒"
+                :disabled="!player.currentLyrics.length"
+              >
+                <Icon icon="mdi:clock-minus" />
+              </button>
+              <button
+                class="lo-tool-btn"
+                @click="shiftLyrics(1)"
+                title="歌词推迟1秒"
+                :disabled="!player.currentLyrics.length"
+              >
+                <Icon icon="mdi:clock-plus" />
               </button>
             </div>
           </div>
@@ -391,8 +398,8 @@ export default {
 
 .lyrics-left > .lo-cover-wrap { margin-bottom: 28px; }
 .lyrics-left > .lo-meta { margin-bottom: 24px; }
-.lyrics-left > .lo-controls { margin-bottom: 10px; }
-.lyrics-left > .lo-offset { margin-bottom: 20px; }
+.lyrics-left > .lo-controls { margin-bottom: 24px; }
+
 
 /* ── 关闭按钮 ── */
 .lo-close {
@@ -525,46 +532,11 @@ export default {
   box-shadow: 0 6px 28px rgba(251, 114, 153, 0.45);
 }
 
-/* ── 歌词时间轴偏移 ── */
-.lo-offset {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.lo-offset-btn {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.10);
-  color: rgba(255, 255, 255, 0.4);
-  cursor: pointer;
-  font-size: 14px;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
-
-.lo-offset-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.85);
-  border-color: rgba(255, 255, 255, 0.20);
-}
-
-.lo-offset-label {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.3);
-  user-select: none;
-  white-space: nowrap;
-}
-
 /* ── 工具栏 ── */
 .lo-tools {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .lo-tool-btn {
@@ -588,10 +560,23 @@ export default {
   border-color: rgba(255, 255, 255, 0.2);
 }
 
+.lo-tool-btn:disabled {
+  opacity: 0.25;
+  cursor: default;
+  pointer-events: none;
+}
+
 .lo-tool-btn.active {
   color: var(--accent);
   border-color: var(--accent);
   background: rgba(251, 114, 153, 0.15);
+}
+
+.lo-tools-divider {
+  width: 1px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
 }
 
 /* ═══ 右侧：歌词 ═══ */

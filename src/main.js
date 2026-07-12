@@ -4,6 +4,7 @@ import App from './App.vue'
 import router from './router'
 import './styles/main.css'
 import './styles/ui.css'
+import './utils/icon-init'
 
 // Global error handler for debugging
 window.onerror = (msg, url, line, col, err) => {
