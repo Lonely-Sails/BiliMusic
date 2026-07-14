@@ -128,76 +128,35 @@ export const usePlayerStore = defineStore('player', () => {
     window.electronAPI.desktopLyricsUpdateTrack(toPlainObject(track))
   }
 
-  // Simple in-memory cache for lyrics and audio URLs
-  // 使用 LRU (Least Recently Used) 淘汰策略
-  const CACHE_LIMITS = {
-    audio: loadFromStorage('bilimusic_cache_audio_limit', 100),
-    lyric: loadFromStorage('bilimusic_cache_lyric_limit', 20),
+  // ── Audio URL Cache (LRU) ──
+  // API 响应缓存已统一由主进程 apiGet 管理
+  // 此处仅缓存音频 URL（bvid_cid → audioData），避免重复请求
+  const AUDIO_CACHE_MAX = 200
+  const audioCache = new Map()
+
+  function audioCacheGet(key) {
+    if (!audioCache.has(key)) return undefined
+    const val = audioCache.get(key)
+    audioCache.delete(key)
+    audioCache.set(key, val)
+    return val
   }
 
-  function createLimitedCache(maxSize) {
-    const map = new Map()
-    return {
-      get(key) {
-        if (!map.has(key)) return undefined
-        // 移到末尾（最近使用）
-        const val = map.get(key)
-        map.delete(key)
-        map.set(key, val)
-        return val
-      },
-      set(key, val) {
-        if (map.has(key)) map.delete(key)
-        else if (map.size >= maxSize) {
-          // 删除最久未使用的（第一个）
-          const oldest = map.keys().next().value
-          map.delete(oldest)
-        }
-        map.set(key, val)
-      },
-      get size() { return map.size },
-      get maxSize() { return maxSize },
-      clear() { map.clear() },
-      keys() { return map.keys() },
-      entries() { return map.entries() },
+  function audioCacheSet(key, val) {
+    if (audioCache.has(key)) audioCache.delete(key)
+    else if (audioCache.size >= AUDIO_CACHE_MAX) {
+      const oldest = audioCache.keys().next().value
+      audioCache.delete(oldest)
     }
+    audioCache.set(key, val)
   }
 
-  // 导出的缓存引用，供 SettingsView 读取
-  let lyricCache = createLimitedCache(CACHE_LIMITS.lyric)
-  let audioCache = createLimitedCache(CACHE_LIMITS.audio)
-
-  function updateCacheLimits(audioMax, lyricMax) {
-    // 重建缓存以应用新限制
-    const oldAudio = audioCache
-    const oldLyric = lyricCache
-    audioCache = createLimitedCache(audioMax)
-    lyricCache = createLimitedCache(lyricMax)
-    // 将旧缓存中未超限的数据迁移过去
-    for (const [k, v] of oldAudio.entries()) {
-      if (audioCache.size < audioMax) audioCache.set(k, v)
-    }
-    for (const [k, v] of oldLyric.entries()) {
-      if (lyricCache.size < lyricMax) lyricCache.set(k, v)
-    }
-    saveToStorage('bilimusic_cache_audio_limit', audioMax)
-    saveToStorage('bilimusic_cache_lyric_limit', lyricMax)
+  function getAudioCacheInfo() {
+    return { size: audioCache.size, max: AUDIO_CACHE_MAX }
   }
 
-  function getCacheInfo() {
-    return {
-      audio: { size: audioCache.size, max: audioCache.maxSize },
-      lyric: { size: lyricCache.size, max: lyricCache.maxSize },
-    }
-  }
-
-  function clearAllCaches() {
+  function clearAudioCache() {
     audioCache.clear()
-    lyricCache.clear()
-  }
-
-  function clearLyricCache() {
-    lyricCache.clear()
   }
 
   function clearCurrentState() {
@@ -248,14 +207,13 @@ export const usePlayerStore = defineStore('player', () => {
 
       // 缓存音频 URL
       const audioCacheKey = `${track.bvid}_${cid}`
-      let audioData = audioCache.get(audioCacheKey)
+      let audioData = audioCacheGet(audioCacheKey)
       if (!audioData) {
         audioData = await window.electronAPI.getAudioUrl(track.bvid, cid)
         if (audioData?.url) {
-          audioCache.set(audioCacheKey, audioData)
+          audioCacheSet(audioCacheKey, audioData)
         }
       }
-      console.log(audioData)
       if (audioData?.url) {
         const proxyUrl = 'bili://' + encodeURIComponent(audioData.url)
         audioElement.src = proxyUrl
@@ -270,24 +228,23 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   async function loadLyrics(bvid, cid, title) {
-    const keyword = extractKeyword(title)
-    const lyricCacheKey = `${bvid}_${cid}`
     try {
-      let result = lyricCache.get(lyricCacheKey)
-      if (!result) {
-        result = await window.electronAPI.getLyric(bvid, cid, keyword)
-        if (result?.lyrics?.length > 0) {
-          lyricCache.set(lyricCacheKey, result)
-        }
-      }
+      // 后端 IPC 内部会：
+      // 1. 获取视频信息（含 bgm_info）提取最佳搜索词
+      // 2. 检查本地文件
+      // 3. 获取 B 站 AI 字幕
+      // 4. 按相似度排序在线搜索
+      const result = await window.electronAPI.getLyric(bvid, cid, title)
       currentLyrics.value = result.lyrics || []
       lyricSource.value = result.source || ''
-      // 记录原始 LRC 文件名（和编辑器行为一致：本地文件用原名，其他用标题生成）
+      lyricCandidates.value = []
+
+      // 记录原始 LRC 文件名
       lyricFileName.value = ''
       if (result?.source === 'local' && window.electronAPI?.listLocalLyrics) {
         try {
           const localFiles = await window.electronAPI.listLocalLyrics()
-          const kw = keyword.toLowerCase()
+          const kw = (title || '').toLowerCase()
           const matched = localFiles.find(f => {
             const fName = f.fileName.replace('.lrc', '').toLowerCase()
             const fSong = (f.song || '').toLowerCase()
@@ -299,39 +256,10 @@ export const usePlayerStore = defineStore('player', () => {
     } catch {
       currentLyrics.value = []
       lyricSource.value = ''
+      lyricCandidates.value = []
     }
 
     sendDesktopLyricsUpdate()
-
-    // 已有歌词（本地文件/字幕），不再搜索在线候选
-    if (currentLyrics.value.length > 0) {
-      lyricCandidates.value = []
-      return
-    }
-
-    if (keyword) {
-      try {
-        const candidates = await window.electronAPI.searchLyricCandidates(keyword)
-        lyricCandidates.value = candidates || []
-        // 首次播放无歌词时自动拉取第一个候选并塞入缓存
-        if (lyricCandidates.value.length > 0) {
-          const first = lyricCandidates.value[0]
-          const autoResult = await window.electronAPI.fetchLyric(first.source, first.id)
-          if (autoResult?.lyrics?.length) {
-            currentLyrics.value = autoResult.lyrics
-            lyricSource.value = autoResult.source
-            lyricCandidateId.value = first.id
-            // 缓存结果（不生成本地文件）
-            lyricCache.set(lyricCacheKey, { source: autoResult.source, lyrics: autoResult.lyrics })
-            sendDesktopLyricsUpdate()
-          }
-        }
-      } catch {
-        lyricCandidates.value = []
-      }
-    } else {
-      lyricCandidates.value = []
-    }
   }
 
   async function selectLyricCandidate(source, id) {
@@ -446,7 +374,7 @@ export const usePlayerStore = defineStore('player', () => {
     togglePlay, nextTrack, prevTrack, seek, setVolume,
     cyclePlayMode, updateTime, setDuration, onEnded,
     loadLyrics, selectLyricCandidate, toggleTranslation,
-    updateCacheLimits, getCacheInfo, clearAllCaches, clearLyricCache
+    getAudioCacheInfo, clearAudioCache
   }
 })
 

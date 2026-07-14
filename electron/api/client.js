@@ -1,3 +1,6 @@
+import { shouldCache, getCacheKey, responseCacheGet, responseCacheSet } from './cache.js'
+export { getResponseCacheStats, clearResponseCache, setResponseCacheMax } from './cache.js'
+
 let cookies = []
 
 const BASE_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
@@ -89,6 +92,14 @@ async function apiFetch(url, options = {}) {
 }
 
 async function apiGet(url, params = {}) {
+  const cacheKey = getCacheKey(url, params)
+
+  // Try cache first (only for GET requests to non-auth endpoints)
+  if (shouldCache(url)) {
+    const cached = responseCacheGet(cacheKey)
+    if (cached !== undefined) return cached
+  }
+
   const searchParams = new URLSearchParams()
   for (const [key, value] of Object.entries(params)) {
     searchParams.append(key, String(value))
@@ -97,7 +108,14 @@ async function apiGet(url, params = {}) {
   const fullUrl = queryString ? `${url}?${queryString}` : url
 
   const resp = await apiFetch(fullUrl, { method: 'GET' })
-  return resp.json()
+  const data = await resp.json()
+
+  // Cache successful responses only
+  if (shouldCache(url) && data && data.code === 0) {
+    responseCacheSet(cacheKey, data)
+  }
+
+  return data
 }
 
 async function apiPost(url, data = {}) {
@@ -116,4 +134,27 @@ async function apiPost(url, data = {}) {
   return resp.json()
 }
 
-export { apiGet, apiPost, apiFetch, loadSession, getSession, parseSetCookie, clearCookies }
+/**
+ * 通用缓存请求 — 用于非 apiGet 但需要缓存的场景
+ * 例如 B站字幕 JSON 等第三方 CDN 资源
+ */
+async function cachedFetch(url, options = {}) {
+  const cacheKey = `fetch:${url}`
+  if (shouldCache(url)) {
+    const cached = responseCacheGet(cacheKey)
+    if (cached !== undefined) return cached
+  }
+  const resp = await apiFetch(url, { method: 'GET', ...options })
+  let data
+  try {
+    data = await resp.json()
+  } catch {
+    data = await resp.text()
+  }
+  if (shouldCache(url) && data) {
+    responseCacheSet(cacheKey, data)
+  }
+  return data
+}
+
+export { apiGet, apiPost, apiFetch, cachedFetch, loadSession, getSession, parseSetCookie, clearCookies }

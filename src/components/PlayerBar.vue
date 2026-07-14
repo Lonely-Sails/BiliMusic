@@ -3,7 +3,7 @@
     <!-- Track Info -->
     <div class="player-track-info" @click="openLyricsOverlay" :style="{ cursor: player.currentTrack ? 'pointer' : 'default' }" :title="player.currentTrack ? '点击打开歌词' : ''">
       <div class="player-cover" v-if="player.currentTrack">
-        <img :src="player.currentTrack.cover + '@96w_96h.webp'" :alt="player.currentTrack.title" />
+        <img :src="player.currentTrack.cover + '@160w_160h.webp'" :alt="player.currentTrack.title" />
         <div class="player-cover-overlay">
           <Icon icon="mdi:arrow-expand-all" class="cover-expand-icon" />
         </div>

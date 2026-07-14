@@ -35,7 +35,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Lyrics
   getLyric: (bvid, cid, title) => ipcRenderer.invoke('lyric:get', bvid, cid, title),
   searchLyricCandidates: (title) => ipcRenderer.invoke('lyric:search-candidates', title),
+  searchRankedCandidates: (keyword, videoTitle, author) => ipcRenderer.invoke('lyric:search-ranked', keyword, videoTitle, author),
   fetchLyric: (source, id) => ipcRenderer.invoke('lyric:fetch', source, id),
+  getSubtitle: (bvid, cid) => ipcRenderer.invoke('lyric:get-subtitle', bvid, cid),
+  alignFirstLine: (lyrics, bvid, cid) => ipcRenderer.invoke('lyric:align-first-line', lyrics, bvid, cid),
+  autoAlignAll: (lyrics, bvid, cid) => ipcRenderer.invoke('lyric:auto-align', lyrics, bvid, cid),
   // Lyrics Editor
   openLyricsEditor: (trackInfo) => ipcRenderer.send('lyrics-editor:open', trackInfo),
   listLocalLyrics: () => ipcRenderer.invoke('lyric:list-local'),
@@ -75,5 +79,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   onLyricsEditorSaved: (callback) => {
     ipcRenderer.on('lyrics-editor:saved', () => callback())
-  }
+  },
+
+  // Cache
+  getResponseCacheStats: () => ipcRenderer.invoke('cache:stats'),
+  clearResponseCache: () => ipcRenderer.invoke('cache:clear'),
+  setResponseCacheMax: (max) => ipcRenderer.invoke('cache:set-max', max),
 })

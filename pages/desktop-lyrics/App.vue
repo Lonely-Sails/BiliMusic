@@ -78,7 +78,9 @@ const activeIdx = computed(() => {
 
 const scrollStyle = computed(() => {
   if (activeIdx.value < 0 || (!lyricsRef.value.length)) return 0
-  return { transform: `translateY(-${lyricsRef.value[activeIdx.value].offsetTop}px)` }
+  const currentLrycis = lyricsRef.value[activeIdx.value]
+  const containerHeight = containerRef.value.offsetHeight
+  return { transform: `translateY(-${currentLrycis.offsetTop + currentLrycis.offsetHeight - (containerHeight / 2) + 20}px)` }
 })
 
 /* =========================
@@ -295,19 +297,9 @@ body {
   position: relative;
 }
 
-.desktop-toolbar {
-  flex-shrink: 0;
-  visibility: hidden;
-  opacity: 0;
-  transition: opacity 0.2s ease, visibility 0.2s ease;
-}
-body.hover .desktop-toolbar { visibility: visible; opacity: 1; }
-
 body.hover {
   box-shadow: 0 0 0 1px rgba(255,255,255,0.1), 0 0 0 1px rgba(0,0,0,0.25), 0 4px 24px rgba(0,0,0,0.3);
 }
-
-body.locked .desktop-toolbar { display: flex; }
 
 .hover-trigger {
   position: absolute;
@@ -335,10 +327,9 @@ body.locked .desktop-toolbar { display: flex; }
   font-size: var(--lyric-font-size);
   color: rgb(121, 121, 121);
   /* transition: color, opacity, text-shadow 0.7s cubic-bezier(0.22,1,0.36,1); */
-  transition: color 1s cubic-bezier(0.22, 1, 0.36, 1),
-              opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
-              text-shadow 0.7s,
-              transform 1.5s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: color 1s, text-shadow 0.7s,
+              transform 1s cubic-bezier(0.22, 1, 0.36, 1),
+              opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1);
   transform: translateY(20px);
   line-height: 1.4;
   white-space: nowrap;
@@ -356,6 +347,7 @@ body.locked .desktop-toolbar { display: flex; }
   font-size: 0.65em;
   font-weight: 400;
   line-height: 1.3;
+  transition: color 1s, text-shadow 0.7s;
 }
 
 .lyric-line.active .lyric-trans {
@@ -368,10 +360,14 @@ body.locked .desktop-toolbar { display: flex; }
   transform: translateY(0);
 }
 
+.lyric-line.next {
+  transition: transform 1.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 .lyric-line.active {
   color: var(--accent);
   font-weight: 700;
-  transform: scale(1.05);
+  transform: scale(1.1);
   text-shadow: 0 0 12px rgba(251,114,153,0.5), 0 0 24px rgba(251,114,153,0.15);
 }
 

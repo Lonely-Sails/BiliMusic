@@ -16,61 +16,61 @@
           <!-- === 左侧：封面 + 控制 === -->
           <div class="lyrics-left">
             <!-- 关闭按钮 -->
-            <button class="lo-close" @click="close">
+            <button class="close" @click="close">
               <Icon icon="mdi:chevron-down" />
             </button>
 
             <!-- 大封面 -->
-            <div class="lo-cover-wrap" v-if="player.currentTrack">
+            <div class="cover-wrap" v-if="player.currentTrack">
               <img
-                class="lo-cover"
-                :src="player.currentTrack.cover + '@256w_256h.webp'"
+                class="cover"
+                :src="player.currentTrack.cover + '@512w_512h.webp'"
                 :alt="player.currentTrack.title"
               />
             </div>
-            <div class="lo-cover-wrap placeholder" v-else>
-              <Icon icon="mdi:music-note" class="lo-cover-placeholder-icon" />
+            <div class="cover-wrap placeholder" v-else>
+              <Icon icon="mdi:music-note" class="cover-placeholder-icon" />
             </div>
 
             <!-- 歌曲名 & 作者 -->
-            <div class="lo-meta" v-if="player.currentTrack">
-              <div class="lo-title">{{ player.currentTrack.title }}</div>
-              <div class="lo-author">{{ player.currentTrack.author || '未知' }}</div>
+            <div class="meta" v-if="player.currentTrack">
+              <div class="title">{{ player.currentTrack.title }}</div>
+              <div class="author">{{ player.currentTrack.author || '未知' }}</div>
             </div>
-            <div class="lo-meta" v-else>
-              <div class="lo-title lo-title-muted">未在播放</div>
-              <div class="lo-author lo-author-muted">播放歌曲后将显示歌词</div>
+            <div class="meta" v-else>
+              <div class="title title-muted">未在播放</div>
+              <div class="author author-muted">播放歌曲后将显示歌词</div>
             </div>
 
             <!-- 播放控制 -->
-            <div class="lo-controls" v-if="player.currentTrack">
-              <button class="lo-ctrl-btn" @click="player.prevTrack()">
+            <div class="controls" v-if="player.currentTrack">
+              <button class="ctrl-btn" @click="player.prevTrack()">
                 <Icon icon="mdi:skip-previous" />
               </button>
-              <button class="lo-ctrl-btn lo-play-btn" @click="player.togglePlay()">
+              <button class="ctrl-btn play-btn" @click="player.togglePlay()">
                 <Icon :icon="player.isPlaying ? 'mdi:pause' : 'mdi-play'" />
               </button>
-              <button class="lo-ctrl-btn" @click="player.nextTrack()">
+              <button class="ctrl-btn" @click="player.nextTrack()">
                 <Icon icon="mdi:skip-next" />
               </button>
             </div>
 
             <!-- 工具栏 -->
-            <div class="lo-tools">
+            <div class="tools">
               <button
-                class="lo-tool-btn"
+                class="tool-btn"
                 :class="{ active: player.showTranslation }"
                 @click="player.toggleTranslation()"
                 title="显示翻译"
               >
                 <Icon icon="mdi:translate" />
               </button>
-              <button class="lo-tool-btn" @click="openLyricsEditor" title="编辑歌词">
+              <button class="tool-btn" @click="openLyricsEditor" title="编辑歌词">
                 <Icon icon="mdi:playlist-edit" />
               </button>
-              <span class="lo-tools-divider"></span>
+              <span class="tools-divider"></span>
               <button
-                class="lo-tool-btn"
+                class="tool-btn"
                 @click="shiftLyrics(-1)"
                 title="歌词提前1秒"
                 :disabled="!player.currentLyrics.length"
@@ -78,7 +78,7 @@
                 <Icon icon="mdi:clock-minus" />
               </button>
               <button
-                class="lo-tool-btn"
+                class="tool-btn"
                 @click="shiftLyrics(1)"
                 title="歌词推迟1秒"
                 :disabled="!player.currentLyrics.length"
@@ -90,27 +90,27 @@
 
           <!-- === 右侧：歌词 === -->
           <div class="lyrics-right">
-            <div v-if="!player.currentTrack" class="lo-empty">
-              <Icon icon="mdi:music-note-off" class="lo-empty-icon" />
-              <p class="lo-empty-title">暂无播放</p>
+            <div v-if="!player.currentTrack" class="empty">
+              <Icon icon="mdi:music-note-off" class="empty-icon" />
+              <p class="empty-title">暂无播放</p>
             </div>
-            <div v-else-if="player.currentLyrics.length === 0" class="lo-empty">
-              <Icon icon="mdi:file-document-outline" class="lo-empty-icon" />
-              <p class="lo-empty-title">暂无歌词</p>
-              <p class="lo-empty-hint">该视频没有可用歌词</p>
+            <div v-else-if="player.currentLyrics.length === 0" class="empty">
+              <Icon icon="mdi:file-document-outline" class="empty-icon" />
+              <p class="empty-title">暂无歌词</p>
+              <p class="empty-hint">该视频没有可用歌词</p>
             </div>
-            <div v-else ref="lyricsContainer" class="lo-lyrics-scroll">
-              <div class="lo-lyrics-list">
+            <div v-else ref="lyricsContainer" class="lyrics-scroll">
+              <div class="lyrics-list">
                 <div
                   v-for="(line, index) in player.currentLyrics"
                   :key="index"
-                  class="lo-line"
+                  class="line"
                   :class="{ active: index === activeIndex }"
                 >
-                  <span class="lo-line-text">{{ line.text || '♫' }}</span>
+                  <span class="line-text">{{ line.text || '♫' }}</span>
                   <span
                     v-if="player.showTranslation && line.trans"
-                    class="lo-line-trans"
+                    class="line-trans"
                     :class="{ 'active-trans': index === activeIndex }"
                   >{{ line.trans }}</span>
                 </div>
@@ -147,7 +147,7 @@ export default {
     const bgStyle = computed(() => {
       if (player.currentTrack?.cover) {
         return {
-          backgroundImage: `url(${player.currentTrack.cover}@512w_512h.webp)`
+          backgroundImage: `url(${player.currentTrack.cover}@128w_128h.webp)`
         }
       }
       return {}
@@ -275,7 +275,7 @@ export default {
       scrollTicking = true
       requestAnimationFrame(() => {
         scrollTicking = false
-        const el = container.querySelector(`.lo-line:nth-child(${idx + 1})`)
+        const el = container.querySelector(`.line:nth-child(${idx + 1})`)
         if (!el) return
         const containerRect = container.getBoundingClientRect()
         const elRect = el.getBoundingClientRect()
@@ -302,7 +302,6 @@ export default {
 
     // 编辑器保存后即时刷新歌词
     function onEditorSaved() {
-      player.clearLyricCache()
       const track = player.currentTrack
       if (track?.bvid) {
         player.loadLyrics(track.bvid, track.cid || '', track.title)
@@ -396,13 +395,13 @@ export default {
   margin-top: 0;
 }
 
-.lyrics-left > .lo-cover-wrap { margin-bottom: 28px; }
-.lyrics-left > .lo-meta { margin-bottom: 24px; }
-.lyrics-left > .lo-controls { margin-bottom: 24px; }
+.lyrics-left > .cover-wrap { margin-bottom: 28px; }
+.lyrics-left > .meta { margin-bottom: 24px; }
+.lyrics-left > .controls { margin-bottom: 24px; }
 
 
 /* ── 关闭按钮 ── */
-.lo-close {
+.close {
   position: absolute;
   top: 20px;
   left: 50%;
@@ -423,13 +422,13 @@ export default {
   -webkit-backdrop-filter: blur(8px);
 }
 
-.lo-close:hover {
+.close:hover {
   background: rgba(255, 255, 255, 0.15);
   color: rgba(255, 255, 255, 0.95);
 }
 
 /* ── 大封面 ── */
-.lo-cover-wrap {
+.cover-wrap {
   width: 200px;
   height: 200px;
   border-radius: var(--radius-xl);
@@ -439,30 +438,30 @@ export default {
   background: rgba(255, 255, 255, 0.04);
 }
 
-.lo-cover-wrap.placeholder {
+.cover-wrap.placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.lo-cover-placeholder-icon {
+.cover-placeholder-icon {
   font-size: 64px;
   color: rgba(255, 255, 255, 0.15);
 }
 
-.lo-cover {
+.cover {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
 /* ── 歌曲信息 ── */
-.lo-meta {
+.meta {
   text-align: center;
   max-width: 260px;
 }
 
-.lo-title {
+.title {
   font-size: 18px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.92);
@@ -471,11 +470,11 @@ export default {
   text-overflow: ellipsis;
 }
 
-.lo-title-muted {
+.title-muted {
   color: rgba(255, 255, 255, 0.35);
 }
 
-.lo-author {
+.author {
   font-size: 13px;
   color: rgba(255, 255, 255, 0.45);
   margin-top: 4px;
@@ -484,19 +483,19 @@ export default {
   text-overflow: ellipsis;
 }
 
-.lo-author-muted {
+.author-muted {
   color: rgba(255, 255, 255, 0.25);
 }
 
 /* ── 播放控制按钮 ── */
-.lo-controls {
+.controls {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
 /* 上一首 / 下一首：无边框简洁样式 */
-.lo-ctrl-btn {
+.ctrl-btn {
   background: transparent;
   border: none;
   color: rgba(255, 255, 255, 0.6);
@@ -511,12 +510,12 @@ export default {
   transition: all 0.2s ease;
 }
 
-.lo-ctrl-btn:hover {
+.ctrl-btn:hover {
   background: rgba(255, 255, 255, 0.08);
   color: rgba(255, 255, 255, 0.95);
 }
 
-.lo-play-btn {
+.play-btn {
   width: 56px;
   height: 56px;
   font-size: 28px;
@@ -526,20 +525,20 @@ export default {
   box-shadow: 0 4px 24px rgba(251, 114, 153, 0.35);
 }
 
-.lo-play-btn:hover {
+.play-btn:hover {
   background: var(--accent-hover);
   color: #fff;
   box-shadow: 0 6px 28px rgba(251, 114, 153, 0.45);
 }
 
 /* ── 工具栏 ── */
-.lo-tools {
+.tools {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.lo-tool-btn {
+.tool-btn {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.08);
   color: rgba(255, 255, 255, 0.5);
@@ -554,25 +553,25 @@ export default {
   transition: all 0.2s ease;
 }
 
-.lo-tool-btn:hover {
+.tool-btn:hover {
   background: rgba(255, 255, 255, 0.12);
   color: rgba(255, 255, 255, 0.9);
   border-color: rgba(255, 255, 255, 0.2);
 }
 
-.lo-tool-btn:disabled {
+.tool-btn:disabled {
   opacity: 0.25;
   cursor: default;
   pointer-events: none;
 }
 
-.lo-tool-btn.active {
+.tool-btn.active {
   color: var(--accent);
   border-color: var(--accent);
   background: rgba(251, 114, 153, 0.15);
 }
 
-.lo-tools-divider {
+.tools-divider {
   width: 1px;
   height: 20px;
   background: rgba(255, 255, 255, 0.08);
@@ -590,7 +589,7 @@ export default {
 }
 
 /* ── 歌词滚动容器 ── */
-.lo-lyrics-scroll {
+.lyrics-scroll {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
@@ -599,63 +598,62 @@ export default {
   scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
 }
 
-.lo-lyrics-scroll::-webkit-scrollbar {
+.lyrics-scroll::-webkit-scrollbar {
   width: 3px;
 }
 
-.lo-lyrics-scroll::-webkit-scrollbar-track {
+.lyrics-scroll::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.lo-lyrics-scroll::-webkit-scrollbar-thumb {
+.lyrics-scroll::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.15);
   border-radius: 2px;
 }
 
 /* ── 歌词列表 ── */
-.lo-lyrics-list {
+.lyrics-list {
   padding: 0;
 }
 
-.lo-line {
+.line {
   padding: 14px 0;
   text-align: left;
-  font-size: 15px;
+  font-size: 20px;
   color: rgba(255, 255, 255, 0.35);
   transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1);
-  line-height: 1.8;
+  transform-origin: left center;
   cursor: default;
 }
 
-.lo-line.active {
+.line.active {
   color: #fff;
-  font-size: 21px;
   font-weight: 700;
+  transform: scale(1.1);
   text-shadow: 0 0 24px rgba(255, 255, 255, 0.12);
 }
 
-.lo-line-text {
+.line-text {
   display: block;
 }
 
-.lo-line-trans {
+.line-trans {
   display: block;
-  font-size: 13px;
   font-weight: 400;
   color: rgba(255, 255, 255, 0.45);
   line-height: 1.5;
+  font-size: 15px;
   margin-top: 2px;
   transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.lo-line-trans.active-trans {
-  color: var(--accent);
-  font-size: 15px;
-  text-shadow: 0 0 12px rgba(251, 114, 153, 0.2);
+.line-trans.active-trans {
+  color: #fff;
+  text-shadow: 0 0 24px rgba(255, 255, 255, 0.12);
 }
 
 /* ── 空状态 ── */
-.lo-empty {
+.empty {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -665,18 +663,18 @@ export default {
   color: rgba(255, 255, 255, 0.35);
 }
 
-.lo-empty-icon {
+.empty-icon {
   font-size: 48px;
   opacity: 0.35;
 }
 
-.lo-empty-title {
+.empty-title {
   font-size: 16px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.5);
 }
 
-.lo-empty-hint {
+.empty-hint {
   font-size: 13px;
   color: rgba(255, 255, 255, 0.3);
 }

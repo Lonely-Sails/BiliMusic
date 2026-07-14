@@ -76,6 +76,7 @@ function onLockLeave() {
 </script>
 
 <style scoped>
+
 .desktop-toolbar {
   display: flex;
   align-items: center;
@@ -87,7 +88,12 @@ function onLockLeave() {
   background: rgba(0,0,0,0.5);
   border-bottom: 1px solid rgba(255,255,255,0.06);
   z-index: 10;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
 }
+body.hover .desktop-toolbar { visibility: visible; opacity: 1; }
+body.locked .desktop-toolbar { display: flex; }
 
 .tb-left {
   display: flex;
@@ -95,6 +101,7 @@ function onLockLeave() {
   gap: 6px;
   min-width: 0;
   flex: 1;
+  padding-right: 30px;
 }
 
 .tb-track-title {
@@ -103,7 +110,6 @@ function onLockLeave() {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 160px;
 }
 
 .tb-center {
@@ -170,5 +176,6 @@ body.locked .desktop-toolbar {
 
 body.locked .desktop-toolbar .tb-left {
   justify-content: center;
+  padding-right: 0;
 }
 </style>

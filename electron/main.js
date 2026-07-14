@@ -4,11 +4,21 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, unlink
 
 // API handlers
 import { loadSession, apiGet, parseSetCookie, getSession } from './api/client'
+import { getResponseCacheStats, clearResponseCache, setResponseCacheMax } from './api/cache'
 import { searchVideo, getSearchSuggest, getHotSearch } from './api/search'
 import { getVideoInfo, getAudioUrl } from './api/video'
 import { getQrcode, pollLogin, completeLogin, checkLogin, logout, saveSession, clearAuth } from './api/auth'
 import { listFavFolders, listFavResources, addFav, removeFav } from './api/fav'
-import { getLyric, searchCandidates, fetchLyric } from './api/lyric'
+import {
+  getBilibiliSubtitle,
+  searchCandidates,
+  searchRankedCandidates,
+  alignFirstLine,
+  autoAlignAll,
+  fetchLyric,
+  parseLRC,
+  mergeTranslations
+} from './api/lyric'
 import { getPopular } from './api/popular'
 import { getMusicBanner, getHotToplist, getHotRank, getNewMusic, getComprehensiveRank } from './api/musicCenter'
 
@@ -68,8 +78,9 @@ function createWindow() {
   })
 
   // Add Referer header for Bilibili CDN resources (images/avatars) to avoid 403
+  // Use broad patterns to cover all current and future Bilibili image CDN subdomains
   mainWindow.webContents.session.webRequest.onBeforeSendHeaders(
-    { urls: ['*://i0.hdslb.com/*', '*://i1.hdslb.com/*', '*://i2.hdslb.com/*'] },
+    { urls: ['*://*.hdslb.com/*', '*://*.hdslb.net/*'] },
     (details, callback) => {
       callback({
         requestHeaders: {
@@ -546,14 +557,127 @@ function setupIPC() {
     }
   })
 
+  // ── 本地歌词存储（纯文件操作，归属 IPC 层） ──
+  function getLyricsDir() {
+    const dir = join(app.getPath('userData'), 'lyrics')
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
+    return dir
+  }
+
+  function findLocalLyric(title, bvid) {
+    if (!title && !bvid) return null
+    const dir = getLyricsDir()
+    const files = readdirSync(dir).filter(f => f.endsWith('.lrc'))
+    const keyword = title?.toLowerCase() || ''
+
+    for (const file of files) {
+      try {
+        const content = readFileSync(join(dir, file), 'utf-8')
+        const lines = content.split('\n')
+
+        // 优先匹配 bvid
+        if (bvid) {
+          const bvidLine = lines.find(l => l.startsWith('[bvid:'))
+          const fileBvid = bvidLine ? bvidLine.replace('[bvid:', '').replace(']', '').trim() : ''
+          if (fileBvid && fileBvid === bvid) {
+            const lyrics = parseLRC(content)
+            if (lyrics.length > 0) return lyrics
+          }
+        }
+
+        // 匹配歌曲名
+        if (title) {
+          const tiLine = lines.find(l => l.startsWith('[ti:'))
+          const songTitle = tiLine ? tiLine.replace('[ti:', '').replace(']', '').trim() : file.replace('.lrc', '')
+          if (songTitle.toLowerCase().includes(keyword) || keyword.includes(songTitle.toLowerCase())) {
+            const lyrics = parseLRC(content)
+            if (lyrics.length > 0) return lyrics
+          }
+        }
+      } catch {}
+    }
+    return null
+  }
+
+  /**
+   * 从视频信息中提取最佳搜索关键词
+   * 优先使用 bgm_info.music_title（去掉 "发现《》" 等前缀）
+   */
+  function extractSearchKeyword(videoInfo, fallbackTitle) {
+    if (videoInfo?.bgm_info?.music_title) {
+      const bgmTitle = videoInfo.bgm_info.music_title
+        .replace(/^发现/, '')
+        .replace(/[《》【】「」]/g, '')
+        .trim()
+      if (bgmTitle) return bgmTitle
+    }
+    if (videoInfo?.title) {
+      // 从视频标题中提取括号内的歌名
+      const patterns = [/《(.+?)》/, /【(.+?)】/, /「(.+?)」/, /"(.+?)"/]
+      for (const p of patterns) {
+        const m = videoInfo.title.match(p)
+        if (m) return m[1].trim()
+      }
+      return videoInfo.title.trim()
+    }
+    return fallbackTitle?.trim() || ''
+  }
+
+  // ── 歌词：获取（后端编排：本地→字幕→在线排序搜索） ──
   ipcMain.handle('lyric:get', async (event, bvid, cid, title) => {
     try {
-      return await getLyric(bvid, cid, title)
+      // 1. 获取视频完整信息（含 bgm_info）
+      let videoInfo = null
+      if (bvid) {
+        try {
+          videoInfo = await getVideoInfo(bvid, null)
+        } catch {}
+      }
+
+      // 2. 提取最佳搜索关键词
+      const keyword = extractSearchKeyword(videoInfo, title)
+
+      // 3. 优先匹配本地 LRC 文件
+      if (keyword || bvid) {
+        const localLyrics = findLocalLyric(keyword, bvid)
+        if (localLyrics) return { source: 'local', lyrics: localLyrics }
+      }
+
+      // 4. 尝试 B 站 AI 字幕
+      if (bvid && cid) {
+        const subtitleLyrics = await getBilibiliSubtitle(bvid, cid)
+        if (subtitleLyrics?.length > 0) {
+          return { source: 'subtitle', lyrics: subtitleLyrics, hasSubtitle: true }
+        }
+      }
+
+      // 5. 在线搜索（按相似度排序，取最高分）
+      if (keyword) {
+        const ranked = await searchRankedCandidates(keyword, videoInfo?.title || keyword, videoInfo?.author)
+        const successful = []
+        for (const c of ranked) {
+          const result = await fetchLyric(c.source, c.id)
+          if (result) {
+            if (result.trans?.length) {
+              result.lyrics = mergeTranslations(result.lyrics, result.trans)
+            }
+            successful.push({ ...result, candidate: c })
+          }
+        }
+        // 在所有成功获取的候选中选相似度最高的
+        if (successful.length > 0) {
+          successful.sort((a, b) => (b.candidate?.score || 0) - (a.candidate?.score || 0))
+          return successful[0]
+        }
+      }
+
+      return { source: 'none', lyrics: [] }
     } catch (e) {
       return { error: e.message }
     }
   })
 
+  // ── 歌词：简单搜索候选（向后兼容） ──
   ipcMain.handle('lyric:search-candidates', async (event, title) => {
     try {
       return await searchCandidates(title)
@@ -562,9 +686,54 @@ function setupIPC() {
     }
   })
 
+  // ── 歌词：在线搜索候选（带回相似度排序） ──
+  ipcMain.handle('lyric:search-ranked', async (event, keyword, videoTitle, author) => {
+    try {
+      return await searchRankedCandidates(keyword, videoTitle, author)
+    } catch (e) {
+      return { error: e.message }
+    }
+  })
+
+  // ── 歌词：获取 B 站字幕 ──
+  ipcMain.handle('lyric:get-subtitle', async (event, bvid, cid) => {
+    try {
+      return await getBilibiliSubtitle(bvid, cid)
+    } catch (e) {
+      return null
+    }
+  })
+
+  // ── 歌词：默认校对（仅第一句） ──
+  ipcMain.handle('lyric:align-first-line', async (event, lyrics, bvid, cid) => {
+    try {
+      const subtitles = await getBilibiliSubtitle(bvid, cid)
+      if (!subtitles?.length) return { lyrics, offset: 0, matched: false }
+      const result = alignFirstLine(lyrics, subtitles)
+      return result ? { ...result, matched: true } : { lyrics, offset: 0, matched: false }
+    } catch (e) {
+      return { lyrics, offset: 0, matched: false, error: e.message }
+    }
+  })
+
+  // ── 歌词：全自动校对（所有行） ──
+  ipcMain.handle('lyric:auto-align', async (event, lyrics, bvid, cid) => {
+    try {
+      const subtitles = await getBilibiliSubtitle(bvid, cid)
+      if (!subtitles?.length) return { lyrics, matched: 0 }
+      return autoAlignAll(lyrics, subtitles)
+    } catch (e) {
+      return { lyrics, matched: 0, error: e.message }
+    }
+  })
+
   ipcMain.handle('lyric:fetch', async (event, source, id) => {
     try {
-      return await fetchLyric(source, id)
+      const result = await fetchLyric(source, id)
+      if (result?.trans?.length) {
+        result.lyrics = mergeTranslations(result.lyrics, result.trans)
+      }
+      return result
     } catch (e) {
       return { error: e.message }
     }
@@ -832,6 +1001,21 @@ function setupIPC() {
         mainWindow.webContents.send('desktop-lyrics:visibility', false)
       }
     }
+  })
+
+  // ── Response Cache IPC ──
+  ipcMain.handle('cache:stats', async () => {
+    return getResponseCacheStats()
+  })
+
+  ipcMain.handle('cache:clear', async () => {
+    clearResponseCache()
+    return { success: true }
+  })
+
+  ipcMain.handle('cache:set-max', async (event, max) => {
+    setResponseCacheMax(max)
+    return { success: true }
   })
 }
 

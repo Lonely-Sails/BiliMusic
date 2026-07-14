@@ -40,7 +40,7 @@
         @click="player.playAtIndex(index)"
       >
         <div class="item-cover">
-          <img :src="item.cover + '@96w_96h.webp'" :alt="item.title" loading="lazy" />
+          <img :src="item.cover + '@200w_200h.webp'" :alt="item.title" loading="lazy" />
           <div class="item-playing" v-if="index === player.currentIndex">
             <span class="bar" v-for="n in 4" :key="n"></span>
           </div>

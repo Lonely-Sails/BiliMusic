@@ -331,7 +331,6 @@ export default {
       // 编辑器保存本地歌词后刷新缓存
       if (window.electronAPI?.onLyricsEditorSaved) {
         window.electronAPI.onLyricsEditorSaved(() => {
-          player.clearLyricCache()
           const track = player.currentTrack.value
           if (track?.bvid) {
             player.loadLyrics(track.bvid, track.cid || '', track.title)

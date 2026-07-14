@@ -78,7 +78,7 @@
               <div v-else-if="item.is_new" class="rank-new">NEW</div>
             </div>
             <div class="toplist-cover" v-if="item.mv_cover">
-              <img :src="item.mv_cover + '@80w_80h.webp'" :alt="item.music_title" loading="lazy" />
+              <img :src="item.mv_cover + '@160w_160h.webp'" :alt="item.music_title" loading="lazy" />
             </div>
             <div class="toplist-info">
               <h4 class="toplist-title">{{ item.music_title }}</h4>
@@ -148,7 +148,7 @@
                 @click="playNewMusic(item)"
               >
                 <div class="nm-card-cover">
-                  <img :src="item.cover + '@200w_200h.webp'" :alt="item.music_title" loading="lazy" />
+                  <img :src="item.cover + '@400w_400h.webp'" :alt="item.music_title" loading="lazy" />
                   <div class="nm-card-overlay">
                     <Icon icon="mdi:play-circle" class="nm-play-icon" />
                   </div>
@@ -194,6 +194,24 @@ export default {
     const user = useUserStore()
     const loading = ref(true)
     const error = ref('')
+
+    // Lazy duration cache (bvid → duration)
+    const durationCache = new Map()
+
+    async function fetchMissingDuration(item) {
+      if (!item.bvid || item.duration > 0) return
+      if (durationCache.has(item.bvid)) {
+        item.duration = durationCache.get(item.bvid)
+        return
+      }
+      try {
+        const info = await window.electronAPI.getVideoInfo(item.bvid, item.aid || 0)
+        if (info?.duration) {
+          item.duration = info.duration
+          durationCache.set(item.bvid, info.duration)
+        }
+      } catch {}
+    }
 
     // Data sources
     const banner = ref(null)
@@ -242,6 +260,17 @@ export default {
         if (newMusicData?.list) newMusic.value = newMusicData.list.slice(0, 12)
         if (bannerData) banner.value = bannerData
 
+        // 惰性获取缺失的歌曲时长
+        const allItems = [
+          ...(hotRank.value || []),
+          ...(newMusic.value || []),
+        ]
+        for (const item of allItems) {
+          if (!item.duration) {
+            fetchMissingDuration(item).catch(() => {})
+          }
+        }
+
         // 如果所有数据都为空，显示提示
         if (!toplistData && !hotRankData && !newMusicData) {
           error.value = '暂时无法获取音乐数据，请稍后重试'
@@ -273,7 +302,7 @@ export default {
         aid: item.aid || 0,
         title: item.music_title,
         cover: item.cover || '',
-        duration: 0,
+        duration: item.duration || 0,
         author: item.author || '',
         play: item.total_vv || 0,
         cid: item.cid || null
@@ -286,7 +315,7 @@ export default {
         aid: item.mv_aid || 0,
         title: item.music_title,
         cover: item.mv_cover || '',
-        duration: 0,
+        duration: item.duration || 0,
         author: item.singer || '',
         play: item.heat || 0,
         cid: null
@@ -299,7 +328,7 @@ export default {
         aid: item.aid || 0,
         title: item.music_title,
         cover: item.cover || '',
-        duration: 0,
+        duration: item.duration || 0,
         author: item.author || '',
         play: item.wish_count || 0,
         cid: item.cid || null

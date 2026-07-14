@@ -66,6 +66,7 @@
           v-for="item in resources"
           :key="item.bvid"
           :item="item"
+          :show-play-count="false"
           @fav-change="onFavChange($event, item)"
         />
       </div>

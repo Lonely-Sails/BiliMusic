@@ -2,7 +2,7 @@
   <TooltipProvider>
   <div class="song-card" @click="play">
     <div class="card-cover">
-      <img :src="item.cover + '@672w_420h.webp'" :alt="item.title" loading="lazy" />
+      <img :src="item.cover + '@1280w_800h.webp'" :alt="item.title" loading="lazy" />
       <div class="card-overlay">
         <Icon icon="mdi:play-circle-outline" class="play-icon" />
       </div>
@@ -46,7 +46,7 @@
         <Icon icon="mdi:account-outline" class="meta-icon" />
         {{ item.author }}
       </p>
-      <p class="card-stats">
+      <p class="card-stats" v-if="showPlayCount">
         <Icon icon="mdi:play-circle-outline" class="meta-icon" />
         {{ formatNumber(item.play) }}
       </p>
@@ -75,6 +75,10 @@ export default {
     item: {
       type: Object,
       required: true
+    },
+    showPlayCount: {
+      type: Boolean,
+      default: true
     }
   },
   emits: ['fav-change'],

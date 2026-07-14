@@ -103,24 +103,31 @@
         </div>
       </div>
 
-      <!-- 高级卡片 -->
+      <!-- 缓存卡片 -->
       <div class="setting-card">
         <div class="setting-card-header">
-          <Icon icon="mdi:tune-variant" class="card-icon" />
-          <span>高级</span>
+          <Icon icon="mdi:database-outline" class="card-icon" />
+          <span>缓存</span>
         </div>
 
         <div class="setting-card-body">
+          <!-- 简要说明 -->
+          <div class="setting-cache-desc">
+            <Icon icon="mdi:information-outline" class="desc-icon" />
+            <span>缓存搜索、榜单、歌词等 API 请求结果，减少重复请求，有效期 5 分钟</span>
+          </div>
+
+          <!-- API 响应缓存 -->
           <div class="setting-row">
-            <span class="setting-label">歌曲链接缓存上限</span>
+            <span class="setting-label">API 响应缓存上限</span>
             <div class="setting-control-row">
               <NumberFieldRoot
                 class="number-field"
-                :model-value="audioLimit"
-                :min="10"
-                :max="500"
-                :step="10"
-                @update:model-value="onAudioLimitChange"
+                :model-value="responseCacheMax"
+                :min="50"
+                :max="5000"
+                :step="50"
+                @update:model-value="onResponseCacheMaxChange"
               >
                 <NumberFieldDecrement class="nf-btn">
                   <Icon icon="mdi:minus" />
@@ -130,35 +137,26 @@
                   <Icon icon="mdi:plus" />
                 </NumberFieldIncrement>
               </NumberFieldRoot>
-              <span class="setting-hint">当前 {{ cacheInfo.audio.size }} 项</span>
+              <span class="setting-hint" v-if="apiCacheLoading">获取中...</span>
+              <span class="setting-hint" v-else>当前 {{ apiCacheSize }} 项</span>
             </div>
           </div>
+
+          <!-- 音频链接缓存（只读信息） -->
           <div class="setting-row">
-            <span class="setting-label">歌词缓存上限</span>
+            <span class="setting-label">音频链接缓存</span>
             <div class="setting-control-row">
-              <NumberFieldRoot
-                class="number-field"
-                :model-value="lyricLimit"
-                :min="5"
-                :max="200"
-                :step="5"
-                @update:model-value="onLyricLimitChange"
-              >
-                <NumberFieldDecrement class="nf-btn">
-                  <Icon icon="mdi:minus" />
-                </NumberFieldDecrement>
-                <NumberFieldInput class="nf-input" />
-                <NumberFieldIncrement class="nf-btn">
-                  <Icon icon="mdi:plus" />
-                </NumberFieldIncrement>
-              </NumberFieldRoot>
-              <span class="setting-hint">当前 {{ cacheInfo.lyric.size }} 项</span>
+              <span class="setting-hint" v-if="audioCacheInfo">当前 {{ audioCacheInfo.size }} / {{ audioCacheInfo.max }} 项</span>
             </div>
           </div>
+
+          <!-- 清空 -->
           <div class="setting-row setting-row-footer">
-            <span class="setting-label">总计 {{ cacheInfo.audio.size + cacheInfo.lyric.size }} 项</span>
-            <button class="setting-btn" @click="clearCache">
-              <Icon icon="mdi:delete-outline" /> 清空缓存
+            <span class="setting-label">
+              总计 {{ (audioCacheInfo?.size || 0) + apiCacheSize }} 项
+            </span>
+            <button class="setting-btn" @click="clearAllCache">
+              <Icon icon="mdi:delete-outline" /> 清空所有缓存
             </button>
           </div>
         </div>
@@ -168,7 +166,7 @@
 </template>
 
 <script>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useUserStore } from '../../stores/user'
 import { usePlayerStore } from '../../stores/player'
 import { useToast } from '../../stores/toast'
@@ -196,15 +194,36 @@ export default {
     const folders = ref([])
     const selectedFavFolder = ref(user.favFolderId ? String(user.favFolderId) : '__none__')
     const loadingFolders = ref(false)
-    const cacheInfo = reactive({ audio: { size: 0, max: 0 }, lyric: { size: 0, max: 0 } })
     const desktopLyricsVisible = ref(false)
-    const audioLimit = ref(100)
-    const lyricLimit = ref(20)
+    const audioCacheInfo = ref(null)
+    const apiCacheSize = ref(0)
+    const apiCacheMax = ref(500)
+    const responseCacheMax = ref(500)
+    const apiCacheLoading = ref(true)
 
-    function refreshCacheInfo() {
-      const info = player.getCacheInfo()
-      cacheInfo.audio = { ...info.audio }
-      cacheInfo.lyric = { ...info.lyric }
+    async function refreshCacheInfo() {
+      audioCacheInfo.value = player.getAudioCacheInfo()
+      if (window.electronAPI?.getResponseCacheStats) {
+        try {
+          apiCacheLoading.value = true
+          const stats = await window.electronAPI.getResponseCacheStats()
+          apiCacheSize.value = stats.size
+          apiCacheMax.value = stats.max
+          responseCacheMax.value = stats.max
+        } catch {} finally {
+          apiCacheLoading.value = false
+        }
+      }
+    }
+
+    async function onResponseCacheMaxChange(val) {
+      if (val == null || val < 50) val = 50
+      if (val > 5000) val = 5000
+      responseCacheMax.value = val
+      if (window.electronAPI?.setResponseCacheMax) {
+        await window.electronAPI.setResponseCacheMax(val)
+      }
+      refreshCacheInfo()
     }
 
     onMounted(() => {
@@ -212,8 +231,6 @@ export default {
         loadFolders()
       }
       refreshCacheInfo()
-      audioLimit.value = cacheInfo.audio.max
-      lyricLimit.value = cacheInfo.lyric.max
 
       if (window.electronAPI?.onDesktopLyricsVisibility) {
         window.electronAPI.onDesktopLyricsVisibility((visible) => {
@@ -249,22 +266,6 @@ export default {
       selectedFavFolder.value = val
     }
 
-    function onAudioLimitChange(val) {
-      if (val == null || val < 10) val = 10
-      if (val > 500) val = 500
-      audioLimit.value = val
-      player.updateCacheLimits(val, lyricLimit.value)
-      refreshCacheInfo()
-    }
-
-    function onLyricLimitChange(val) {
-      if (val == null || val < 5) val = 5
-      if (val > 200) val = 200
-      lyricLimit.value = val
-      player.updateCacheLimits(audioLimit.value, val)
-      refreshCacheInfo()
-    }
-
     function toggleDesktopLyrics() {
       if (window.electronAPI?.desktopLyricsToggle) {
         window.electronAPI.desktopLyricsToggle()
@@ -292,12 +293,16 @@ export default {
       }
     }
 
-    function clearCache() {
-      player.clearAllCaches()
-      refreshCacheInfo()
+    async function clearAllCache() {
+      player.clearAudioCache()
+      if (window.electronAPI?.clearResponseCache) {
+        await window.electronAPI.clearResponseCache()
+      }
+      await refreshCacheInfo()
+      showToast('缓存已清空')
     }
 
-    return { user, player, folders, selectedFavFolder, loadingFolders, cacheInfo, audioLimit, lyricLimit, desktopLyricsVisible, onSelectFavFolder, onAudioLimitChange, onLyricLimitChange, toggleDesktopLyrics, openLyricsFolder, clearLocalLyrics, clearCache, refreshCacheInfo }
+    return { user, player, folders, selectedFavFolder, loadingFolders, audioCacheInfo, apiCacheSize, apiCacheMax, apiCacheLoading, responseCacheMax, desktopLyricsVisible, onSelectFavFolder, toggleDesktopLyrics, openLyricsFolder, clearLocalLyrics, clearAllCache, onResponseCacheMaxChange, refreshCacheInfo }
   }
 }
 </script>
@@ -533,5 +538,24 @@ export default {
   font-size: 11px;
   color: var(--text-muted);
   white-space: nowrap;
+}
+
+/* ── Cache description ── */
+.setting-cache-desc {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 20px 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.desc-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--accent-dim);
 }
 </style>

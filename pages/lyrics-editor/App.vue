@@ -82,6 +82,10 @@
                     <span class="le-list-item-source">{{ item.sourceName }}</span>
                   </span>
                 </div>
+                <!-- 相似度指示器 -->
+                <div v-if="item.score != null" class="le-score-badge" :class="scoreClass(item.score)">
+                  {{ (item.score * 100).toFixed(0) }}%
+                </div>
                 <template v-if="item.cover && !isCoverErrored(item)">
                   <img v-if="item.sourceName.includes('QQ')" :src="item.cover + '@48w_48h'" class="le-list-item-cover" @error="onCoverError(item)" />
                   <img v-else :src="item.cover" class="le-list-item-cover" @error="onCoverError(item)" />
@@ -142,6 +146,23 @@
             </button>
             <button class="le-tb-btn" :disabled="!canRedo" @click="redo" title="重做 (Ctrl+Shift+Z)">
               <Icon icon="mdi:redo" />
+            </button>
+            <span class="le-tb-sep" />
+            <button
+              class="le-tb-btn le-tb-btn-accent"
+              :disabled="!lyricLines.length || !currentTrackBvid || aligning"
+              @click="doAutoAlign(false)"
+              title="默认校对：用AI字幕对齐第一句歌词时间"
+            >
+              <Icon icon="mdi:clock-auto" />
+            </button>
+            <button
+              class="le-tb-btn le-tb-btn-accent"
+              :disabled="!lyricLines.length || !currentTrackBvid || aligning"
+              @click="doAutoAlign(true)"
+              title="全部校对：用AI字幕对齐所有歌词时间"
+            >
+              <Icon icon="mdi:auto-fix" />
             </button>
             <span class="le-tb-sep" />
             <button class="le-tb-btn" :disabled="!lyricLines.length" @click="saveLyrics" title="保存为本地LRC文件">
@@ -241,6 +262,7 @@ export default {
   setup() {
     const searchQuery = ref('')
     const searching = ref(false)
+    const aligning = ref(false)
     const allLocalLyrics = ref([])
     const localLyrics = ref([])
     const searchResults = ref([])
@@ -248,12 +270,22 @@ export default {
     const lyricLines = ref([])
     const currentSourceLabel = ref('')
     const currentTrackBvid = ref('')
+    const currentTrackCid = ref('')
+    const currentTrackTitle = ref('')
+    const currentTrackAuthor = ref('')
     const selectedLineIdx = ref(-1)
     const editingLineIdx = ref(-1)
     const editText = ref('')
     const hoveredLineIdx = ref(-1)
     const editInputRef = ref(null)
     const stepValue = ref(1)
+
+    // ── 相似度颜色 ──
+    function scoreClass(score) {
+      if (score >= 0.7) return 'score-high'
+      if (score >= 0.4) return 'score-mid'
+      return 'score-low'
+    }
 
     // ── Cover image error ──
     const erroredCovers = ref(new Set())
@@ -343,7 +375,14 @@ export default {
       )
 
       try {
-        searchResults.value = await api.searchLyricCandidates(q) || []
+        // 有视频标题+作者时使用相似度排序搜索
+        const videoTitle = currentTrackTitle.value || q
+        const author = currentTrackAuthor.value || ''
+        if (api.searchRankedCandidates) {
+          searchResults.value = await api.searchRankedCandidates(q, videoTitle, author) || []
+        } else {
+          searchResults.value = await api.searchLyricCandidates(q) || []
+        }
       } catch { searchResults.value = [] }
       searching.value = false
     }
@@ -441,6 +480,31 @@ export default {
       } catch {}
     }
 
+    // ── AI 字幕校对 ──
+    async function doAutoAlign(fullAlign) {
+      if (!lyricLines.value.length || !currentTrackBvid.value || aligning.value) return
+      aligning.value = true
+      pushHistory()
+      try {
+        if (fullAlign) {
+          // 全部校对：匹配所有行
+          const result = await api.autoAlignAll(lyricLines.value, currentTrackBvid.value, currentTrackCid.value)
+          if (result.lyrics) {
+            lyricLines.value = result.lyrics.map(l => ({ ...l }))
+          }
+        } else {
+          // 默认校对：只对齐第一句
+          const result = await api.alignFirstLine(lyricLines.value, currentTrackBvid.value, currentTrackCid.value)
+          if (result.lyrics) {
+            lyricLines.value = result.lyrics.map(l => ({ ...l }))
+          }
+        }
+      } catch (e) {
+        console.error('Auto-align failed:', e)
+      }
+      aligning.value = false
+    }
+
     function parseLRC(lrcText) {
       if (!lrcText) return []
       const lines = lrcText.split('\n')
@@ -524,6 +588,9 @@ export default {
           if (info?.title) {
             searchQuery.value = extractKeyword(info.title) || info.title
             currentTrackBvid.value = info.bvid || ''
+            currentTrackCid.value = info.cid || ''
+            currentTrackTitle.value = info.title || ''
+            currentTrackAuthor.value = info.author || ''
             doSearch()
           }
         })
@@ -531,13 +598,14 @@ export default {
     })
 
     return {
-      searchQuery, searching, allLocalLyrics, localLyrics, searchResults, selectedKey,
-      lyricLines, currentSourceLabel, selectedLineIdx,
+      searchQuery, searching, aligning, allLocalLyrics, localLyrics, searchResults, selectedKey,
+      lyricLines, currentSourceLabel, currentTrackBvid, selectedLineIdx,
       editingLineIdx, editText, hoveredLineIdx, editInputRef,
       canUndo, canRedo, stepValue,
+      scoreClass,
       doSearch, onSelect, selectLine, startEdit, finishEdit, cancelEdit,
       insertLineAfter, deleteSelectedLine, adjustFromSelected,
-      undo, redo, saveLyrics, formatTimeTag, closeWindow,
+      undo, redo, saveLyrics, doAutoAlign, formatTimeTag, closeWindow,
       onCoverError, isCoverErrored
     }
   }
@@ -836,6 +904,34 @@ export default {
 .le-lyric-add-btn:hover {
   background: var(--accent-dim);
   color: var(--accent);
+}
+
+/* ── 相似度评分徽章 ── */
+.le-score-badge {
+  font-size: 10px; font-weight: 600;
+  padding: 1px 6px; border-radius: 4px;
+  margin-right: 4px; flex-shrink: 0;
+}
+.le-score-badge.score-high {
+  background: rgba(52, 211, 153, 0.15);
+  color: #34d399;
+}
+.le-score-badge.score-mid {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+}
+.le-score-badge.score-low {
+  background: rgba(156, 163, 175, 0.15);
+  color: #9ca3af;
+}
+
+/* ── 工具栏强调按钮（自动校对） ── */
+.le-tb-btn-accent {
+  color: var(--accent);
+}
+.le-tb-btn-accent:hover:not(:disabled) {
+  background: var(--accent-dim);
+  color: var(--accent-hover);
 }
 
 </style>

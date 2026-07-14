@@ -22,7 +22,7 @@ async function searchVideo(keyword, page = 1, pageSize = 20) {
     bvid: item.bvid,
     aid: item.aid,
     title: item.title.replace(/<[^>]+>/g, ''), // Remove HTML tags
-    cover: item.pic,
+    cover: item.pic ? (item.pic.startsWith('//') ? 'https:' + item.pic : item.pic) : '',
     duration: item.duration,
     author: item.author,
     mid: item.mid,

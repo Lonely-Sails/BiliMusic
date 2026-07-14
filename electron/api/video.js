@@ -14,12 +14,12 @@ async function getVideoInfo(bvid, aid) {
     bvid: v.bvid,
     aid: v.aid,
     title: v.title,
-    cover: v.pic,
     duration: v.duration,
     author: v.owner?.name,
     mid: v.owner?.mid,
     authorFace: v.owner?.face,
     description: v.desc,
+    cover: v.pic ? (v.pic.startsWith('//') ? 'https:' + v.pic : v.pic) : '',
     pages: (v.pages || []).map((p) => ({
       cid: p.cid,
       page: p.page,
@@ -28,7 +28,11 @@ async function getVideoInfo(bvid, aid) {
     })),
     stats: v.stat || {},
     pubdate: v.pubdate,
-    cid: v.cid // First page CIDs
+    cid: v.cid, // First page CIDs
+    // BGM 信息（用于歌词搜索）
+    bgm_info: v.bgm_info || null,
+    // 字幕信息
+    subtitle: v.subtitle || null
   }
 }
 
