@@ -240,7 +240,14 @@ export function setupIPC(wm, currentLyricsData, currentTrackInfo) {
           }
         }
         if (successful.length > 0) {
-          successful.sort((a, b) => (b.candidate?.score || 0) - (a.candidate?.score || 0))
+          successful.sort((a, b) => {
+            const scoreDiff = (b.candidate?.score || 0) - (a.candidate?.score || 0)
+            if (scoreDiff !== 0) return scoreDiff
+            // 分数相同时，优先采用有翻译的
+            const aTrans = a.trans?.length > 0 ? 1 : 0
+            const bTrans = b.trans?.length > 0 ? 1 : 0
+            return bTrans - aTrans
+          })
           return successful[0]
         }
       }
@@ -379,10 +386,14 @@ export function setupIPC(wm, currentLyricsData, currentTrackInfo) {
     }
   })
   ipcMain.on('desktop-lyrics:update-lyrics', (_, data) => {
+    // 浅比较去重：歌词引用相同且时间未变则跳过
+    if (currentLyricsData.lyrics === data.lyrics && currentLyricsData.currentTime === data.currentTime) return
     Object.assign(currentLyricsData, data)
     if (isDesktopLyricsAlive()) getDesktopLyricsWindow().webContents.send('desktop-lyrics:update', data)
   })
   ipcMain.on('desktop-lyrics:update-time', (_, time) => {
+    // 时间未变则跳过
+    if (currentLyricsData.currentTime === time) return
     currentLyricsData.currentTime = time
     if (isDesktopLyricsAlive()) getDesktopLyricsWindow().webContents.send('desktop-lyrics:time', time)
   })

@@ -80,19 +80,28 @@
             </TooltipPortal>
           </TooltipRoot>
 
-          <TooltipRoot>
-            <TooltipTrigger as-child>
-              <button class="ctrl-btn" @click="openLyricsOverlay" :disabled="!player.currentTrack">
-                <Icon icon="mdi:microphone" />
+          <HoverCardRoot :open-delay="0" :close-delay="200">
+            <HoverCardTrigger as-child>
+              <button class="ctrl-btn" @click="toggleMute">
+                <Icon :icon="volumeIcon" />
               </button>
-            </TooltipTrigger>
-            <TooltipPortal>
-              <TooltipContent class="tooltip-content" :data-state="'instant-open'" side="top">
-                歌词
-                <TooltipArrow class="tooltip-arrow" />
-              </TooltipContent>
-            </TooltipPortal>
-          </TooltipRoot>
+            </HoverCardTrigger>
+            <HoverCardPortal>
+              <HoverCardContent class="volume-hover-content" side="top" :side-offset="12">
+                <div class="volume-popup-body">
+                  <SliderRoot class="volume-popup-slider" orientation="vertical"
+                    :model-value="[muted ? 0 : player.volume]" :max="1" :step="0.05"
+                    @update:model-value="([val]) => { player.setVolume(val); muted = false }">
+                    <SliderTrack class="volume-popup-track">
+                      <SliderRange class="volume-popup-range" />
+                    </SliderTrack>
+                    <SliderThumb class="volume-popup-thumb" />
+                  </SliderRoot>
+                </div>
+                <div class="volume-popup-label">{{ muted ? 0 : Math.round(player.volume * 100) }}%</div>
+              </HoverCardContent>
+            </HoverCardPortal>
+          </HoverCardRoot>
 
           <TooltipRoot>
             <TooltipTrigger as-child>
@@ -111,30 +120,18 @@
       </div>
 
       <div class="progress-area">
-        <span class="time current">{{ formatTime(player.currentTime) }}</span>
-        <SliderRoot class="progress-bar" :model-value="[player.currentTime]" :max="player.duration || 100" :step="1"
+        <span class="time current">{{ formatCurrentTime }}</span>
+        <SliderRoot class="progress-bar" :model-value="[player.currentTime]" :max="player.duration || 1" :step="1"
           :disabled="!player.currentTrack" @update:model-value="([val]) => player.seek(val)">
           <SliderTrack class="slider-track">
             <SliderRange class="slider-range" />
           </SliderTrack>
           <SliderThumb class="slider-thumb" />
         </SliderRoot>
-        <span class="time total">{{ formatTime(player.duration) }}</span>
+        <span class="time total">{{ formatDuration }}</span>
       </div>
     </div>
 
-    <div class="player-volume">
-      <button class="ctrl-btn" @click="toggleMute">
-        <Icon :icon="volumeIcon" />
-      </button>
-      <SliderRoot class="volume-slider" :model-value="[muted ? 0 : player.volume]" :max="1" :step="0.01"
-        @update:model-value="([val]) => { player.setVolume(val); muted = false }">
-        <SliderTrack class="slider-track volume-track">
-          <SliderRange class="slider-range volume-range" />
-        </SliderTrack>
-        <SliderThumb class="slider-thumb volume-thumb" />
-      </SliderRoot>
-    </div>
   </div>
 </template>
 
@@ -142,14 +139,14 @@
 /**
  * PlayerBar.vue — 底部播放控制栏
  *
- * 布局：歌曲信息 | 播放控制(模式/上/播放/下/歌词/桌面) | 进度条 | 音量
+ * 布局：歌曲信息 | 播放控制(模式/上/播放/下/音量悬浮/桌面) | 进度条
  * 使用 Reka UI Slider 实现进度条和音量滑块，Tooltip 实现按钮提示。
  */
 
 import { computed, ref, onMounted, inject } from 'vue'
 import { usePlayerStore } from '../stores/player'
 import { Icon } from '@iconify/vue'
-import { SliderRoot, SliderTrack, SliderRange, SliderThumb, TooltipRoot, TooltipTrigger, TooltipPortal, TooltipContent, TooltipArrow, TooltipProvider } from 'reka-ui'
+import { SliderRoot, SliderTrack, SliderRange, SliderThumb, TooltipRoot, TooltipTrigger, TooltipPortal, TooltipContent, TooltipArrow, TooltipProvider, HoverCardRoot, HoverCardTrigger, HoverCardPortal, HoverCardContent } from 'reka-ui'
 
 const player = usePlayerStore()
 const muted = ref(false)        // 是否静音
@@ -194,6 +191,9 @@ function toggleMute() {
 function toggleDesktopLyrics() { window.electronAPI?.desktopLyricsToggle() }
 
 /** 格式化秒数为 m:ss */
+const formatCurrentTime = computed(() => formatTime(player.currentTime))
+const formatDuration = computed(() => formatTime(player.duration))
+
 function formatTime(seconds) {
   if (!seconds || isNaN(seconds)) return '0:00'
   const m = Math.floor(seconds / 60)
@@ -388,28 +388,5 @@ function formatTime(seconds) {
   opacity: 1;
 }
 
-.player-volume {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 120px;
-  justify-content: flex-end;
-}
 
-.player-volume .ctrl-btn {
-  font-size: 18px;
-}
-
-.volume-slider {
-  width: 80px;
-  display: flex;
-  align-items: center;
-  height: 20px;
-  cursor: pointer;
-  position: relative;
-}
-
-.volume-slider:hover .volume-thumb {
-  opacity: 1;
-}
 </style>

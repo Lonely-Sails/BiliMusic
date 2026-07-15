@@ -1,7 +1,7 @@
 <template>
   <Teleport to="body">
     <Transition name="lyrics-overlay">
-      <div v-if="visible" class="lyrics-overlay" @click.self="close">
+      <div v-show="visible" class="lyrics-overlay" @click.self="close">
         <div class="lyrics-bg" :style="bgStyle" />
         <div class="lyrics-bg-scrim" />
         <div class="lyrics-body" @click.stop>
@@ -65,7 +65,7 @@
             <div v-else ref="lyricsContainer" class="lyrics-scroll">
               <div class="lyrics-list">
                 <div v-for="(line, index) in player.currentLyrics" :key="index" class="line"
-                  :class="{ active: index === activeIndex }">
+                  :class="{ active: index === activeIndex }" v-memo="[index === activeIndex, player.showTranslation]">
                   <span class="line-text">{{ line.text || '♫' }}</span>
                   <span v-if="player.showTranslation && line.trans" class="line-trans"
                     :class="{ 'active-trans': index === activeIndex }">{{ line.trans }}</span>
@@ -90,7 +90,6 @@ const emit = defineEmits(['close'])
 const player = usePlayerStore()
 const lyricsContainer = ref(null)
 let lastActiveIndex = -1
-let scrollTicking = false
 
 const bgStyle = computed(() => {
   if (player.currentTrack?.cover) return { backgroundImage: `url(${player.currentTrack.cover}@128w_128h.webp)` }
@@ -135,7 +134,18 @@ function serializeLRC(lines, songName, sourceName, bvid) {
 
 const activeIndex = computed(() => {
   const lyrics = player.currentLyrics; const t = player.currentTime
-  for (let i = 0; i < lyrics.length; i++) {
+  if (!lyrics.length) return -1
+  // 从上次索引附近开始搜索（摊销 O(1)）
+  let start = lastActiveIndex >= 0 && lastActiveIndex < lyrics.length ? lastActiveIndex : 0
+  // 向前或向后搜索
+  if (start > 0 && t < lyrics[start].time) {
+    for (let i = start - 1; i >= 0; i--) {
+      const next = lyrics[i + 1]
+      if (t >= lyrics[i].time && (!next || t < next.time)) return i
+    }
+    return -1
+  }
+  for (let i = start; i < lyrics.length; i++) {
     const line = lyrics[i]; const next = lyrics[i + 1]
     if (!line) continue
     if (!next) { if (t >= line.time) return i }
@@ -144,33 +154,20 @@ const activeIndex = computed(() => {
   return -1
 })
 
-function smoothScrollTo(container, targetTop) {
-  const start = container.scrollTop; const diff = targetTop - start
-  const duration = 400; let startTime = null
-  function step(ts) {
-    if (!startTime) startTime = ts
-    const p = Math.min((ts - startTime) / duration, 1)
-    const ease = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2
-    container.scrollTop = start + diff * ease
-    if (p < 1) requestAnimationFrame(step)
-  }
-  requestAnimationFrame(step)
+function scrollToActive(idx) {
+  const container = lyricsContainer.value
+  if (!container || idx < 0) return
+  const el = container.querySelector(`.line:nth-child(${idx + 1})`)
+  if (!el) return
+  const offset = el.offsetTop - container.offsetTop
+  const target = offset - (container.clientHeight / 2) + (el.clientHeight / 2)
+  container.scrollTo({ top: Math.max(0, target), behavior: 'smooth' })
 }
 
 watch(activeIndex, (idx) => {
   if (idx < 0 || idx === lastActiveIndex) return
   lastActiveIndex = idx
-  const container = lyricsContainer.value
-  if (!container || scrollTicking) return
-  scrollTicking = true
-  requestAnimationFrame(() => {
-    scrollTicking = false
-    const el = container.querySelector(`.line:nth-child(${idx + 1})`)
-    if (!el) return
-    const offset = el.offsetTop - container.offsetTop
-    const target = offset - (container.clientHeight / 2) + (el.clientHeight / 2)
-    smoothScrollTo(container, Math.max(0, target))
-  })
+  scrollToActive(idx)
 })
 
 function onKeydown(e) { if (e.key === 'Escape' && props.visible) close() }
@@ -203,6 +200,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  will-change: opacity, transform;
 }
 
 .lyrics-bg {

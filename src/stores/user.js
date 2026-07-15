@@ -8,7 +8,7 @@
  */
 
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref, shallowRef, computed, triggerRef } from 'vue';
 import { useToast } from './toast';
 
 const FAV_FOLDER_KEY = 'bilimusic_fav_folder';
@@ -25,7 +25,7 @@ export const useUserStore = defineStore('user', () => {
 	const level = ref(0);
 	const favFolderId = ref(null); // 当前选中的收藏夹 ID
 	const favFolderName = ref(''); // 当前选中的收藏夹名称
-	const favoritedBvids = ref(new Set()); // 已收藏的 bvid 集合
+	const favoritedBvids = shallowRef(new Set()); // 已收藏的 bvid 集合（shallowRef 避免深层响应式开销）
 	const favoritedCount = computed(() => favoritedBvids.value.size);
 
 	const { showToast } = useToast();
@@ -55,6 +55,7 @@ export const useUserStore = defineStore('user', () => {
 			loadFavoritedBvids();
 		} else {
 			favoritedBvids.value = new Set();
+			triggerRef(favoritedBvids);
 		}
 	}
 
@@ -65,14 +66,23 @@ export const useUserStore = defineStore('user', () => {
 	async function loadFavoritedBvids() {
 		if (!loggedIn.value || !favFolderId.value) return;
 		try {
-			const result = await window.electronAPI.listFavResources(
-				favFolderId.value,
-				1,
-				20,
-			);
-			if (result && result.resources) {
-				syncFavoritedBvids(result.resources);
+			// 并行拉取最多 5 页（100 条），覆盖绝大多数收藏夹
+			const pagePromises = [];
+			for (let p = 1; p <= 5; p++) {
+				pagePromises.push(
+					window.electronAPI.listFavResources(favFolderId.value, p, 20)
+						.then(result => result?.resources || [])
+						.catch(() => [])
+				);
 			}
+			const allPages = await Promise.all(pagePromises);
+			const allBvids = [];
+			for (const resources of allPages) {
+				for (const r of resources) {
+					if (r.bvid) allBvids.push(r);
+				}
+			}
+			syncFavoritedBvids(allBvids);
 		} catch (e) {
 			console.error('[BiliMusic] Load favorited status failed:', e);
 		}
@@ -91,9 +101,8 @@ export const useUserStore = defineStore('user', () => {
 					favFolderId.value,
 				);
 				if (result?.success) {
-					const set = new Set(favoritedBvids.value);
-					set.delete(bvid);
-					favoritedBvids.value = set;
+					favoritedBvids.value.delete(bvid);
+					triggerRef(favoritedBvids);
 					showToast('已取消收藏', 'success');
 					return { success: true, action: 'removed' };
 				} else {
@@ -107,9 +116,8 @@ export const useUserStore = defineStore('user', () => {
 					favFolderId.value,
 				);
 				if (result?.success) {
-					const set = new Set(favoritedBvids.value);
-					set.add(bvid);
-					favoritedBvids.value = set;
+					favoritedBvids.value.add(bvid);
+					triggerRef(favoritedBvids);
 					showToast('已收藏', 'success');
 					return { success: true, action: 'added' };
 				} else {
@@ -163,15 +171,16 @@ export const useUserStore = defineStore('user', () => {
 		favFolderId.value = null;
 		favFolderName.value = '';
 		favoritedBvids.value = new Set();
+		triggerRef(favoritedBvids);
 		localStorage.removeItem(FAV_FOLDER_KEY);
 	}
 
 	function syncFavoritedBvids(bvidsArray) {
-		const set = new Set();
+		const set = favoritedBvids.value;
 		for (const r of bvidsArray) {
 			if (r.bvid) set.add(r.bvid);
 		}
-		favoritedBvids.value = set;
+		triggerRef(favoritedBvids);
 	}
 
 	return {

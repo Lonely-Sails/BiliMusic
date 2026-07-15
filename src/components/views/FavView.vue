@@ -104,7 +104,8 @@ async function loadResources() {
     if (result && !result.error) {
       resources.value = result.resources || []; total.value = result.total || 0
       totalPages.value = Math.ceil(total.value / PAGE_SIZE) || 1
-      if (page.value === 1) user.syncFavoritedBvids(resources.value)
+      // 每页都增量同步 bvid 到全局收藏状态
+      user.syncFavoritedBvids(resources.value)
     } else { loadError.value = result?.error || '加载失败'; resources.value = [] }
   } catch (e) { loadError.value = e.message || '加载失败'; resources.value = [] }
   finally { loading.value = false }

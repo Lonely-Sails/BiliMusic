@@ -118,23 +118,11 @@ function textSimilarity(a, b) {
 }
 
 /**
- * 从视频标题中提取关键词（去除常见无意义词汇）
- */
-function extractKeywords(title) {
-  if (!title) return []
-  // 去除标点、括号内容等
-  const cleaned = title
-    .replace(/[《》【】「」""''（）()\-—·,./:：;；！!?？]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-  return cleaned.split(' ').filter(w => w.length >= 2)
-}
-
-/**
- * 去除标点、空格，取小写用于子串匹配
+ * 去除标点、空格，取小写、去掉其他的用于子串匹配
  */
 function normalize(str) {
-  return str.replace(/[^\w\u4e00-\u9fff]/g, '').toLowerCase()
+  const cleaned = str.replace(/[^\w\u4e00-\u9fff]/g, '').toLowerCase()
+  return cleaned.replace(/live/g, '').replace(/mv/g, '').trim()
 }
 
 /**
@@ -159,7 +147,6 @@ function rankCandidates(candidates, videoTitle, author) {
     let score = 0
 
     // 歌名和歌手都出现在对比文本中 → 完美匹配
-    console.log('Rank candidate:', c.song, c.singer, 'vs', compareText)
     const songInText = songName && compareText.includes(songName)
     const singerInText = singer && compareText.includes(singer)
     if (songInText && singerInText) score = 1
@@ -172,7 +159,13 @@ function rankCandidates(candidates, videoTitle, author) {
     }
 
     return { ...c, score: Math.min(1, Math.round(score * 100) / 100) }
-  }).sort((a, b) => b.score - a.score)
+  }).sort((a, b) => {
+    const scoreDiff = b.score - a.score
+    if (scoreDiff !== 0) return scoreDiff
+    // 分数相同时，按来源优先级排序（QQ音乐翻译覆盖率更高）
+    const priority = { qqmusic: 1, netease: 0 }
+    return (priority[b.source] || 0) - (priority[a.source] || 0)
+  })
 }
 
-export { searchCandidates, fetchLyric, rankCandidates, textSimilarity, extractKeywords }
+export { searchCandidates, fetchLyric, rankCandidates, textSimilarity }

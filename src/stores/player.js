@@ -62,11 +62,11 @@ export const usePlayerStore = defineStore('player', () => {
 
 	// ══════════════════════════════════════════
 	//  持久化 watch
-	//  playlist/volume/playMode/showTranslation 变化时自动写入 localStorage
+	//  playlist 仅监听引用变化（增删改操作中显式保存）
 	// ══════════════════════════════════════════
 
 	watch(playlist, (val) => saveToStorage(STORAGE_KEYS.playlist, val), {
-		deep: true,
+		deep: false,
 	});
 	watch(volume, (val) => {
 		saveToStorage(STORAGE_KEYS.volume, val);
@@ -77,9 +77,10 @@ export const usePlayerStore = defineStore('player', () => {
 		saveToStorage('bilimusic_show_translation', val),
 	);
 
-	// 曲目/歌词变化 → 同步到桌面歌词窗口
+	// 曲目变化 → 同步到桌面歌词窗口
 	watch(currentTrack, () => sendDesktopLyricsTrack());
-	watch(currentLyrics, () => sendDesktopLyricsUpdate(), { deep: true });
+	// 歌词变化 → 同步（仅监听引用变化，切歌时触发）
+	watch(currentLyrics, () => sendDesktopLyricsUpdate(), { deep: false });
 
 	// --- Actions ---
 	function setAudioElement(el) {
@@ -103,6 +104,7 @@ export const usePlayerStore = defineStore('player', () => {
 	function addToPlaylist(track) {
 		if (!playlist.value.find((t) => t.bvid === track.bvid)) {
 			playlist.value.push(track);
+			saveToStorage(STORAGE_KEYS.playlist, playlist.value);
 		}
 	}
 
@@ -116,6 +118,7 @@ export const usePlayerStore = defineStore('player', () => {
 
 	function removeFromPlaylist(index) {
 		playlist.value.splice(index, 1);
+		saveToStorage(STORAGE_KEYS.playlist, playlist.value);
 		if (currentIndex.value === index) {
 			if (playlist.value.length > 0) {
 				currentIndex.value = Math.min(index, playlist.value.length - 1);
@@ -133,16 +136,24 @@ export const usePlayerStore = defineStore('player', () => {
 		clearCurrentState();
 		playlist.value = [];
 		currentIndex.value = -1;
+		saveToStorage(STORAGE_KEYS.playlist, []);
 	}
 
 	function toPlainObject(obj) {
 		return JSON.parse(JSON.stringify(obj));
 	}
 
+	// 上次发送的歌词引用，用于去重
+	let lastSentLyrics = null;
+
 	function sendDesktopLyricsUpdate() {
 		if (!window.electronAPI?.desktopLyricsUpdateLyrics) return;
+		const lyricsArr = currentLyrics.value;
+		// 歌词没变就不重复发送完整数据
+		if (lyricsArr === lastSentLyrics) return;
+		lastSentLyrics = lyricsArr;
 		window.electronAPI.desktopLyricsUpdateLyrics({
-			lyrics: toPlainObject(currentLyrics.value),
+			lyrics: toPlainObject(lyricsArr),
 			currentTime: currentTime.value,
 		});
 	}
@@ -198,6 +209,8 @@ export const usePlayerStore = defineStore('player', () => {
 		lyricSource.value = '';
 		lyricCandidates.value = [];
 		lyricCandidateId.value = '';
+		lastSentTime = -1;
+		lastSentLyrics = null;
 		if (audioElement) {
 			audioElement.pause();
 			audioElement.src = '';
@@ -402,9 +415,17 @@ export const usePlayerStore = defineStore('player', () => {
 		playMode.value = (playMode.value + 1) % 3;
 	}
 
+	// ── 桌面歌词时间同步节流 ──
+	let lastSentTime = -1;
+	const DESKTOP_LYRICS_TIME_THROTTLE = 0.15; // 150ms 节流
+
 	function updateTime(time) {
 		currentTime.value = time;
-		sendDesktopLyricsTime();
+		// 节流：仅在时间差超过阈值时才发送
+		if (Math.abs(time - lastSentTime) >= DESKTOP_LYRICS_TIME_THROTTLE) {
+			lastSentTime = time;
+			sendDesktopLyricsTime();
+		}
 	}
 
 	function setDuration(val) {

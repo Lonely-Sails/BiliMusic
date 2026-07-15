@@ -86,4 +86,48 @@ function mergeTranslations(originals, translations, threshold = 0.5) {
   return result
 }
 
-export { parseLRC, mergeTranslations }
+/**
+ * 制作信息/版权声明关键词列表 — 匹配歌词行前缀
+ * 这些行不是真正的歌词内容，应该被过滤掉
+ */
+const PRODUCTION_PREFIXES = [
+  '作词', '作曲', '编曲', '制作人', '制作', 'OP', 'SP',
+  '混音', '录音', '录制', '监制', '出品', '发行',
+  '企划', '统筹', '原唱', '翻唱', '和声', '和音',
+  '词', '曲', '封面', '摄影', '吉他', '贝斯', '鼓',
+  '键盘', '弦乐', '配唱', '人声', '母带',
+  '特别感谢', '未经授权', '未經授權', '本歌曲',
+  'Lyrics', 'Music', 'Produced', 'Arranged',
+  'Mixed', 'Mastered', 'Recorded',
+]
+
+/**
+ * 过滤歌词数组中的制作信息/版权声明等非歌词行
+ * @param {Array<{time:number,text:string,trans?:string}>} lyrics
+ * @returns {Array<{time:number,text:string,trans?:string}>}
+ */
+function cleanLyrics(lyrics) {
+  if (!lyrics?.length) return lyrics
+
+  return lyrics.filter((line) => {
+    const text = line.text?.trim()
+    if (!text) return false
+
+    // 过滤纯标点/符号行（~~~、---、…等）
+    if (/^[~\-—….#・·\s]{1,10}$/.test(text)) return false
+
+    // 过滤制作信息前缀行
+    for (const prefix of PRODUCTION_PREFIXES) {
+      if (text.startsWith(prefix + '：') || text.startsWith(prefix + ':') || text === prefix) {
+        return false
+      }
+    }
+
+    // 过滤 ℗ © 版权声明
+    if (/^[℗©P]/.test(text) && /(Copy|Right|Record|出品|发行|版权所有|All\s*Rights)/i.test(text)) return false
+
+    return true
+  })
+}
+
+export { parseLRC, mergeTranslations, cleanLyrics }

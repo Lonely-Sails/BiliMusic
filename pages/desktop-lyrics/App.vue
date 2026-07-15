@@ -19,7 +19,6 @@
       <div v-else class="lyrics-list" :style="scrollStyle">
         <div
           class="lyric-line"
-          ref="lyricsRef"
           v-for="(line, index) in lyrics"
           :key="index"
           :class="{ active: index === activeIdx, next: index === activeIdx + 1 }"
@@ -33,7 +32,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, shallowRef, onMounted, onUnmounted } from 'vue'
 import Toolbar from './components/Toolbar.vue'
 
 /* =========================
@@ -42,16 +41,15 @@ import Toolbar from './components/Toolbar.vue'
 function clamp(v, min, max) { return Math.max(min, Math.min(max, v)) }
 
 /* =========================
-   状态
+   状态 — 使用 shallowRef 避免深层响应式开销
    ========================= */
-const lyrics       = ref([])
+const lyrics       = shallowRef([])
 const currentTime  = ref(0)
 const trackTitle   = ref('未在播放')
 const hasTrack     = ref(false)
 const isPlaying    = ref(false)
 const locked       = ref(false)
 const containerRef = ref(null)
-const lyricsRef    = ref([])
 
 /* =========================
    自定义拖拽状态
@@ -66,25 +64,55 @@ let dragStartY = 0
 const activeIdx = computed(() => {
   const arr = lyrics.value
   const t   = currentTime.value
-  for (let i = 0; i < arr.length; i++) {
-    const cur = arr[i]
-    const nxt = arr[i + 1]
-    if (!cur) continue
-    if (!nxt) { if (t >= cur.time) return i }
-    else if (t >= cur.time && t < nxt.time) return i
+  if (!arr.length) return -1
+  // 二分查找优化：歌词数组按时间有序
+  let lo = 0, hi = arr.length - 1
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >>> 1
+    if (arr[mid].time <= t) lo = mid
+    else hi = mid - 1
   }
-  return -1
-})
-
-const scrollStyle = computed(() => {
-  if (activeIdx.value < 0 || (!lyricsRef.value.length)) return 0
-  const currentLrycis = lyricsRef.value[activeIdx.value]
-  const containerHeight = containerRef.value.offsetHeight
-  return { transform: `translateY(-${currentLrycis.offsetTop + currentLrycis.offsetHeight - (containerHeight / 2) + 20}px)` }
+  return arr[lo] && t >= arr[lo].time ? lo : -1
 })
 
 /* =========================
-   自动字体大小 — 根据窗口高度计算
+   滚动偏移 — 用 requestAnimationFrame 批量读取 DOM，避免 layout thrashing
+   ========================= */
+const scrollOffset = ref(0)
+let rafId = null
+let lastContainerHeight = 0
+
+function scheduleScrollUpdate() {
+  if (rafId) return
+  rafId = requestAnimationFrame(() => {
+    rafId = null
+    const idx = activeIdx.value
+    const container = containerRef.value
+    if (idx < 0 || !container) {
+      scrollOffset.value = 0
+      return
+    }
+    // 批量读取 DOM（只触发一次 layout）
+    const containerHeight = container.offsetHeight
+    lastContainerHeight = containerHeight
+    const lines = container.querySelectorAll('.lyric-line')
+    const el = lines[idx]
+    if (!el) { scrollOffset.value = 0; return }
+    const offset = el.offsetTop + el.offsetHeight - containerHeight / 2 + 20
+    scrollOffset.value = offset
+  })
+}
+
+// 监听 activeIdx 变化 → 触发滚动更新
+const scrollStyle = computed(() => {
+  // 触发 scheduleScrollUpdate 的依赖追踪
+  const _idx = activeIdx.value
+  scheduleScrollUpdate()
+  return { transform: `translateY(-${scrollOffset.value}px)` }
+})
+
+/* =========================
+   自动字体大小 — 根据窗口高度计算（resize 时更新）
    ========================= */
 function calcFontSize() {
   const container = document.querySelector('.lyrics-container')
@@ -198,6 +226,7 @@ function setupIPC() {
     const newLyrics = data.lyrics || []
     const newTime   = data.currentTime || 0
 
+    // shallowRef 需要整体替换触发更新
     lyrics.value      = newLyrics
     currentTime.value = newTime
     hasTrack.value    = true
@@ -227,11 +256,13 @@ function onKeyDown(e) {
 }
 
 /* =========================
-   窗口 resize
+   窗口 resize — 去掉了无意义的 currentTime 自赋值
    ========================= */
 function onResize() {
-  currentTime.value = currentTime.value // 触发滚动
   applyFontSize()
+  // 强制重新计算滚动位置
+  scrollOffset.value = 0
+  scheduleScrollUpdate()
 }
 
 /* =========================
@@ -326,18 +357,20 @@ body.hover {
   padding: 4px 0;
   font-size: var(--lyric-font-size);
   color: rgb(121, 121, 121);
-  /* transition: color, opacity, text-shadow 0.7s cubic-bezier(0.22,1,0.36,1); */
-  transition: color 1s, text-shadow 0.7s,
+  /* 合并 transition，减少 GPU 合成开销 */
+  transition: color 1s, text-shadow 0.7s, font-weight .7s,
               transform 1s cubic-bezier(0.22, 1, 0.36, 1),
               opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1);
   transform: translateY(20px);
   line-height: 1.4;
   white-space: nowrap;
-  /* overflow: hidden; */
   text-overflow: ellipsis;
   width: 100%;
   opacity: 0;
-  will-change: opacity, transform, color, text-shadow;
+  /* 提示浏览器此元素会频繁变化，提升到独立合成层 */
+  will-change: opacity, transform, color;
+  /* 隔离布局影响，防止重排扩散 */
+  contain: layout style paint;
 }
 
 .lyric-text { display: block; }

@@ -11,12 +11,19 @@ export default defineConfig({
   },
   build: {
     crossorigin: false,
-    chunkSizeWarningLimit: 4000,
+    chunkSizeWarningLimit: 500,
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
         'desktop-lyrics': resolve(__dirname, 'pages/desktop-lyrics/index.html'),
         'lyrics-editor': resolve(__dirname, 'pages/lyrics-editor/index.html'),
+      },
+      output: {
+        manualChunks: {
+          'reka-ui': ['reka-ui'],
+          'iconify': ['@iconify/vue'],
+          'vue-vendor': ['vue', 'vue-router', 'pinia'],
+        }
       }
     }
   },

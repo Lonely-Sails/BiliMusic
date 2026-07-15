@@ -1,6 +1,6 @@
 import { sign } from './sign'
 import { apiGet, cachedFetch } from './client'
-import { parseLRC, mergeTranslations } from './lrc'
+import { parseLRC, mergeTranslations, cleanLyrics } from './lrc'
 import { searchCandidates, fetchLyric, rankCandidates } from './lyricSources'
 
 /**
@@ -64,43 +64,80 @@ async function searchRankedCandidates(title, videoTitle, author) {
 // ── AI 字幕与歌词校对 ──
 
 /**
- * 计算两个文本的字符级相似度 (0~1)
+ * 标准化文本：去空格、去标点、去 emoji、转小写，用于相似度比较
+ * 处理 AI 字幕与歌词之间断字/标点/emoji 差异
  */
-function textSimilarity(a, b) {
-  if (!a || !b) return 0
-  const s1 = a.replace(/\s+/g, '').toLowerCase()
-  const s2 = b.replace(/\s+/g, '').toLowerCase()
-  if (!s1 || !s2) return 0
-  if (s1 === s2) return 1
-  // 最长公共子串 / 较短字符串长度
-  let maxLen = 0
-  for (let i = 0; i < s1.length; i++) {
-    for (let j = i + 1; j <= s1.length; j++) {
-      const sub = s1.slice(i, j)
-      if (s2.includes(sub) && sub.length > maxLen) {
-        maxLen = sub.length
-      }
-    }
-  }
-  return maxLen / Math.max(s1.length, s2.length)
+function normalizeText(text) {
+  return text
+    .replace(/\s+/g, '')                                           // 去空格（AI 断字差异）
+    .replace(/[，。！？、；：""''（）【】《》「」『』～~…\-.·,:!?;'\"()\[\]{}<>]/g, '')  // 去标点
+    .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '') // 去 emoji
+    .toLowerCase()
 }
 
 /**
- * 找到与目标文本最相似的字幕行下标
- * @param {string} targetText - 要匹配的歌词文本
- * @param {Array<{time:number,text:string}>} subtitles - AI 字幕数组
- * @param {number} [threshold=0.3] - 最低相似度阈值
- * @returns {{index:number, similarity:number, subtitle:object}|null}
+ * 计算两个文本的字符级相似度 (0~1)，已处理标点/空格/emoji 差异
  */
-function findBestSubtitleMatch(targetText, subtitles, threshold = 0.3) {
-  if (!targetText || !subtitles?.length) return null
-  let best = { index: -1, similarity: 0, subtitle: null }
-  for (let i = 0; i < subtitles.length; i++) {
-    const sim = textSimilarity(targetText, subtitles[i].text)
-    if (sim > best.similarity) {
-      best = { index: i, similarity: sim, subtitle: subtitles[i] }
+function textSimilarity(a, b) {
+  if (!a || !b) return 0
+  const s1 = normalizeText(a)
+  const s2 = normalizeText(b)
+  if (!s1 || !s2) return 0
+  if (s1 === s2) return 1
+  // 包含关系
+  if (s1.includes(s2) || s2.includes(s1)) {
+    return Math.min(s1.length, s2.length) / Math.max(s1.length, s2.length)
+  }
+  // 最长公共子串 / 较长字符串长度
+  let maxLen = 0
+  const short = s1.length <= s2.length ? s1 : s2
+  const long = s1.length > s2.length ? s1 : s2
+  for (let i = 0; i < short.length; i++) {
+    for (let j = i + maxLen + 1; j <= short.length; j++) {
+      if (long.includes(short.slice(i, j))) {
+        maxLen = j - i
+      }
     }
   }
+  return maxLen / long.length
+}
+
+/**
+ * 在字幕数组中搜索与目标文本最匹配的行（含合并连续行）
+ * 处理 AI 将一句歌词拆成多条字幕的情况（如 "染红的山坡"+"告别的路口"）
+ *
+ * @param {string} targetText - 要匹配的歌词文本
+ * @param {Array<{time:number,text:string}>} subtitles - AI 字幕数组
+ * @param {number} [startIdx=0] - 开始搜索位置
+ * @param {number} [searchEnd] - 搜索结束位置（不含），默认到末尾
+ * @param {number} [threshold=0.3] - 最低相似度阈值
+ * @param {number} [maxMerge=3] - 最多合并连续行数
+ * @returns {{index:number, endIndex:number, similarity:number, subtitle:object}|null}
+ */
+function findBestSubtitleMatch(targetText, subtitles, startIdx = 0, searchEnd, threshold = 0.3, maxMerge = 3) {
+  if (!targetText || !subtitles?.length) return null
+  if (searchEnd === undefined) searchEnd = subtitles.length
+
+  let best = { index: -1, endIndex: -1, similarity: 0, subtitle: null }
+
+  for (let i = startIdx; i < searchEnd; i++) {
+    // 单条字幕
+    const sim = textSimilarity(targetText, subtitles[i].text)
+    if (sim > best.similarity) {
+      best = { index: i, endIndex: i, similarity: sim, subtitle: subtitles[i] }
+    }
+
+    // 合并连续行（处理 AI 断句）
+    let merged = subtitles[i].text
+    for (let k = 1; k < maxMerge && i + k < searchEnd; k++) {
+      merged += subtitles[i + k].text
+      const mergedSim = textSimilarity(targetText, merged)
+      if (mergedSim > best.similarity) {
+        best = { index: i, endIndex: i + k, similarity: mergedSim, subtitle: subtitles[i] }
+      }
+    }
+  }
+
   return best.similarity >= threshold ? best : null
 }
 
@@ -114,21 +151,27 @@ function findBestSubtitleMatch(targetText, subtitles, threshold = 0.3) {
 function alignFirstLine(lyrics, subtitles) {
   if (!lyrics?.length || !subtitles?.length) return null
 
-  const firstLine = lyrics[0]
-  const match = findBestSubtitleMatch(firstLine.text, subtitles)
+  // 先过滤制作信息行（作词/作曲/编曲等），避免干扰校对
+  const cleaned = cleanLyrics(lyrics)
+  if (!cleaned.length) return null
+
+  const firstLine = cleaned[0]
+  // 在整个字幕中搜索第一句（含合并断句），取首次匹配的组
+  const match = findBestSubtitleMatch(firstLine.text, subtitles, 0, subtitles.length, 0.3, 3)
   if (!match) return null
 
   const offset = match.subtitle.time - firstLine.time
-  const aligned = lyrics.map(l => ({
+  const aligned = cleaned.map(l => ({
     ...l,
     time: Math.max(0, +(l.time + offset).toFixed(3))
   }))
 
-  return { lyrics: aligned, offset, matchedIndex: match.index }
+  return { lyrics: aligned, offset, matchedIndex: match.index, endIndex: match.endIndex }
 }
 
 /**
  * 全自动校对：将 AI 字幕与歌词逐行匹配，为每行歌词找到最合适的字幕时间
+ * 支持合并连续字幕行（处理 AI 断句差异，如 "染红的山坡"+"告别的路口"）
  * @param {Array<{time:number,text:string,trans?:string}>} lyrics
  * @param {Array<{time:number,text:string}>} subtitles
  * @param {number} [simThreshold=0.25] - 相似度阈值
@@ -139,41 +182,30 @@ function autoAlignAll(lyrics, subtitles) {
     return { lyrics: lyrics || [], matched: 0 }
   }
 
+  // 先过滤制作信息行（作词/作曲/编曲等），避免干扰校对
+  const cleaned = cleanLyrics(lyrics)
+  if (!cleaned.length) return { lyrics: [], matched: 0 }
+
   let matched = 0
   let lastSubIdx = -1
 
-  const result = lyrics.map((l, idx) => {
-    // 找到当前行最相似的字幕行（从上次匹配的位置之后开始搜索）
-    let bestSim = 0
-    let bestSub = null
-
-    // 搜索范围：从 lastSubIdx+1 开始，最多搜索字幕长度的 1/3 作为窗口
-    const searchStart = Math.max(0, lastSubIdx + 1)
+  const result = cleaned.map((l) => {
+    // 搜索范围：从上次匹配位置开始（含自身，处理AI合并多句到一条字幕的情况），最多搜索字幕长度的 1/3 作为窗口
+    const searchStart = Math.max(0, lastSubIdx)
     const searchEnd = Math.min(subtitles.length, searchStart + Math.ceil(subtitles.length / 3))
 
-    for (let i = searchStart; i < searchEnd; i++) {
-      const sim = textSimilarity(l.text, subtitles[i].text)
-      if (sim > bestSim) {
-        bestSim = sim
-        bestSub = subtitles[i]
-      }
+    // 先在窗口内搜索（含合并断句）
+    let match = findBestSubtitleMatch(l.text, subtitles, searchStart, searchEnd, 0.2, 3)
+
+    // 窗口内没找到，扩大全局搜索
+    if (!match) {
+      match = findBestSubtitleMatch(l.text, subtitles, 0, subtitles.length, 0.2, 3)
     }
 
-    // 如果当前窗口没找到，扩大搜索范围
-    if (!bestSub || bestSim < 0.2) {
-      for (let i = 0; i < subtitles.length; i++) {
-        const sim = textSimilarity(l.text, subtitles[i].text)
-        if (sim > bestSim) {
-          bestSim = sim
-          bestSub = subtitles[i]
-        }
-      }
-    }
-
-    if (bestSub && bestSim >= 0.2) {
+    if (match) {
       matched++
-      lastSubIdx = subtitles.indexOf(bestSub)
-      return { ...l, time: bestSub.time }
+      lastSubIdx = match.endIndex
+      return { ...l, time: match.subtitle.time }
     }
     return { ...l }
   })
@@ -184,6 +216,7 @@ function autoAlignAll(lyrics, subtitles) {
 export {
   parseLRC,
   mergeTranslations,
+  cleanLyrics,
   searchCandidates,
   fetchLyric,
   getBilibiliSubtitle,

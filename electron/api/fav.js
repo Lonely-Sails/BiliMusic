@@ -1,4 +1,5 @@
 import { apiGet, apiPost, getSession } from './client'
+import { invalidateFavCache } from './cache'
 
 async function listFavFolders(upMid) {
   const params = {}
@@ -78,6 +79,9 @@ async function addFav(rid, mediaId) {
     throw new Error(`Add fav error: ${data.code} - ${data.message}`)
   }
 
+  // 清除该收藏夹的所有分页缓存，确保下次进入能看到新收藏的视频
+  invalidateFavCache(mediaId)
+
   return { success: true }
 }
 
@@ -96,6 +100,9 @@ async function removeFav(rid, mediaId) {
   if (data.code !== 0) {
     throw new Error(`Remove fav error: ${data.code} - ${data.message}`)
   }
+
+  // 清除该收藏夹的所有分页缓存，确保下次进入不再显示已取消收藏的视频
+  invalidateFavCache(mediaId)
 
   return { success: true }
 }

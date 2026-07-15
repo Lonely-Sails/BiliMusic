@@ -152,7 +152,7 @@
               class="le-tb-btn le-tb-btn-accent"
               :disabled="!lyricLines.length || !currentTrackBvid || aligning"
               @click="doAutoAlign(false)"
-              title="默认校对：用AI字幕对齐第一句歌词时间"
+              title="默认校对：用AI字幕对齐第一句歌词时间（自动过滤作词/作曲等非歌词行）"
             >
               <Icon icon="mdi:clock-auto" />
             </button>
@@ -160,7 +160,7 @@
               class="le-tb-btn le-tb-btn-accent"
               :disabled="!lyricLines.length || !currentTrackBvid || aligning"
               @click="doAutoAlign(true)"
-              title="全部校对：用AI字幕对齐所有歌词时间"
+              title="全部校对：用AI字幕对齐所有歌词时间（自动过滤作词/作曲等非歌词行）"
             >
               <Icon icon="mdi:auto-fix" />
             </button>
@@ -486,15 +486,17 @@ export default {
       aligning.value = true
       pushHistory()
       try {
+        // 深拷贝后再传入 IPC，避免 Vue 响应式代理对象无法被 structured clone
+        const plainLyrics = JSON.parse(JSON.stringify(lyricLines.value))
         if (fullAlign) {
           // 全部校对：匹配所有行
-          const result = await api.autoAlignAll(lyricLines.value, currentTrackBvid.value, currentTrackCid.value)
+          const result = await api.autoAlignAll(plainLyrics, currentTrackBvid.value, currentTrackCid.value)
           if (result.lyrics) {
             lyricLines.value = result.lyrics.map(l => ({ ...l }))
           }
         } else {
           // 默认校对：只对齐第一句
-          const result = await api.alignFirstLine(lyricLines.value, currentTrackBvid.value, currentTrackCid.value)
+          const result = await api.alignFirstLine(plainLyrics, currentTrackBvid.value, currentTrackCid.value)
           if (result.lyrics) {
             lyricLines.value = result.lyrics.map(l => ({ ...l }))
           }

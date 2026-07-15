@@ -64,6 +64,14 @@ function clearResponseCache() {
   responseCache.clear()
 }
 
+/** 清除指定收藏夹的所有分页缓存（addFav/removeFav 后调用） */
+function invalidateFavCache(mediaId) {
+  const prefix = `https://api.bilibili.com/x/v3/fav/resource/list?media_id=${mediaId}&`
+  for (const key of responseCache.keys()) {
+    if (key.startsWith(prefix)) responseCache.delete(key)
+  }
+}
+
 function setResponseCacheMax(max) {
   RESPONSE_CACHE_MAX = Math.max(50, Math.min(5000, max))
   // Trim if over new limit
@@ -80,5 +88,6 @@ export {
   responseCacheSet,
   getResponseCacheStats,
   clearResponseCache,
+  invalidateFavCache,
   setResponseCacheMax
 }

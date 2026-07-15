@@ -592,7 +592,7 @@ function formatHeat(heat) {
 
 .heat-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent), #00a1d6);
+  background: var(--text-muted);
   border-radius: 2px;
   transition: width 0.3s;
 }

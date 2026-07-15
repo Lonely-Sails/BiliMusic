@@ -59,25 +59,39 @@ const keyword = ref('')
 const page = ref(1)
 const total = ref(0)
 const totalPages = ref(0)
+let searchTimer = null
+let abortController = null
 
-// 监听路由参数变化自动搜索
+// 监听路由参数变化自动搜索（300ms 防抖）
 watch(() => route.query.q, (q) => {
   results.value = []; error.value = ''
-  if (q?.trim()) { keyword.value = q.trim(); doSearch() }
+  if (q?.trim()) { keyword.value = q.trim(); debounceSearch() }
 }, { immediate: true })
 
 // 外部触发重搜（App.vue 的 searchKey）
-watch(searchKey, () => { if (keyword.value) { results.value = []; error.value = ''; doSearch() } })
+watch(searchKey, () => { if (keyword.value) { results.value = []; error.value = ''; debounceSearch() } })
+
+function debounceSearch() {
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => doSearch(), 300)
+}
 
 /** 执行搜索 */
 async function doSearch() {
   if (!keyword.value) return
+  // 取消上一次未完成的请求
+  if (abortController) abortController.abort()
+  abortController = new AbortController()
+
   loading.value = true; error.value = ''; page.value = 1
   try {
     const result = await window.electronAPI.searchVideo(keyword.value, page.value)
     if (result.error) { error.value = result.error; results.value = [] }
     else { results.value = result.videos || []; total.value = result.total || 0; totalPages.value = result.totalPages || 1 }
-  } catch (e) { error.value = '搜索失败: ' + e.message; results.value = [] }
+  } catch (e) {
+    if (e.name === 'AbortError') return
+    error.value = '搜索失败: ' + e.message; results.value = []
+  }
   finally { loading.value = false }
 }
 

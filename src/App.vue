@@ -113,7 +113,7 @@
       <main class="main-content">
         <ScrollAreaRoot class="scrollarea-root">
           <ScrollAreaViewport class="scrollarea-viewport">
-            <router-view :key="$route.fullPath" />
+            <router-view :key="$route.name" />
           </ScrollAreaViewport>
           <ScrollAreaScrollbar class="scrollarea-scrollbar" orientation="vertical">
             <ScrollAreaThumb class="scrollarea-thumb" />
@@ -125,7 +125,9 @@
 
     <PlayerBar />
 
-    <LyricsOverlay :visible="showLyricsOverlay" @close="showLyricsOverlay = false" />
+    <KeepAlive>
+      <LyricsOverlay :visible="showLyricsOverlay" @close="showLyricsOverlay = false" />
+    </KeepAlive>
 
     <audio ref="audioRef" @timeupdate="player.updateTime($event.target.currentTime)" @ended="player.onEnded()"
       @loadedmetadata="player.setDuration($event.target.duration)" @error="player.isPlaying = false" preload="auto" />
@@ -164,14 +166,13 @@
  * 额外：歌词弹层 (LyricsOverlay)、Toast 通知
  */
 
-import { ref, onMounted, provide } from "vue";
+import { ref, onMounted, onUnmounted, provide, defineAsyncComponent } from "vue";
 import { useRouter } from "vue-router";
 import { usePlayerStore } from "./stores/player";
 import { useUserStore } from "./stores/user";
 import { useToast } from "./stores/toast";
 import { Icon } from "@iconify/vue";
 import PlayerBar from "./components/PlayerBar.vue";
-import LyricsOverlay from "./components/LyricsOverlay.vue";
 import LoginPanel from "./components/LoginPanel.vue";
 import {
   ScrollAreaRoot,
@@ -200,6 +201,10 @@ import {
 // ── 常量 ──
 const HISTORY_KEY = "bilimusic_search_history";
 const MAX_HISTORY = 20;
+const isMac = navigator.platform.startsWith("Mac"); // 编译时确定，无需响应式
+
+// ── 异步组件（懒加载） ──
+const LyricsOverlay = defineAsyncComponent(() => import("./components/LyricsOverlay.vue"));
 
 // ── Store / Router ──
 const router = useRouter();
@@ -224,10 +229,9 @@ const showDropdown = ref(false);
 const suggestions = ref([]); // 搜索建议列表
 const hotSearch = ref([]); // 热搜列表
 const history = ref([]); // 搜索历史
-let suggestTimer = null; // 输入防抖定时器
+const suggestTimer = ref(null); // 输入防抖定时器（ref 确保组件卸载时清理）
 
 // 窗口相关
-const isMac = ref(navigator.platform.startsWith("Mac"));
 const isMaxed = ref(false); // 窗口是否最大化
 
 // ── 窗口控制 ──
@@ -294,14 +298,14 @@ async function fetchSuggestions(term) {
 
 /** 搜索框输入事件 — 空时显示历史+热搜，非空时请求建议 */
 function onInput() {
-  clearTimeout(suggestTimer);
+  clearTimeout(suggestTimer.value);
   if (!searchQuery.value) {
     suggestions.value = [];
     loadHistory();
     fetchHotSearch();
     return;
   }
-  suggestTimer = setTimeout(() => fetchSuggestions(searchQuery.value), 200);
+  suggestTimer.value = setTimeout(() => fetchSuggestions(searchQuery.value), 200);
 }
 
 /** 选中下拉建议项 → 保存历史 + 跳转搜索页 */
@@ -345,6 +349,10 @@ onMounted(() => {
   window.electronAPI
     ?.ensureSession()
     .catch((e) => console.warn("[BiliMusic] Session init:", e));
+});
+
+onUnmounted(() => {
+  clearTimeout(suggestTimer.value);
 });
 </script>
 
