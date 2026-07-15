@@ -1,182 +1,136 @@
 <template>
   <TooltipProvider>
-  <div class="fav-view">
-    <div class="fav-header">
-      <h2>
-        <Icon icon="mdi:star-outline" class="section-icon" />
-        收藏夹
-      </h2>
-      <div class="fav-header-actions" v-if="resources.length > 0">
-        <span class="fav-count">{{ total }} 首</span>
-        <TooltipRoot>
-          <TooltipTrigger as-child>
-            <button class="play-all-btn" @click="playAll">
-              <Icon icon="mdi:playlist-plus" /> 一键播放
-            </button>
-          </TooltipTrigger>
-          <TooltipPortal>
-            <TooltipContent class="tooltip-content" side="top">
-              将当前页全部添加到播放列表
-              <TooltipArrow class="tooltip-arrow" />
-            </TooltipContent>
-          </TooltipPortal>
-        </TooltipRoot>
-      </div>
-    </div>
-
-    <!-- 未登录 -->
-    <div v-if="!user.loggedIn" class="fav-login-hint">
-      <Icon icon="mdi:account-lock" class="empty-icon" />
-      <p>请先登录B站账号查看收藏夹</p>
-    </div>
-
-    <!-- 已登录但未设置收藏夹 -->
-    <div v-else-if="!user.favFolderId" class="fav-no-folder">
-      <Icon icon="mdi:folder-cog-outline" class="empty-icon" />
-      <p class="empty-title">尚未设置收藏夹</p>
-      <p class="empty-hint">请先在设置中选择歌曲收藏夹</p>
-      <router-link to="/settings" class="goto-settings-btn">
-        <Icon icon="mdi:cog-outline" /> 前往设置
-      </router-link>
-    </div>
-
-    <!-- 已设置收藏夹 - 加载中 -->
-    <div v-else-if="loading" class="loading-state">
-      <div class="spinner"></div>
-      <span>加载中...</span>
-    </div>
-
-    <!-- 已设置收藏夹 - 加载失败 -->
-    <div v-else-if="loadError" class="error-state">
-      <Icon icon="mdi:alert-circle-outline" class="error-icon" />
-      <p>{{ loadError }}</p>
-      <button @click="loadResources" class="retry-btn">重试</button>
-    </div>
-
-    <!-- 已设置收藏夹 - 内容为空 -->
-    <div v-else-if="resources.length === 0" class="empty-state">
-      <Icon icon="mdi:star-outline" class="empty-icon" />
-      <p>收藏夹「{{ user.favFolderName }}」为空</p>
-    </div>
-
-    <!-- 已设置收藏夹 - 显示内容 -->
-    <div v-else class="fav-content">
-      <div class="results-grid">
-        <SongCard
-          v-for="item in resources"
-          :key="item.bvid"
-          :item="item"
-          :show-play-count="false"
-          @fav-change="onFavChange($event, item)"
-        />
+    <div class="fav-view">
+      <div class="fav-header">
+        <h2>
+          <Icon icon="mdi:star-outline" class="section-icon" />收藏夹
+        </h2>
+        <div class="fav-header-actions" v-if="resources.length">
+          <span class="fav-count">{{ total }} 首</span>
+          <TooltipRoot>
+            <TooltipTrigger as-child>
+              <button class="play-all-btn" @click="playAll">
+                <Icon icon="mdi:playlist-plus" />一键播放
+              </button>
+            </TooltipTrigger>
+            <TooltipPortal>
+              <TooltipContent class="tooltip-content" side="top">
+                将当前页全部添加到播放列表
+                <TooltipArrow class="tooltip-arrow" />
+              </TooltipContent>
+            </TooltipPortal>
+          </TooltipRoot>
+        </div>
       </div>
 
-      <!-- 分页 -->
-      <div v-if="totalPages > 1" class="pagination">
-        <button :disabled="page <= 1" @click="goToPage(page - 1)" class="page-btn">
-          <Icon icon="mdi:chevron-left" /> 上一页
-        </button>
-        <span class="page-info">{{ page }} / {{ totalPages }}</span>
-        <button :disabled="page >= totalPages" @click="goToPage(page + 1)" class="page-btn">
-          下一页 <Icon icon="mdi:chevron-right" />
-        </button>
+      <div v-if="!user.loggedIn" class="fav-login-hint">
+        <Icon icon="mdi:account-lock" class="empty-icon" />
+        <p>请先登录B站账号查看收藏夹</p>
+      </div>
+      <div v-else-if="!user.favFolderId" class="fav-no-folder">
+        <Icon icon="mdi:folder-cog-outline" class="empty-icon" />
+        <p class="empty-title">尚未设置收藏夹</p>
+        <p class="empty-hint">请先在设置中选择歌曲收藏夹</p>
+        <router-link to="/settings" class="goto-settings-btn">
+          <Icon icon="mdi:cog-outline" />前往设置
+        </router-link>
+      </div>
+      <div v-else-if="loading" class="loading-state">
+        <div class="spinner" /><span>加载中...</span>
+      </div>
+      <div v-else-if="loadError" class="error-state">
+        <Icon icon="mdi:alert-circle-outline" class="error-icon" />
+        <p>{{ loadError }}</p>
+        <button @click="loadResources" class="retry-btn">重试</button>
+      </div>
+      <div v-else-if="!resources.length" class="empty-state">
+        <Icon icon="mdi:star-outline" class="empty-icon" />
+        <p>收藏夹「{{ user.favFolderName }}」为空</p>
+      </div>
+      <div v-else class="fav-content">
+        <div class="results-grid">
+          <SongCard v-for="item in resources" :key="item.bvid" :item="item" :show-play-count="false"
+            @fav-change="onFavChange($event, item)" />
+        </div>
+        <div v-if="totalPages > 1" class="pagination">
+          <button :disabled="page <= 1" @click="goToPage(page - 1)" class="page-btn">
+            <Icon icon="mdi:chevron-left" />上一页
+          </button>
+          <span class="page-info">{{ page }} / {{ totalPages }}</span>
+          <button :disabled="page >= totalPages" @click="goToPage(page + 1)" class="page-btn">下一页
+            <Icon icon="mdi:chevron-right" />
+          </button>
+        </div>
       </div>
     </div>
-  </div>
   </TooltipProvider>
 </template>
 
-<script>
+<script setup>
+/**
+ * FavView.vue — 收藏夹页
+ *
+ * 显示用户选定的收藏夹内容，支持分页、一键播放、取消收藏。
+ * 收藏夹 ID 由 user store 管理（在设置页选择）。
+ */
+
 import { ref, onMounted, watch } from 'vue'
 import { useUserStore } from '../../stores/user'
 import { usePlayerStore } from '../../stores/player'
 import { Icon } from '@iconify/vue'
 import SongCard from '../SongCard.vue'
-import {
-  TooltipRoot, TooltipTrigger, TooltipPortal, TooltipContent, TooltipArrow,
-  TooltipProvider
-} from 'reka-ui'
+import { TooltipRoot, TooltipTrigger, TooltipPortal, TooltipContent, TooltipArrow, TooltipProvider } from 'reka-ui'
 
-export default {
-  name: 'FavView',
-  components: { Icon, SongCard,
-    TooltipRoot, TooltipTrigger, TooltipPortal, TooltipContent, TooltipArrow,
-    TooltipProvider
-  },
-  setup() {
-    const user = useUserStore()
-    const player = usePlayerStore()
-    const resources = ref([])
-    const loading = ref(false)
-    const loadError = ref('')
-    const page = ref(1)
-    const total = ref(0)
-    const totalPages = ref(0)
-    const PAGE_SIZE = 20
+const user = useUserStore()
+const player = usePlayerStore()
+const resources = ref([])
+const loading = ref(false)
+const loadError = ref('')
+const page = ref(1)
+const total = ref(0)
+const totalPages = ref(0)
+const PAGE_SIZE = 20
 
-    // 登录或收藏夹设置变化时自动加载
-    watch(() => user.favFolderId, (val) => {
-      if (val && user.loggedIn) {
-        page.value = 1
-        loadResources()
-      }
-    })
+// 收藏夹切换时自动重载
+watch(() => user.favFolderId, (val) => { if (val && user.loggedIn) { page.value = 1; loadResources() } })
+onMounted(() => { if (user.loggedIn && user.favFolderId) loadResources() })
 
-    onMounted(() => {
-      if (user.loggedIn && user.favFolderId) {
-        loadResources()
-      }
-    })
+/** 加载收藏夹内容 */
+async function loadResources() {
+  if (!user.loggedIn || !user.favFolderId) return
+  loading.value = true; loadError.value = ''
+  try {
+    const result = await window.electronAPI.listFavResources(user.favFolderId, page.value, PAGE_SIZE)
+    if (result && !result.error) {
+      resources.value = result.resources || []; total.value = result.total || 0
+      totalPages.value = Math.ceil(total.value / PAGE_SIZE) || 1
+      if (page.value === 1) user.syncFavoritedBvids(resources.value)
+    } else { loadError.value = result?.error || '加载失败'; resources.value = [] }
+  } catch (e) { loadError.value = e.message || '加载失败'; resources.value = [] }
+  finally { loading.value = false }
+}
 
-    async function loadResources() {
-      if (!user.loggedIn || !user.favFolderId) return
-      loading.value = true
-      loadError.value = ''
-      try {
-        const result = await window.electronAPI.listFavResources(user.favFolderId, page.value, PAGE_SIZE)
-        if (result && !result.error) {
-          resources.value = result.resources || []
-          total.value = result.total || 0
-          totalPages.value = Math.ceil(total.value / PAGE_SIZE) || 1
-          // 同步到 favoritedBvids set
-          if (page.value === 1) {
-            user.syncFavoritedBvids(resources.value)
-          }
-        } else {
-          loadError.value = result?.error || '加载收藏内容失败'
-          resources.value = []
-        }
-      } catch (e) {
-        loadError.value = e.message || '加载收藏内容失败'
-        resources.value = []
-      } finally {
-        loading.value = false
-      }
-    }
+/** 翻页 */
+async function goToPage(newPage) {
+  if (newPage < 1 || newPage > totalPages.value) return
+  page.value = newPage; await loadResources()
+}
 
-    async function goToPage(newPage) {
-      if (newPage < 1 || newPage > totalPages.value) return
-      page.value = newPage
-      await loadResources()
-    }
-
-    function onFavChange(result, item) {
-      if (result?.success && result.action === 'removed') {
-        resources.value = resources.value.filter(r => r.bvid !== item.bvid)
-        total.value = Math.max(0, total.value - 1)
-        totalPages.value = Math.ceil(total.value / PAGE_SIZE) || 1
-      }
-    }
-
-    function playAll() {
-      const items = resources.value
-      if (items.length === 0) return
-      items.forEach(item => player.addToPlaylist(item))
-      player.playTrack(items[0])
-    }
-
-    return { user, player, resources, loading, loadError, page, total, totalPages, loadResources, goToPage, onFavChange, playAll }
+/** 取消收藏后从本地列表移除 */
+function onFavChange(result, item) {
+  if (result?.success && result.action === 'removed') {
+    resources.value = resources.value.filter(r => r.bvid !== item.bvid)
+    total.value = Math.max(0, total.value - 1)
+    totalPages.value = Math.ceil(total.value / PAGE_SIZE) || 1
   }
+}
+
+/** 一键播放（全部添加到播放列表） */
+function playAll() {
+  const items = resources.value
+  if (!items.length) return
+  items.forEach(item => player.addToPlaylist(item))
+  player.playTrack(items[0])
 }
 </script>
 
@@ -263,14 +217,12 @@ export default {
   background: var(--accent-hover);
 }
 
-/* ===== Grid layout ===== */
 .results-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 16px;
 }
 
-/* ===== Pagination ===== */
 .pagination {
   display: flex;
   align-items: center;
@@ -307,5 +259,56 @@ export default {
 .page-info {
   font-size: 13px;
   color: var(--text-muted);
+}
+
+.loading-state,
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60px 20px;
+  gap: 12px;
+  color: var(--text-muted);
+}
+
+.loading-state .spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.error-icon {
+  font-size: 36px;
+  color: var(--danger);
+}
+
+.retry-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  padding: 8px 20px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all var(--transition);
+  font-family: inherit;
+}
+
+.retry-btn:hover {
+  border-color: var(--accent-dim);
+  color: var(--accent);
 }
 </style>

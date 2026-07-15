@@ -1,38 +1,21 @@
 <template>
   <Teleport to="body">
     <Transition name="lyrics-overlay">
-      <div
-        v-if="visible"
-        class="lyrics-overlay"
-        @click.self="close"
-      >
-        <!-- 模糊背景层 -->
-        <div class="lyrics-bg" :style="bgStyle"></div>
-        <div class="lyrics-bg-scrim"></div>
-
-        <!-- 主体：左右结构 -->
+      <div v-if="visible" class="lyrics-overlay" @click.self="close">
+        <div class="lyrics-bg" :style="bgStyle" />
+        <div class="lyrics-bg-scrim" />
         <div class="lyrics-body" @click.stop>
-
-          <!-- === 左侧：封面 + 控制 === -->
           <div class="lyrics-left">
-            <!-- 关闭按钮 -->
             <button class="close" @click="close">
               <Icon icon="mdi:chevron-down" />
             </button>
-
-            <!-- 大封面 -->
             <div class="cover-wrap" v-if="player.currentTrack">
-              <img
-                class="cover"
-                :src="player.currentTrack.cover + '@512w_512h.webp'"
-                :alt="player.currentTrack.title"
-              />
+              <img class="cover" :src="player.currentTrack.cover + '@512w_512h.webp'"
+                :alt="player.currentTrack.title" />
             </div>
             <div class="cover-wrap placeholder" v-else>
               <Icon icon="mdi:music-note" class="cover-placeholder-icon" />
             </div>
-
-            <!-- 歌曲名 & 作者 -->
             <div class="meta" v-if="player.currentTrack">
               <div class="title">{{ player.currentTrack.title }}</div>
               <div class="author">{{ player.currentTrack.author || '未知' }}</div>
@@ -41,78 +24,51 @@
               <div class="title title-muted">未在播放</div>
               <div class="author author-muted">播放歌曲后将显示歌词</div>
             </div>
-
-            <!-- 播放控制 -->
             <div class="controls" v-if="player.currentTrack">
               <button class="ctrl-btn" @click="player.prevTrack()">
                 <Icon icon="mdi:skip-previous" />
               </button>
               <button class="ctrl-btn play-btn" @click="player.togglePlay()">
-                <Icon :icon="player.isPlaying ? 'mdi:pause' : 'mdi-play'" />
+                <Icon :icon="player.isPlaying ? 'mdi:pause' : 'mdi:play'" />
               </button>
               <button class="ctrl-btn" @click="player.nextTrack()">
                 <Icon icon="mdi:skip-next" />
               </button>
             </div>
-
-            <!-- 工具栏 -->
             <div class="tools">
-              <button
-                class="tool-btn"
-                :class="{ active: player.showTranslation }"
-                @click="player.toggleTranslation()"
-                title="显示翻译"
-              >
+              <button class="tool-btn" :class="{ active: player.showTranslation }" @click="player.toggleTranslation()"
+                title="显示翻译">
                 <Icon icon="mdi:translate" />
               </button>
               <button class="tool-btn" @click="openLyricsEditor" title="编辑歌词">
                 <Icon icon="mdi:playlist-edit" />
               </button>
-              <span class="tools-divider"></span>
-              <button
-                class="tool-btn"
-                @click="shiftLyrics(-1)"
-                title="歌词提前1秒"
-                :disabled="!player.currentLyrics.length"
-              >
+              <span class="tools-divider" />
+              <button class="tool-btn" @click="shiftLyrics(-1)" title="歌词提前1秒" :disabled="!player.currentLyrics.length">
                 <Icon icon="mdi:clock-minus" />
               </button>
-              <button
-                class="tool-btn"
-                @click="shiftLyrics(1)"
-                title="歌词推迟1秒"
-                :disabled="!player.currentLyrics.length"
-              >
+              <button class="tool-btn" @click="shiftLyrics(1)" title="歌词推迟1秒" :disabled="!player.currentLyrics.length">
                 <Icon icon="mdi:clock-plus" />
               </button>
             </div>
           </div>
-
-          <!-- === 右侧：歌词 === -->
           <div class="lyrics-right">
             <div v-if="!player.currentTrack" class="empty">
               <Icon icon="mdi:music-note-off" class="empty-icon" />
               <p class="empty-title">暂无播放</p>
             </div>
-            <div v-else-if="player.currentLyrics.length === 0" class="empty">
+            <div v-else-if="!player.currentLyrics.length" class="empty">
               <Icon icon="mdi:file-document-outline" class="empty-icon" />
               <p class="empty-title">暂无歌词</p>
               <p class="empty-hint">该视频没有可用歌词</p>
             </div>
             <div v-else ref="lyricsContainer" class="lyrics-scroll">
               <div class="lyrics-list">
-                <div
-                  v-for="(line, index) in player.currentLyrics"
-                  :key="index"
-                  class="line"
-                  :class="{ active: index === activeIndex }"
-                >
+                <div v-for="(line, index) in player.currentLyrics" :key="index" class="line"
+                  :class="{ active: index === activeIndex }">
                   <span class="line-text">{{ line.text || '♫' }}</span>
-                  <span
-                    v-if="player.showTranslation && line.trans"
-                    class="line-trans"
-                    :class="{ 'active-trans': index === activeIndex }"
-                  >{{ line.trans }}</span>
+                  <span v-if="player.showTranslation && line.trans" class="line-trans"
+                    :class="{ 'active-trans': index === activeIndex }">{{ line.trans }}</span>
                 </div>
               </div>
             </div>
@@ -123,212 +79,122 @@
   </Teleport>
 </template>
 
-<script>
+<script setup>
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { usePlayerStore } from '../stores/player'
 import { Icon } from '@iconify/vue'
 
-export default {
-  name: 'LyricsOverlay',
-  components: { Icon },
-  props: {
-    visible: {
-      type: Boolean,
-      default: false
-    }
-  },
-  emits: ['close'],
-  setup(props, { emit }) {
-    const player = usePlayerStore()
-    const lyricsContainer = ref(null)
-    let lastActiveIndex = -1
-    let scrollTicking = false
+const props = defineProps({ visible: { type: Boolean, default: false } })
+const emit = defineEmits(['close'])
 
-    const bgStyle = computed(() => {
-      if (player.currentTrack?.cover) {
-        return {
-          backgroundImage: `url(${player.currentTrack.cover}@128w_128h.webp)`
-        }
-      }
-      return {}
-    })
+const player = usePlayerStore()
+const lyricsContainer = ref(null)
+let lastActiveIndex = -1
+let scrollTicking = false
 
-    function close() {
-      emit('close')
-    }
+const bgStyle = computed(() => {
+  if (player.currentTrack?.cover) return { backgroundImage: `url(${player.currentTrack.cover}@128w_128h.webp)` }
+  return {}
+})
 
-    function openLyricsEditor() {
-      if (window.electronAPI?.openLyricsEditor) {
-        const track = player.currentTrack
-        window.electronAPI.openLyricsEditor(track ? {
-          title: track.title || '',
-          bvid: track.bvid || '',
-          cid: track.cid || ''
-        } : null)
-      }
-    }
+function close() { emit('close') }
 
-    async function shiftLyrics(seconds) {
-      const lyrics = player.currentLyrics
-      const track = player.currentTrack
-      if (!lyrics.length || !track) return
-
-      // 1. 偏移时间戳
-      const shifted = lyrics.map(l => ({
-        ...l,
-        time: Math.max(0, Math.round((l.time + seconds) * 10) / 10)
-      }))
-      player.currentLyrics = shifted
-
-      // 2. 保存为本地 LRC 文件（和编辑歌词保存完全一致）
-      try {
-        // 使用原始文件名保存，没有就用标题生成
-        let fileName = player.lyricFileName
-        if (!fileName) {
-          const safeName = track.title.replace(/[\\/:*?"<>|]/g, '_')
-          fileName = safeName + '.lrc'
-        }
-        if (window.electronAPI?.saveLocalLyric) {
-          const content = serializeLRC(shifted, track.title, player.lyricSource || '', track.bvid || '')
-          await window.electronAPI.saveLocalLyric(fileName, content)
-        }
-      } catch (e) {
-        console.error('Failed to save shifted lyrics:', e)
-      }
-    }
-
-    // 将歌词行数组序列化为 LRC 文本（与 lyrics-editor 保持一致）
-    function serializeLRC(lines, songName, sourceName, bvid) {
-      const header = [
-        `[ti:${songName}]`,
-        '[ar:]',
-        bvid ? `[bvid:${bvid}]` : '',
-        '[by:BiliMusic]',
-        `[source:${sourceName}]`,
-        '[re:本歌词来源自网络搜索，仅供个人学习交流使用，请勿用于商业用途]',
-        ''
-      ].filter(Boolean)
-
-      function fmtTime(time) {
-        const m = Math.floor(time / 60)
-        const s = Math.floor(time % 60)
-        const ms = Math.floor((time % 1) * 100)
-        return `[${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${String(ms).padStart(2, '0')}]`
-      }
-
-      const body = []
-      for (const l of lines) {
-        body.push(`${fmtTime(l.time)}${l.text}`)
-        if (l.trans) {
-          body.push(`${fmtTime(l.time)}${l.trans}`)
-        }
-      }
-      return [...header, ...body].join('\n')
-    }
-
-    const activeIndex = computed(() => {
-      const lyrics = player.currentLyrics
-      const t = player.currentTime
-      for (let i = 0; i < lyrics.length; i++) {
-        const line = lyrics[i]
-        const nextLine = lyrics[i + 1]
-        if (!line) continue
-        if (!nextLine) {
-          if (t >= line.time) return i
-        } else if (t >= line.time && t < nextLine.time) {
-          return i
-        }
-      }
-      return -1
-    })
-
-    // 手动控制 smooth scroll（只滚动歌词容器，不影响其他区域）
-    function smoothScrollTo(container, targetTop) {
-      const start = container.scrollTop
-      const diff = targetTop - start
-      const duration = 400
-      let startTime = null
-
-      function step(timestamp) {
-        if (!startTime) startTime = timestamp
-        const elapsed = timestamp - startTime
-        const progress = Math.min(elapsed / duration, 1)
-        // easeInOutCubic
-        const ease = progress < 0.5
-          ? 4 * progress * progress * progress
-          : 1 - Math.pow(-2 * progress + 2, 3) / 2
-        container.scrollTop = start + diff * ease
-        if (progress < 1) {
-          requestAnimationFrame(step)
-        }
-      }
-      requestAnimationFrame(step)
-    }
-
-    watch(activeIndex, (idx) => {
-      if (idx < 0 || idx === lastActiveIndex) return
-      lastActiveIndex = idx
-      const container = lyricsContainer.value
-      if (!container) return
-      // 用 requestAnimationFrame 节流，避免快速切换时冲突
-      if (scrollTicking) return
-      scrollTicking = true
-      requestAnimationFrame(() => {
-        scrollTicking = false
-        const el = container.querySelector(`.line:nth-child(${idx + 1})`)
-        if (!el) return
-        const containerRect = container.getBoundingClientRect()
-        const elRect = el.getBoundingClientRect()
-        const offset = el.offsetTop - container.offsetTop
-        const target = offset - (containerRect.height / 2) + (elRect.height / 2)
-        smoothScrollTo(container, Math.max(0, target))
-      })
-    })
-
-    // ESC 键关闭
-    function onKeydown(e) {
-      if (e.key === 'Escape' && props.visible) {
-        close()
-      }
-    }
-
-    // 歌词变更时重置滚动状态
-    watch(() => player.currentLyrics, () => {
-      lastActiveIndex = -1
-      if (lyricsContainer.value) {
-        lyricsContainer.value.scrollTop = 0
-      }
-    })
-
-    // 编辑器保存后即时刷新歌词
-    function onEditorSaved() {
-      const track = player.currentTrack
-      if (track?.bvid) {
-        player.loadLyrics(track.bvid, track.cid || '', track.title)
-      }
-    }
-
-    onMounted(() => {
-      document.addEventListener('keydown', onKeydown)
-      if (window.electronAPI?.onLyricsEditorSaved) {
-        window.electronAPI.onLyricsEditorSaved(onEditorSaved)
-      }
-    })
-
-    onUnmounted(() => {
-      document.removeEventListener('keydown', onKeydown)
-      if (window.electronAPI?.removeLyricsEditorSaved) {
-        window.electronAPI.removeLyricsEditorSaved(onEditorSaved)
-      }
-    })
-
-    return { player, lyricsContainer, bgStyle, activeIndex, close, openLyricsEditor, shiftLyrics }
+function openLyricsEditor() {
+  if (window.electronAPI?.openLyricsEditor) {
+    const track = player.currentTrack
+    window.electronAPI.openLyricsEditor(track ? { title: track.title || '', bvid: track.bvid || '', cid: track.cid || '' } : null)
   }
 }
+
+async function shiftLyrics(seconds) {
+  const lyrics = player.currentLyrics
+  const track = player.currentTrack
+  if (!lyrics.length || !track) return
+  const shifted = lyrics.map(l => ({ ...l, time: Math.max(0, Math.round((l.time + seconds) * 10) / 10) }))
+  player.currentLyrics = shifted
+  try {
+    let fileName = player.lyricFileName
+    if (!fileName) fileName = track.title.replace(/[\\/:*?"<>|]/g, '_') + '.lrc'
+    if (window.electronAPI?.saveLocalLyric) {
+      const content = serializeLRC(shifted, track.title, player.lyricSource || '', track.bvid || '')
+      await window.electronAPI.saveLocalLyric(fileName, content)
+    }
+  } catch (e) { console.error('[BiliMusic] Shift lyrics save failed:', e) }
+}
+
+function serializeLRC(lines, songName, sourceName, bvid) {
+  const header = [`[ti:${songName}]`, '[ar:]', bvid ? `[bvid:${bvid}]` : '', '[by:BiliMusic]', `[source:${sourceName}]`, '[re:本歌词来源自网络搜索，仅供个人学习交流使用]', ''].filter(Boolean)
+  function fmtTime(time) {
+    const m = Math.floor(time / 60); const s = Math.floor(time % 60); const ms = Math.floor((time % 1) * 100)
+    return `[${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${String(ms).padStart(2, '0')}]`
+  }
+  const body = []
+  for (const l of lines) { body.push(`${fmtTime(l.time)}${l.text}`); if (l.trans) body.push(`${fmtTime(l.time)}${l.trans}`) }
+  return [...header, ...body].join('\n')
+}
+
+const activeIndex = computed(() => {
+  const lyrics = player.currentLyrics; const t = player.currentTime
+  for (let i = 0; i < lyrics.length; i++) {
+    const line = lyrics[i]; const next = lyrics[i + 1]
+    if (!line) continue
+    if (!next) { if (t >= line.time) return i }
+    else if (t >= line.time && t < next.time) return i
+  }
+  return -1
+})
+
+function smoothScrollTo(container, targetTop) {
+  const start = container.scrollTop; const diff = targetTop - start
+  const duration = 400; let startTime = null
+  function step(ts) {
+    if (!startTime) startTime = ts
+    const p = Math.min((ts - startTime) / duration, 1)
+    const ease = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2
+    container.scrollTop = start + diff * ease
+    if (p < 1) requestAnimationFrame(step)
+  }
+  requestAnimationFrame(step)
+}
+
+watch(activeIndex, (idx) => {
+  if (idx < 0 || idx === lastActiveIndex) return
+  lastActiveIndex = idx
+  const container = lyricsContainer.value
+  if (!container || scrollTicking) return
+  scrollTicking = true
+  requestAnimationFrame(() => {
+    scrollTicking = false
+    const el = container.querySelector(`.line:nth-child(${idx + 1})`)
+    if (!el) return
+    const offset = el.offsetTop - container.offsetTop
+    const target = offset - (container.clientHeight / 2) + (el.clientHeight / 2)
+    smoothScrollTo(container, Math.max(0, target))
+  })
+})
+
+function onKeydown(e) { if (e.key === 'Escape' && props.visible) close() }
+
+watch(() => player.currentLyrics, () => {
+  lastActiveIndex = -1
+  if (lyricsContainer.value) lyricsContainer.value.scrollTop = 0
+})
+
+function onEditorSaved() {
+  const track = player.currentTrack
+  if (track?.bvid) player.loadLyrics(track.bvid, track.cid || '', track.title)
+}
+
+onMounted(() => {
+  document.addEventListener('keydown', onKeydown)
+  window.electronAPI?.onLyricsEditorSaved?.(onEditorSaved)
+})
+onUnmounted(() => {
+  document.removeEventListener('keydown', onKeydown)
+})
 </script>
 
 <style scoped>
-/* ── 遮罩层容器 ── */
 .lyrics-overlay {
   position: fixed;
   inset: 0;
@@ -339,7 +205,6 @@ export default {
   overflow: hidden;
 }
 
-/* ── 模糊背景：图片层 ── */
 .lyrics-bg {
   position: absolute;
   inset: -60px;
@@ -352,22 +217,13 @@ export default {
   transition: background-image 0.6s ease;
 }
 
-/* ── 模糊背景：半透明遮罩 ── */
 .lyrics-bg-scrim {
   position: absolute;
   inset: 0;
   z-index: 1;
-  background: linear-gradient(
-    135deg,
-    rgba(10, 10, 20, 0.60) 0%,
-    rgba(10, 10, 20, 0.35) 50%,
-    rgba(10, 10, 20, 0.55) 100%
-  );
+  background: linear-gradient(135deg, rgba(10, 10, 20, 0.6) 0%, rgba(10, 10, 20, 0.35) 50%, rgba(10, 10, 20, 0.55) 100%);
 }
 
-/* ════════════════════════════════
-   左右主体布局
-   ════════════════════════════════ */
 .lyrics-body {
   position: relative;
   z-index: 2;
@@ -378,7 +234,6 @@ export default {
   gap: 0;
 }
 
-/* ═══ 左侧：封面 + 控制 ═══ */
 .lyrics-left {
   position: relative;
   flex-shrink: 0;
@@ -390,17 +245,18 @@ export default {
   padding: 24px 20px;
 }
 
-/* ── 内部弹性间距让各区块均匀分布 ── */
-.lyrics-left > * + * {
-  margin-top: 0;
+.lyrics-left>.cover-wrap {
+  margin-bottom: 28px;
 }
 
-.lyrics-left > .cover-wrap { margin-bottom: 28px; }
-.lyrics-left > .meta { margin-bottom: 24px; }
-.lyrics-left > .controls { margin-bottom: 24px; }
+.lyrics-left>.meta {
+  margin-bottom: 24px;
+}
 
+.lyrics-left>.controls {
+  margin-bottom: 24px;
+}
 
-/* ── 关闭按钮 ── */
 .close {
   position: absolute;
   top: 20px;
@@ -417,9 +273,8 @@ export default {
   align-items: center;
   justify-content: center;
   font-size: 22px;
-  transition: all 0.2s ease;
+  transition: all 0.2s;
   backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
 }
 
 .close:hover {
@@ -427,7 +282,6 @@ export default {
   color: rgba(255, 255, 255, 0.95);
 }
 
-/* ── 大封面 ── */
 .cover-wrap {
   width: 200px;
   height: 200px;
@@ -455,7 +309,6 @@ export default {
   object-fit: cover;
 }
 
-/* ── 歌曲信息 ── */
 .meta {
   text-align: center;
   max-width: 260px;
@@ -487,123 +340,118 @@ export default {
   color: rgba(255, 255, 255, 0.25);
 }
 
-/* ── 播放控制按钮 ── */
 .controls {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-/* 上一首 / 下一首：无边框简洁样式 */
 .ctrl-btn {
   background: transparent;
   border: none;
   color: rgba(255, 255, 255, 0.6);
+  font-size: 28px;
   cursor: pointer;
-  font-size: 24px;
-  width: 40px;
-  height: 40px;
+  padding: 8px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: all 0.2s;
 }
 
 .ctrl-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
 }
 
 .play-btn {
-  width: 56px;
-  height: 56px;
-  font-size: 28px;
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  box-shadow: 0 4px 24px rgba(251, 114, 153, 0.35);
+  font-size: 44px;
 }
 
-.play-btn:hover {
-  background: var(--accent-hover);
-  color: #fff;
-  box-shadow: 0 6px 28px rgba(251, 114, 153, 0.45);
-}
-
-/* ── 工具栏 ── */
 .tools {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
+  margin-top: 4px;
 }
 
 .tool-btn {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.5);
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 20px;
   cursor: pointer;
-  font-size: 18px;
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
+  padding: 6px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: all 0.2s;
 }
 
 .tool-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.9);
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-.tool-btn:disabled {
-  opacity: 0.25;
-  cursor: default;
-  pointer-events: none;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .tool-btn.active {
   color: var(--accent);
-  border-color: var(--accent);
-  background: rgba(251, 114, 153, 0.15);
+}
+
+.tool-btn:disabled {
+  opacity: 0.2;
+  cursor: default;
 }
 
 .tools-divider {
   width: 1px;
-  height: 20px;
-  background: rgba(255, 255, 255, 0.08);
-  flex-shrink: 0;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.15);
+  margin: 0 4px;
 }
 
-/* ═══ 右侧：歌词 ═══ */
 .lyrics-right {
   flex: 1;
-  min-width: 0;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  padding: 80px 0;
+  overflow: hidden;
+  padding: 60px 40px 40px;
 }
 
-/* ── 歌词滚动容器 ── */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: rgba(255, 255, 255, 0.3);
+  gap: 8px;
+}
+
+.empty-icon {
+  font-size: 40px;
+}
+
+.empty-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.empty-hint {
+  font-size: 13px;
+}
+
 .lyrics-scroll {
   flex: 1;
   overflow-y: auto;
-  overflow-x: hidden;
-  padding: 20px 48px 60px;
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+  padding: 20px 0;
 }
 
 .lyrics-scroll::-webkit-scrollbar {
-  width: 3px;
-}
-
-.lyrics-scroll::-webkit-scrollbar-track {
-  background: transparent;
+  width: 4px;
 }
 
 .lyrics-scroll::-webkit-scrollbar-thumb {
@@ -611,98 +459,82 @@ export default {
   border-radius: 2px;
 }
 
-/* ── 歌词列表 ── */
 .lyrics-list {
-  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .line {
-  padding: 14px 0;
-  text-align: left;
-  font-size: 20px;
-  color: rgba(255, 255, 255, 0.35);
-  transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1);
-  transform-origin: left center;
-  cursor: default;
+  padding: 8px 16px;
+  border-radius: 8px;
+  transition: all 0.3s;
+  cursor: pointer;
+}
+
+.line:hover {
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .line.active {
-  color: #fff;
-  font-weight: 700;
-  transform: scale(1.1);
-  text-shadow: 0 0 24px rgba(255, 255, 255, 0.12);
+  background: rgba(251, 114, 153, 0.1);
 }
 
 .line-text {
-  display: block;
+  font-size: 18px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.5);
+  transition: all 0.3s;
+  line-height: 1.5;
+}
+
+.line.active .line-text {
+  color: #fff;
+  font-size: 20px;
+  font-weight: 600;
 }
 
 .line-trans {
   display: block;
-  font-weight: 400;
-  color: rgba(255, 255, 255, 0.45);
-  line-height: 1.5;
-  font-size: 15px;
-  margin-top: 2px;
-  transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.line-trans.active-trans {
-  color: #fff;
-  text-shadow: 0 0 24px rgba(255, 255, 255, 0.12);
-}
-
-/* ── 空状态 ── */
-.empty {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  color: rgba(255, 255, 255, 0.35);
-}
-
-.empty-icon {
-  font-size: 48px;
-  opacity: 0.35;
-}
-
-.empty-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.empty-hint {
-  font-size: 13px;
+  font-size: 14px;
   color: rgba(255, 255, 255, 0.3);
+  margin-top: 4px;
+  transition: all 0.3s;
 }
 
-/* ════════════════════════════════
-   滑入/滑出动画
-   ════════════════════════════════ */
+.line.active .line-trans.active-trans {
+  color: var(--accent);
+}
+
 .lyrics-overlay-enter-active {
-  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .lyrics-overlay-leave-active {
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.lyrics-overlay-enter-active .lyrics-body {
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.lyrics-overlay-leave-active .lyrics-body {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .lyrics-overlay-enter-from {
   opacity: 0;
-  transform: translateY(100%);
 }
 
 .lyrics-overlay-leave-to {
   opacity: 0;
+}
+
+.lyrics-overlay-enter-from .lyrics-body {
   transform: translateY(100%);
 }
 
-.lyrics-overlay-enter-to,
-.lyrics-overlay-leave-from {
-  opacity: 1;
-  transform: translateY(0);
+.lyrics-overlay-leave-to .lyrics-body {
+  transform: translateY(100%);
 }
 </style>

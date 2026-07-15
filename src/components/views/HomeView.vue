@@ -1,34 +1,27 @@
 <template>
   <div class="home-view">
-    <!-- 全局加载状态 -->
     <div v-if="loading && !toplist.length" class="loading-state">
-      <div class="spinner"></div>
-      <span>正在加载音乐数据...</span>
+      <div class="spinner" /><span>正在加载音乐数据...</span>
     </div>
-
-    <!-- 错误状态 -->
     <div v-else-if="error" class="error-state">
       <Icon icon="mdi:alert-circle-outline" class="error-icon" />
       <p>{{ error }}</p>
       <button @click="loadAll" class="retry-btn">重试</button>
     </div>
-
     <template v-else>
-      <!-- ===== Hero 区域 ===== -->
       <section class="hero-section" v-if="hero">
-        <div class="hero-bg" :style="{ backgroundImage: `url(${hero.mv_cover})` }"></div>
-        <div class="hero-overlay"></div>
+        <div class="hero-bg" :style="{ backgroundImage: `url(${hero.mv_cover})` }" />
+        <div class="hero-overlay" />
         <div class="hero-content">
           <div class="hero-badge">
-            <Icon icon="mdi:trophy" />
-            本周热歌榜
+            <Icon icon="mdi:trophy" />本周热歌榜
           </div>
           <div class="hero-rank">#{{ hero.rank }}</div>
           <h1 class="hero-title">{{ hero.music_title }}</h1>
           <p class="hero-artist">{{ hero.singer }}</p>
           <div class="hero-meta">
             <span class="hero-tag" v-if="hero.is_new">
-              <Icon icon="mdi:flash" /> 新上榜
+              <Icon icon="mdi:flash" />新上榜
             </span>
             <span class="hero-heat">
               <Icon icon="mdi:fire" /> {{ formatHeat(hero.heat) }}
@@ -39,8 +32,7 @@
           </div>
           <div class="hero-actions">
             <button class="hero-play-btn" @click="playHero">
-              <Icon icon="mdi:play" />
-              立即播放
+              <Icon icon="mdi:play" />立即播放
             </button>
             <button class="hero-add-btn" @click="addHeroToPlaylist">
               <Icon icon="mdi:playlist-plus" />
@@ -49,23 +41,16 @@
         </div>
       </section>
 
-      <!-- ===== TOP 10 榜单 ===== -->
       <section class="section" v-if="toplist.length > 0">
         <div class="section-header">
           <h2 class="section-title">
-            <Icon icon="mdi:chart-bar" class="section-icon" />
-            热歌 TOP 10
+            <Icon icon="mdi:chart-bar" class="section-icon" />热歌 TOP 10
           </h2>
           <span class="section-subtitle">B站本周最热音乐排行</span>
         </div>
         <div class="toplist">
-          <div
-            v-for="(item, index) in toplist.slice(0, 10)"
-            :key="item.music_id"
-            class="toplist-item"
-            :class="{ 'top-three': index < 3, 'active': index === 0 }"
-            @click="playToplist(item)"
-          >
+          <div v-for="(item, index) in toplist.slice(0, 10)" :key="item.music_id" class="toplist-item"
+            :class="{ 'top-three': index < 3 }" @click="playToplist(item)">
             <div class="toplist-rank">
               <span class="rank-num" v-if="index < 3">{{ index + 1 }}</span>
               <span class="rank-num-lg" v-else>{{ index + 1 }}</span>
@@ -85,68 +70,45 @@
               <p class="toplist-artist">{{ item.singer }}</p>
             </div>
             <div class="toplist-heat">
-              <ProgressRoot
-                :model-value="item.heat / maxHeat * 100"
-                class="heat-bar"
-                :max="100"
-              >
-                <ProgressIndicator
-                  class="heat-fill"
-                />
+              <ProgressRoot :model-value="item.heat / maxHeat * 100" class="heat-bar" :max="100">
+                <ProgressIndicator class="heat-fill" />
               </ProgressRoot>
               <span class="heat-text">{{ formatHeat(item.heat) }}</span>
             </div>
             <button class="toplist-play-btn" @click.stop="playToplist(item)">
               <Icon icon="mdi:play-circle-outline" />
             </button>
-            <button
-              v-if="user.loggedIn && user.favFolderId"
-              class="toplist-fav-btn"
-              :class="{ favorited: user.isFavorited(item.mv_bvid) }"
-              @click.stop="toggleToplistFav(item)"
-            >
+            <button v-if="user.loggedIn && user.favFolderId" class="toplist-fav-btn"
+              :class="{ favorited: user.isFavorited(item.mv_bvid) }" @click.stop="toggleToplistFav(item)">
               <Icon :icon="user.isFavorited(item.mv_bvid) ? 'mdi:heart' : 'mdi:heart-outline'" />
             </button>
           </div>
         </div>
       </section>
 
-      <!-- ===== 热门推荐 ===== -->
       <section class="section" v-if="hotRank.length > 0">
         <div class="section-header">
           <h2 class="section-title">
-            <Icon icon="mdi:fire" class="section-icon" />
-            热门推荐
+            <Icon icon="mdi:fire" class="section-icon" />热门推荐
           </h2>
           <span class="section-subtitle">累计播放量最高的音乐</span>
         </div>
         <div class="hot-grid">
-          <SongCard
-            v-for="item in hotRank"
-            :key="item.music_id"
-            :item="mapHotRankItem(item)"
-          />
+          <SongCard v-for="item in hotRank" :key="item.music_id" :item="mapHotRankItem(item)" />
         </div>
       </section>
 
-      <!-- ===== 新歌首发 ===== -->
       <section class="section" v-if="newMusic.length > 0">
         <div class="section-header">
           <h2 class="section-title">
-            <Icon icon="mdi:music-box-multiple" class="section-icon" />
-            新歌首发
+            <Icon icon="mdi:music-box-multiple" class="section-icon" />新歌首发
           </h2>
           <span class="section-subtitle">最新上架的优质音乐</span>
         </div>
         <ScrollAreaRoot class="nm-scrollarea-root">
           <ScrollAreaViewport class="nm-scrollarea-viewport">
             <div class="new-music-track">
-              <div
-                v-for="item in newMusic"
-                :key="item.music_id"
-                class="new-music-card"
-                @click="playNewMusic(item)"
-              >
+              <div v-for="item in newMusic" :key="item.music_id" class="new-music-card" @click="playNewMusic(item)">
                 <div class="nm-card-cover">
                   <img :src="item.cover + '@400w_400h.webp'" :alt="item.music_title" loading="lazy" />
                   <div class="nm-card-overlay">
@@ -171,231 +133,122 @@
   </div>
 </template>
 
-<script>
+<script setup>
+/**
+ * HomeView.vue — 首页推荐
+ *
+ * 区域：
+ * 1. Hero — 热歌榜第一名（大封面背景 + 播放按钮）
+ * 2. TOP 10 — 热歌榜（带排名变化/热度条）
+ * 3. 热门推荐 — 按播放量排序的卡片网格
+ * 4. 新歌首发 — 横向滚动卡片
+ *
+ * 数据来源：musicCenter API（getHotToplist / getHotRank / getNewMusic）
+ */
+
 import { ref, onMounted, computed } from 'vue'
 import { Icon } from '@iconify/vue'
 import SongCard from '../SongCard.vue'
 import { usePlayerStore } from '../../stores/player'
 import { useUserStore } from '../../stores/user'
-import {
-  ProgressRoot, ProgressIndicator,
-  ScrollAreaRoot, ScrollAreaViewport, ScrollAreaScrollbar, ScrollAreaThumb, ScrollAreaCorner
-} from 'reka-ui'
+import { ProgressRoot, ProgressIndicator, ScrollAreaRoot, ScrollAreaViewport, ScrollAreaScrollbar, ScrollAreaThumb, ScrollAreaCorner } from 'reka-ui'
 
-export default {
-  name: 'HomeView',
-  components: {
-    Icon, SongCard,
-    ProgressRoot, ProgressIndicator,
-    ScrollAreaRoot, ScrollAreaViewport, ScrollAreaScrollbar, ScrollAreaThumb, ScrollAreaCorner
-  },
-  setup() {
-    const player = usePlayerStore()
-    const user = useUserStore()
-    const loading = ref(true)
-    const error = ref('')
+const player = usePlayerStore()
+const user = useUserStore()
+const loading = ref(true)
+const error = ref('')
+const durationCache = new Map()  // bvid → duration 缓存
 
-    // Lazy duration cache (bvid → duration)
-    const durationCache = new Map()
+const banner = ref(null)
+const toplist = ref([])    // 热歌 TOP10 列表
+const hotRank = ref([])    // 热门推荐列表
+const newMusic = ref([])   // 新歌列表
 
-    async function fetchMissingDuration(item) {
-      if (!item.bvid || item.duration > 0) return
-      if (durationCache.has(item.bvid)) {
-        item.duration = durationCache.get(item.bvid)
-        return
-      }
-      try {
-        const info = await window.electronAPI.getVideoInfo(item.bvid, item.aid || 0)
-        if (info?.duration) {
-          item.duration = info.duration
-          durationCache.set(item.bvid, info.duration)
-        }
-      } catch {}
+/** Hero 区域数据 — 取 TOP10 第一名 */
+const hero = computed(() => {
+  if (!toplist.value.length) return null
+  const top = toplist.value[0]
+  return { ...top, mv_cover: top.mv_cover || '' }
+})
+
+/** TOP10 中最大热度值（用于归一化热度条） */
+const maxHeat = computed(() => {
+  if (!toplist.value.length) return 1
+  return Math.max(...toplist.value.map(t => t.heat || 0))
+})
+
+onMounted(() => loadAll())
+
+/** 加载所有首页数据 */
+async function loadAll() {
+  loading.value = true; error.value = ''
+  await safeCall(() => window.electronAPI.ensureSession())
+  try {
+    const [toplistData, hotRankData, newMusicData] = await Promise.all([
+      safeCall(() => window.electronAPI.getHotToplist()),
+      safeCall(() => window.electronAPI.getHotRank()),
+      safeCall(() => window.electronAPI.getNewMusic()),
+    ])
+    if (toplistData?.list) toplist.value = toplistData.list
+    if (hotRankData?.list) hotRank.value = hotRankData.list.slice(0, 20)
+    if (newMusicData?.list) newMusic.value = newMusicData.list.slice(0, 12)
+
+    // 惰性补齐缺失的歌曲时长
+    const allItems = [...(hotRank.value || []), ...(newMusic.value || [])]
+    for (const item of allItems) {
+      if (!item.duration) fetchMissingDuration(item).catch(() => { })
     }
+    if (!toplistData && !hotRankData && !newMusicData) error.value = '暂时无法获取音乐数据'
+  } catch (e) { error.value = '加载失败: ' + e.message }
+  finally { loading.value = false }
+}
 
-    // Data sources
-    const banner = ref(null)
-    const toplist = ref([])
-    const hotRank = ref([])
-    const newMusic = ref([])
+/** 安全调用 API（忽略业务错误，仅返回 null） */
+async function safeCall(fn) {
+  try {
+    const result = await fn()
+    if (result?.error) { console.warn('[BiliMusic] API:', result.error); return null }
+    return result
+  } catch (e) { console.warn('[BiliMusic] API error:', e); return null }
+}
 
-    const hero = computed(() => {
-      if (toplist.value.length > 0) {
-        const top = toplist.value[0]
-        // Try to use mv_cover, fallback to first item or placeholder
-        return {
-          ...top,
-          mv_cover: top.mv_cover || 'https://i0.hdslb.com/bfs/station_src/music_metadata/default.jpg'
-        }
-      }
-      return null
-    })
+/** 通过 API 补齐歌曲时长（惰性加载 + Map 缓存） */
+async function fetchMissingDuration(item) {
+  if (!item.bvid || item.duration > 0) return
+  if (durationCache.has(item.bvid)) { item.duration = durationCache.get(item.bvid); return }
+  try {
+    const info = await window.electronAPI.getVideoInfo(item.bvid, item.aid || 0)
+    if (info?.duration) { item.duration = info.duration; durationCache.set(item.bvid, info.duration) }
+  } catch { }
+}
 
-    const maxHeat = computed(() => {
-      if (toplist.value.length === 0) return 1
-      return Math.max(...toplist.value.map((t) => t.heat || 0))
-    })
+function mapHotRankItem(item) {
+  return { bvid: item.bvid || '', aid: item.aid || 0, title: item.music_title, cover: item.cover || '', duration: item.duration || 0, author: item.author || '', play: item.total_vv || 0, cid: item.cid || null }
+}
 
-    onMounted(() => {
-      loadAll()
-    })
+function mapToplistItem(item) {
+  return { bvid: item.mv_bvid || '', aid: item.mv_aid || 0, title: item.music_title, cover: item.mv_cover || '', duration: item.duration || 0, author: item.singer || '', play: item.heat || 0, cid: null }
+}
 
-    async function loadAll() {
-      loading.value = true
-      error.value = ''
+function mapNewMusicItem(item) {
+  return { bvid: item.bvid || '', aid: item.aid || 0, title: item.music_title, cover: item.cover || '', duration: item.duration || 0, author: item.author || '', play: item.wish_count || 0, cid: item.cid || null }
+}
 
-      // 先确保 session/buvid cookie 已就绪，避免风控拦截
-      await safeCall(() => window.electronAPI.ensureSession()).catch(() => {})
+function playToplist(item) { const track = mapToplistItem(item); if (track.bvid || track.aid) player.playTrack(track) }
+async function toggleToplistFav(item) { const fi = { bvid: item.mv_bvid || '', aid: item.mv_aid || 0 }; if (fi.bvid || fi.aid) await user.toggleFav(fi) }
+function playHero() { playToplist(toplist.value[0]) }
+function addHeroToPlaylist() { const item = toplist.value[0]; if (item) player.addToPlaylist(mapToplistItem(item)) }
+function playNewMusic(item) { const track = mapNewMusicItem(item); if (track.bvid || track.aid) player.playTrack(track) }
 
-      try {
-        const [toplistData, hotRankData, newMusicData, bannerData] = await Promise.all([
-          safeCall(() => window.electronAPI.getHotToplist()),
-          safeCall(() => window.electronAPI.getHotRank()),
-          safeCall(() => window.electronAPI.getNewMusic()),
-          safeCall(() => window.electronAPI.getMusicBanner())
-        ])
-
-        if (toplistData?.list) toplist.value = toplistData.list
-        if (hotRankData?.list) hotRank.value = hotRankData.list.slice(0, 20)
-        if (newMusicData?.list) newMusic.value = newMusicData.list.slice(0, 12)
-        if (bannerData) banner.value = bannerData
-
-        // 惰性获取缺失的歌曲时长
-        const allItems = [
-          ...(hotRank.value || []),
-          ...(newMusic.value || []),
-        ]
-        for (const item of allItems) {
-          if (!item.duration) {
-            fetchMissingDuration(item).catch(() => {})
-          }
-        }
-
-        // 如果所有数据都为空，显示提示
-        if (!toplistData && !hotRankData && !newMusicData) {
-          error.value = '暂时无法获取音乐数据，请稍后重试'
-        }
-      } catch (e) {
-        error.value = '加载失败: ' + e.message
-      } finally {
-        loading.value = false
-      }
-    }
-
-    async function safeCall(fn) {
-      try {
-        const result = await fn()
-        if (result && result.error) {
-          console.warn('API warning:', result.error)
-          return null
-        }
-        return result
-      } catch (e) {
-        console.warn('API error:', e)
-        return null
-      }
-    }
-
-    function mapHotRankItem(item) {
-      return {
-        bvid: item.bvid || '',
-        aid: item.aid || 0,
-        title: item.music_title,
-        cover: item.cover || '',
-        duration: item.duration || 0,
-        author: item.author || '',
-        play: item.total_vv || 0,
-        cid: item.cid || null
-      }
-    }
-
-    function mapToplistItem(item) {
-      return {
-        bvid: item.mv_bvid || '',
-        aid: item.mv_aid || 0,
-        title: item.music_title,
-        cover: item.mv_cover || '',
-        duration: item.duration || 0,
-        author: item.singer || '',
-        play: item.heat || 0,
-        cid: null
-      }
-    }
-
-    function mapNewMusicItem(item) {
-      return {
-        bvid: item.bvid || '',
-        aid: item.aid || 0,
-        title: item.music_title,
-        cover: item.cover || '',
-        duration: item.duration || 0,
-        author: item.author || '',
-        play: item.wish_count || 0,
-        cid: item.cid || null
-      }
-    }
-
-    function playToplist(item) {
-      const track = mapToplistItem(item)
-      if (!track.bvid && track.aid) {
-        // Try to find bvid from hot rank data
-        const hotItem = hotRank.value.find((h) => h.music_id === item.music_id)
-        if (hotItem?.bvid) track.bvid = hotItem.bvid
-      }
-      if (track.bvid || track.aid) {
-        player.playTrack(track)
-      }
-    }
-
-    async function toggleToplistFav(item) {
-      const favItem = {
-        bvid: item.mv_bvid || '',
-        aid: item.mv_aid || 0
-      }
-      if (favItem.bvid || favItem.aid) {
-        await user.toggleFav(favItem)
-      }
-    }
-
-    function playHero() {
-      playToplist(toplist.value[0])
-    }
-
-    function addHeroToPlaylist() {
-      const item = toplist.value[0]
-      if (item) {
-        player.addToPlaylist(mapToplistItem(item))
-      }
-    }
-
-    function playNewMusic(item) {
-      const track = mapNewMusicItem(item)
-      if (track.bvid || track.aid) {
-        player.playTrack(track)
-      }
-    }
-
-    function formatHeat(heat) {
-      if (!heat) return '0'
-      if (heat >= 100000000) return (heat / 100000000).toFixed(1) + '亿'
-      if (heat >= 10000) return (heat / 10000).toFixed(1) + '万'
-      return String(heat)
-    }
-
-    return {
-      loading, error,
-      banner, toplist, hotRank, newMusic,
-      hero, maxHeat,
-      loadAll, mapHotRankItem, playToplist, playHero,
-      addHeroToPlaylist, playNewMusic, formatHeat,
-      player, user, toggleToplistFav
-    }
-  }
+function formatHeat(heat) {
+  if (!heat) return '0'
+  if (heat >= 100000000) return (heat / 100000000).toFixed(1) + '亿'
+  if (heat >= 10000) return (heat / 10000).toFixed(1) + '万'
+  return String(heat)
 }
 </script>
 
 <style scoped>
-/* ===== Layout ===== */
 .home-view {
   padding: 28px 32px 40px;
   max-width: 1200px;
@@ -431,7 +284,6 @@ export default {
   color: var(--text-muted);
 }
 
-/* ===== Loading / Error ===== */
 .loading-state,
 .error-state {
   display: flex;
@@ -453,12 +305,25 @@ export default {
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-.error-state .error-icon { font-size: 40px; color: var(--danger); }
-.error-state p { font-size: 14px; color: var(--text-secondary); text-align: center; }
+.error-icon {
+  font-size: 40px;
+  color: var(--danger);
+}
+
+.error-state p {
+  font-size: 14px;
+  color: var(--text-secondary);
+  text-align: center;
+}
 
 .retry-btn {
   background: var(--bg-card);
@@ -471,9 +336,12 @@ export default {
   transition: all var(--transition);
   font-family: inherit;
 }
-.retry-btn:hover { border-color: var(--accent-dim); color: var(--accent); }
 
-/* ===== Hero Section ===== */
+.retry-btn:hover {
+  border-color: var(--accent-dim);
+  color: var(--accent);
+}
+
 .hero-section {
   position: relative;
   height: 340px;
@@ -491,99 +359,77 @@ export default {
   background-position: center;
   filter: blur(6px) brightness(0.4);
   transform: scale(1.1);
-  transition: filter 0.5s ease;
 }
 
 .hero-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    135deg,
-    rgba(251, 114, 153, 0.15) 0%,
-    rgba(0, 161, 214, 0.08) 50%,
-    rgba(15, 15, 26, 0.75) 100%
-  );
+  background: linear-gradient(to top, rgba(10, 10, 20, 0.8) 0%, rgba(10, 10, 20, 0.2) 60%, transparent 100%);
 }
 
 .hero-content {
   position: relative;
   z-index: 1;
-  padding: 36px;
-  max-width: 600px;
+  padding: 32px;
+  width: 100%;
 }
 
 .hero-badge {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-size: 12px;
   font-weight: 600;
-  color: #ffd700;
-  background: rgba(255, 215, 0, 0.12);
-  border: 1px solid rgba(255, 215, 0, 0.25);
   padding: 4px 12px;
   border-radius: var(--radius-xl);
-  margin-bottom: 14px;
-  letter-spacing: 0.5px;
+  margin-bottom: 12px;
 }
 
 .hero-rank {
-  font-size: 72px;
-  font-weight: 900;
-  line-height: 1;
-  color: rgba(255, 255, 255, 0.08);
-  position: absolute;
-  right: 36px;
-  top: 20px;
-  font-family: 'Georgia', serif;
-  letter-spacing: -4px;
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
 }
 
 .hero-title {
   font-size: 28px;
   font-weight: 800;
-  color: white;
-  margin-bottom: 6px;
-  line-height: 1.2;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+  margin-bottom: 4px;
 }
 
 .hero-artist {
   font-size: 15px;
-  color: rgba(255, 255, 255, 0.7);
-  margin-bottom: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
 }
 
 .hero-meta {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+  gap: 16px;
   margin-bottom: 20px;
 }
 
-.hero-tag,
-.hero-heat,
-.hero-recommend {
-  display: inline-flex;
+.hero-meta span {
+  display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+  color: var(--text-secondary);
 }
-
-.hero-tag { color: var(--accent); }
 
 .hero-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 
 .hero-play-btn {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   background: var(--accent);
-  color: white;
+  color: #fff;
   border: none;
   padding: 10px 24px;
   border-radius: var(--radius-xl);
@@ -593,19 +439,18 @@ export default {
   transition: all var(--transition);
   font-family: inherit;
 }
+
 .hero-play-btn:hover {
   background: var(--accent-hover);
-  transform: scale(1.03);
-  box-shadow: 0 4px 20px var(--accent-glow);
 }
 
 .hero-add-btn {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
   background: rgba(255, 255, 255, 0.1);
+  color: #fff;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -613,123 +458,111 @@ export default {
   cursor: pointer;
   transition: all var(--transition);
 }
+
 .hero-add-btn:hover {
   background: rgba(255, 255, 255, 0.2);
-  transform: scale(1.05);
 }
 
-/* ===== TOP 10 List ===== */
 .toplist {
   display: flex;
   flex-direction: column;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
+  gap: 2px;
 }
 
 .toplist-item {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 10px 16px;
+  gap: 12px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all var(--transition);
-  position: relative;
+  transition: background var(--transition);
 }
 
 .toplist-item:hover {
-  background: var(--bg-hover);
+  background: var(--bg-card);
 }
 
-.toplist-item.active {
-  background: linear-gradient(90deg, var(--accent-dim) 0%, transparent 100%);
-}
-
-.toplist-item + .toplist-item {
-  border-top: 1px solid var(--border);
-}
-
-/* Rank */
 .toplist-rank {
+  width: 60px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 6px;
-  min-width: 52px;
+  flex-shrink: 0;
 }
 
-.top-three .rank-num {
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  font-size: 11px;
+.rank-num {
+  font-size: 20px;
   font-weight: 800;
-  color: white;
+  color: var(--accent);
 }
-
-.toplist-item:nth-child(1) .rank-num { background: #ff4757; }
-.toplist-item:nth-child(2) .rank-num { background: #ff6b81; }
-.toplist-item:nth-child(3) .rank-num { background: #ffa502; }
 
 .rank-num-lg {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--text-muted);
-  min-width: 24px;
-  text-align: center;
 }
 
 .rank-change {
   display: flex;
   align-items: center;
-  gap: 1px;
-  font-size: 9px;
+  gap: 2px;
+  font-size: 11px;
+  margin-top: 2px;
 }
 
-.change-up { color: #2ed573; font-size: 10px; }
-.change-down { color: var(--accent); font-size: 10px; }
-.change-equal { color: var(--text-muted); font-size: 8px; }
-.change-num { font-size: 9px; font-weight: 600; }
-.change-up + .change-num { color: #2ed573; }
-.change-down + .change-num { color: var(--accent); }
+.change-up {
+  color: #4ade80;
+  font-size: 14px;
+}
+
+.change-down {
+  color: var(--danger);
+  font-size: 14px;
+}
+
+.change-equal {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.change-num {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
 
 .rank-new {
   font-size: 9px;
   font-weight: 700;
   color: var(--accent);
-  background: var(--accent-dim);
-  padding: 1px 5px;
-  border-radius: 3px;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
 }
 
-/* Cover */
 .toplist-cover {
-  flex-shrink: 0;
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-sm);
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
   overflow: hidden;
+  flex-shrink: 0;
   background: var(--bg-tertiary);
 }
+
 .toplist-cover img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-/* Info */
 .toplist-info {
   flex: 1;
-  min-width: 0;
+  overflow: hidden;
 }
 
 .toplist-title {
   font-size: 14px;
   font-weight: 600;
-  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -741,83 +574,52 @@ export default {
   margin-top: 2px;
 }
 
-/* Heat bar */
 .toplist-heat {
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-width: 120px;
+  gap: 8px;
+  flex-shrink: 0;
+  min-width: 100px;
 }
 
 .heat-bar {
-  flex: 1;
+  width: 60px;
   height: 4px;
-  background: var(--bg-tertiary);
+  background: var(--bg-hover);
   border-radius: 2px;
   overflow: hidden;
-  max-width: 100px;
-  position: relative;
 }
 
 .heat-fill {
-  position: absolute;
-  inset: 0;
-  width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, var(--accent), #ffa502);
+  background: linear-gradient(90deg, var(--accent), #00a1d6);
   border-radius: 2px;
-  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: width 0.3s;
 }
 
 .heat-text {
   font-size: 11px;
   color: var(--text-muted);
-  white-space: nowrap;
-  min-width: 45px;
+  min-width: 36px;
   text-align: right;
 }
 
-/* Play button */
-.toplist-play-btn {
+.toplist-play-btn,
+.toplist-fav-btn {
   background: transparent;
   border: none;
   color: var(--text-muted);
-  font-size: 22px;
+  font-size: 20px;
   cursor: pointer;
   padding: 4px;
-  display: flex;
-  align-items: center;
-  opacity: 0;
   transition: all var(--transition);
   border-radius: 50%;
-}
-
-.toplist-item:hover .toplist-play-btn {
-  opacity: 1;
+  display: flex;
 }
 
 .toplist-play-btn:hover {
   color: var(--accent);
   background: var(--accent-dim);
-}
-
-.toplist-fav-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  font-size: 18px;
-  cursor: pointer;
-  padding: 4px;
-  display: flex;
-  align-items: center;
-  opacity: 0;
-  transition: all var(--transition);
-  border-radius: 50%;
-  margin-left: 2px;
-}
-
-.toplist-item:hover .toplist-fav-btn {
-  opacity: 1;
 }
 
 .toplist-fav-btn:hover {
@@ -829,71 +631,44 @@ export default {
   color: var(--accent);
 }
 
-
-/* ===== Hot Grid ===== */
 .hot-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 16px;
 }
 
-/* ===== New Music ===== */
 .nm-scrollarea-root {
-  position: relative;
-  overflow: hidden;
   width: 100%;
-  height: 210px;
 }
 
 .nm-scrollarea-viewport {
-  width: 100%;
-  height: 100%;
-}
-
-.nm-scrollarea-scrollbar {
-  display: flex;
-  height: 6px;
-  padding: 1px 0;
-  z-index: 10;
-}
-
-.nm-scrollarea-thumb {
-  flex: 1;
-  background: var(--border);
-  border-radius: 3px;
-  min-height: 6px;
-}
-.nm-scrollarea-thumb:hover {
-  background: var(--text-muted);
-}
-
-.nm-scrollarea-corner {
-  background: transparent;
+  overflow-x: auto;
 }
 
 .new-music-track {
   display: flex;
-  gap: 14px;
-  min-width: min-content;
+  gap: 16px;
+  padding-bottom: 4px;
 }
 
 .new-music-card {
   flex-shrink: 0;
-  width: 150px;
+  width: 180px;
   cursor: pointer;
-  transition: all var(--transition);
   border-radius: var(--radius-md);
   overflow: hidden;
+  transition: all var(--transition);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
 }
 
 .new-music-card:hover {
-  transform: translateY(-4px);
+  border-color: var(--accent-dim);
 }
 
 .nm-card-cover {
   position: relative;
   aspect-ratio: 1;
-  border-radius: var(--radius-md);
   overflow: hidden;
   background: var(--bg-tertiary);
 }
@@ -902,17 +677,12 @@ export default {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.new-music-card:hover .nm-card-cover img {
-  transform: scale(1.08);
 }
 
 .nm-card-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.35);
+  background: rgba(0, 0, 0, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -925,17 +695,17 @@ export default {
 }
 
 .nm-play-icon {
-  font-size: 42px;
-  color: white;
+  font-size: 40px;
+  color: #fff;
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
 }
 
 .nm-card-corner {
   position: absolute;
-  top: 6px;
-  left: 6px;
+  top: 8px;
+  left: 8px;
   background: var(--accent);
-  color: white;
+  color: #fff;
   font-size: 10px;
   font-weight: 700;
   padding: 2px 8px;
@@ -943,7 +713,7 @@ export default {
 }
 
 .nm-card-info {
-  padding: 10px 2px;
+  padding: 10px;
 }
 
 .nm-card-title {
@@ -955,11 +725,28 @@ export default {
 }
 
 .nm-card-artist {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-muted);
-  margin-top: 3px;
+  margin-top: 4px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.nm-scrollarea-scrollbar {
+  display: flex;
+  height: 6px;
+  padding: 1px 0;
+}
+
+.nm-scrollarea-thumb {
+  flex: 1;
+  background: var(--border);
+  border-radius: 3px;
+  min-height: 4px;
+}
+
+.nm-scrollarea-corner {
+  background: transparent;
 }
 </style>

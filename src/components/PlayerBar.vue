@@ -1,7 +1,7 @@
 <template>
   <div class="player-bar">
-    <!-- Track Info -->
-    <div class="player-track-info" @click="openLyricsOverlay" :style="{ cursor: player.currentTrack ? 'pointer' : 'default' }" :title="player.currentTrack ? '点击打开歌词' : ''">
+    <div class="player-track-info" @click="openLyricsOverlay"
+      :style="{ cursor: player.currentTrack ? 'pointer' : 'default' }" :title="player.currentTrack ? '点击打开歌词' : ''">
       <div class="player-cover" v-if="player.currentTrack">
         <img :src="player.currentTrack.cover + '@160w_160h.webp'" :alt="player.currentTrack.title" />
         <div class="player-cover-overlay">
@@ -21,7 +21,6 @@
       </div>
     </div>
 
-    <!-- Controls -->
     <div class="player-controls">
       <div class="controls-buttons">
         <TooltipProvider>
@@ -55,12 +54,8 @@
 
           <TooltipRoot>
             <TooltipTrigger as-child>
-              <button
-                class="ctrl-btn play-btn"
-                @click="player.togglePlay()"
-                :disabled="!player.currentTrack"
-              >
-                <Icon :icon="player.isPlaying ? 'mdi:pause' : 'mdi-play'" />
+              <button class="ctrl-btn play-btn" @click="player.togglePlay()" :disabled="!player.currentTrack">
+                <Icon :icon="player.isPlaying ? 'mdi:pause' : 'mdi:play'" />
               </button>
             </TooltipTrigger>
             <TooltipPortal>
@@ -115,17 +110,10 @@
         </TooltipProvider>
       </div>
 
-      <!-- Progress -->
       <div class="progress-area">
         <span class="time current">{{ formatTime(player.currentTime) }}</span>
-        <SliderRoot
-          class="progress-bar"
-          :model-value="[player.currentTime]"
-          :max="player.duration || 100"
-          :step="1"
-          :disabled="!player.currentTrack"
-          @update:model-value="([val]) => player.seek(val)"
-        >
+        <SliderRoot class="progress-bar" :model-value="[player.currentTime]" :max="player.duration || 100" :step="1"
+          :disabled="!player.currentTrack" @update:model-value="([val]) => player.seek(val)">
           <SliderTrack class="slider-track">
             <SliderRange class="slider-range" />
           </SliderTrack>
@@ -135,18 +123,12 @@
       </div>
     </div>
 
-    <!-- Volume -->
     <div class="player-volume">
       <button class="ctrl-btn" @click="toggleMute">
         <Icon :icon="volumeIcon" />
       </button>
-      <SliderRoot
-        class="volume-slider"
-        :model-value="[muted ? 0 : player.volume]"
-        :max="1"
-        :step="0.01"
-        @update:model-value="([val]) => { player.setVolume(val); muted = false }"
-      >
+      <SliderRoot class="volume-slider" :model-value="[muted ? 0 : player.volume]" :max="1" :step="0.01"
+        @update:model-value="([val]) => { player.setVolume(val); muted = false }">
         <SliderTrack class="slider-track volume-track">
           <SliderRange class="slider-range volume-range" />
         </SliderTrack>
@@ -156,92 +138,278 @@
   </div>
 </template>
 
-<script>
+<script setup>
+/**
+ * PlayerBar.vue — 底部播放控制栏
+ *
+ * 布局：歌曲信息 | 播放控制(模式/上/播放/下/歌词/桌面) | 进度条 | 音量
+ * 使用 Reka UI Slider 实现进度条和音量滑块，Tooltip 实现按钮提示。
+ */
+
 import { computed, ref, onMounted, inject } from 'vue'
 import { usePlayerStore } from '../stores/player'
 import { Icon } from '@iconify/vue'
-import {
-  SliderRoot, SliderTrack, SliderRange, SliderThumb,
-  TooltipRoot, TooltipTrigger, TooltipPortal, TooltipContent, TooltipArrow,
-  TooltipProvider
-} from 'reka-ui'
+import { SliderRoot, SliderTrack, SliderRange, SliderThumb, TooltipRoot, TooltipTrigger, TooltipPortal, TooltipContent, TooltipArrow, TooltipProvider } from 'reka-ui'
 
-export default {
-  name: 'PlayerBar',
-  components: {
-    Icon,
-    SliderRoot, SliderTrack, SliderRange, SliderThumb,
-    TooltipRoot, TooltipTrigger, TooltipPortal, TooltipContent, TooltipArrow,
-    TooltipProvider
-  },
-  setup() {
-    const player = usePlayerStore()
-    const muted = ref(false)
-    const prevVolume = ref(0.7)
-    const desktopLyricsOpen = ref(false)
-    const toggleLyricsOverlay = inject('toggleLyricsOverlay', () => {})
+const player = usePlayerStore()
+const muted = ref(false)        // 是否静音
+const prevVolume = ref(0.7)     // 静音前的音量
+const desktopLyricsOpen = ref(false)
+const toggleLyricsOverlay = inject('toggleLyricsOverlay', () => { })
 
-    // 监听桌面歌词窗口可见性变化，同步状态
-    onMounted(() => {
-      if (window.electronAPI?.onDesktopLyricsVisibility) {
-        window.electronAPI.onDesktopLyricsVisibility((visible) => {
-          desktopLyricsOpen.value = visible
-        })
-      }
-      if (window.electronAPI?.onPlayerControl) {
-        window.electronAPI.onPlayerControl((action) => {
-          if (action === 'prev') player.prevTrack()
-          else if (action === 'next') player.nextTrack()
-          else if (action === 'togglePlay') player.togglePlay()
-        })
-      }
-    })
+onMounted(() => {
+  // 监听桌面歌词可见性变化
+  window.electronAPI?.onDesktopLyricsVisibility(v => desktopLyricsOpen.value = v)
+  // 监听桌面歌词窗口的播放控制
+  window.electronAPI?.onPlayerControl(action => {
+    if (action === 'prev') player.prevTrack()
+    else if (action === 'next') player.nextTrack()
+    else if (action === 'togglePlay') player.togglePlay()
+  })
+})
 
-    function openLyricsOverlay() {
-      if (player.currentTrack) {
-        toggleLyricsOverlay()
-      }
-    }
+/** 打开歌词弹层 */
+function openLyricsOverlay() {
+  if (player.currentTrack) toggleLyricsOverlay()
+}
 
-    const modeIcon = computed(() => {
-      return ['mdi:repeat', 'mdi:shuffle', 'mdi:repeat-once'][player.playMode]
-    })
+/** 播放模式图标 */
+const modeIcon = computed(() => ['mdi:repeat', 'mdi:shuffle', 'mdi:repeat-once'][player.playMode])
+/** 播放模式文字 */
+const modeText = computed(() => ['顺序播放', '随机播放', '单曲循环'][player.playMode])
+/** 音量图标（三态：静音/中/高） */
+const volumeIcon = computed(() => {
+  if (muted.value || player.volume === 0) return 'mdi:volume-off'
+  if (player.volume < 0.4) return 'mdi:volume-medium'
+  return 'mdi:volume-high'
+})
 
-    const modeText = computed(() => {
-      return ['顺序播放', '随机播放', '单曲循环'][player.playMode]
-    })
+/** 切换静音（记忆上次音量） */
+function toggleMute() {
+  if (muted.value) { player.setVolume(prevVolume.value); muted.value = false }
+  else { prevVolume.value = player.volume; player.setVolume(0); muted.value = true }
+}
 
-    const volumeIcon = computed(() => {
-      if (muted.value || player.volume === 0) return 'mdi:volume-off'
-      if (player.volume < 0.4) return 'mdi:volume-medium'
-      return 'mdi:volume-high'
-    })
+/** 切换桌面歌词窗口 */
+function toggleDesktopLyrics() { window.electronAPI?.desktopLyricsToggle() }
 
-    function toggleMute() {
-      if (muted.value) {
-        player.setVolume(prevVolume.value)
-        muted.value = false
-      } else {
-        prevVolume.value = player.volume
-        player.setVolume(0)
-        muted.value = true
-      }
-    }
-
-    function toggleDesktopLyrics() {
-      if (window.electronAPI) {
-        window.electronAPI.desktopLyricsToggle()
-      }
-    }
-
-    function formatTime(seconds) {
-      if (!seconds || isNaN(seconds)) return '0:00'
-      const m = Math.floor(seconds / 60)
-      const s = Math.floor(seconds % 60)
-      return `${m}:${String(s).padStart(2, '0')}`
-    }
-
-    return { player, muted, desktopLyricsOpen, modeIcon, modeText, volumeIcon, toggleMute, toggleDesktopLyrics, formatTime, openLyricsOverlay }
-  }
+/** 格式化秒数为 m:ss */
+function formatTime(seconds) {
+  if (!seconds || isNaN(seconds)) return '0:00'
+  const m = Math.floor(seconds / 60)
+  const s = Math.floor(seconds % 60)
+  return `${m}:${String(s).padStart(2, '0')}`
 }
 </script>
+
+<style scoped>
+.player-bar {
+  display: flex;
+  align-items: center;
+  height: var(--player-height);
+  padding: 0 20px;
+  background: rgba(15, 15, 26, 0.95);
+  border-top: 1px solid var(--border);
+  gap: 20px;
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.player-track-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 220px;
+  max-width: 280px;
+}
+
+.player-cover {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+  position: relative;
+  background: var(--bg-tertiary);
+}
+
+.player-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.player-cover-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+
+.player-track-info:hover .player-cover-overlay {
+  opacity: 1;
+}
+
+.cover-expand-icon {
+  font-size: 18px;
+  color: #fff;
+}
+
+.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.placeholder-icon {
+  font-size: 22px;
+  color: var(--text-muted);
+}
+
+.player-meta {
+  overflow: hidden;
+}
+
+.player-title {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.player-author {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.placeholder-text .player-title {
+  color: var(--text-muted);
+}
+
+.placeholder-text .player-author {
+  color: var(--text-muted);
+}
+
+.player-controls {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.controls-buttons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ctrl-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition);
+}
+
+.ctrl-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.ctrl-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+  pointer-events: none;
+}
+
+.ctrl-btn.active {
+  color: var(--accent);
+}
+
+.play-btn {
+  font-size: 32px;
+  color: var(--text-primary);
+}
+
+.play-btn:hover {
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.progress-area {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 500px;
+}
+
+.time {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  min-width: 32px;
+}
+
+.time.current {
+  text-align: right;
+}
+
+.time.total {
+  text-align: left;
+}
+
+.progress-bar {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  height: 20px;
+  cursor: pointer;
+  position: relative;
+}
+
+.progress-bar:hover .slider-thumb {
+  opacity: 1;
+}
+
+.player-volume {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 120px;
+  justify-content: flex-end;
+}
+
+.player-volume .ctrl-btn {
+  font-size: 18px;
+}
+
+.volume-slider {
+  width: 80px;
+  display: flex;
+  align-items: center;
+  height: 20px;
+  cursor: pointer;
+  position: relative;
+}
+
+.volume-slider:hover .volume-thumb {
+  opacity: 1;
+}
+</style>

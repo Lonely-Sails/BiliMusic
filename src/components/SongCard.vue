@@ -1,121 +1,87 @@
 <template>
   <TooltipProvider>
-  <div class="song-card" @click="play">
-    <div class="card-cover">
-      <img :src="item.cover + '@1280w_800h.webp'" :alt="item.title" loading="lazy" />
-      <div class="card-overlay">
-        <Icon icon="mdi:play-circle-outline" class="play-icon" />
+    <div class="song-card" @click="play">
+      <div class="card-cover">
+        <img :src="item.cover + '@1280w_800h.webp'" :alt="item.title" loading="lazy" />
+        <div class="card-overlay">
+          <Icon icon="mdi:play-circle-outline" class="play-icon" />
+        </div>
+        <span class="card-duration">{{ formatDuration(item.duration) }}</span>
+        <div class="card-actions">
+          <TooltipRoot>
+            <TooltipTrigger as-child>
+              <button class="action-btn add-btn" @click.stop="addToPlaylist">
+                <Icon icon="mdi:plus" />
+              </button>
+            </TooltipTrigger>
+            <TooltipPortal>
+              <TooltipContent class="tooltip-content" :data-state="'instant-open'" side="top">
+                添加到播放列表
+                <TooltipArrow class="tooltip-arrow" />
+              </TooltipContent>
+            </TooltipPortal>
+          </TooltipRoot>
+          <TooltipRoot v-if="user.loggedIn && user.favFolderId">
+            <TooltipTrigger as-child>
+              <button class="action-btn fav-btn" :class="{ favorited: user.isFavorited(item.bvid) }"
+                @click.stop="toggleFav">
+                <Icon :icon="user.isFavorited(item.bvid) ? 'mdi:heart' : 'mdi:heart-outline'" />
+              </button>
+            </TooltipTrigger>
+            <TooltipPortal>
+              <TooltipContent class="tooltip-content" :data-state="'instant-open'" side="top">
+                {{ user.isFavorited(item.bvid) ? '取消收藏' : '收藏到「' + user.favFolderName + '」' }}
+                <TooltipArrow class="tooltip-arrow" />
+              </TooltipContent>
+            </TooltipPortal>
+          </TooltipRoot>
+        </div>
       </div>
-      <span class="card-duration">{{ formatDuration(item.duration) }}</span>
-      <div class="card-actions">
-        <TooltipRoot>
-          <TooltipTrigger as-child>
-            <button class="action-btn add-btn" @click.stop="addToPlaylist">
-              <Icon icon="mdi:plus" />
-            </button>
-          </TooltipTrigger>
-          <TooltipPortal>
-            <TooltipContent class="tooltip-content" :data-state="'instant-open'" side="top">
-              添加到播放列表
-              <TooltipArrow class="tooltip-arrow" />
-            </TooltipContent>
-          </TooltipPortal>
-        </TooltipRoot>
-        <TooltipRoot v-if="user.loggedIn && user.favFolderId">
-          <TooltipTrigger as-child>
-            <button
-              class="action-btn fav-btn"
-              :class="{ favorited: user.isFavorited(item.bvid) }"
-              @click.stop="toggleFav"
-            >
-              <Icon :icon="user.isFavorited(item.bvid) ? 'mdi:heart' : 'mdi:heart-outline'" />
-            </button>
-          </TooltipTrigger>
-          <TooltipPortal>
-            <TooltipContent class="tooltip-content" :data-state="'instant-open'" side="top">
-              {{ user.isFavorited(item.bvid) ? '取消收藏' : '收藏到「' + user.favFolderName + '」' }}
-              <TooltipArrow class="tooltip-arrow" />
-            </TooltipContent>
-          </TooltipPortal>
-        </TooltipRoot>
+      <div class="card-info">
+        <h4 class="card-title" :title="item.title">{{ item.title }}</h4>
+        <p class="card-author">
+          <Icon icon="mdi:account-outline" class="meta-icon" /> {{ item.author }}
+        </p>
+        <p class="card-stats" v-if="showPlayCount">
+          <Icon icon="mdi:play-circle-outline" class="meta-icon" /> {{ formatNumber(item.play) }}
+        </p>
       </div>
     </div>
-    <div class="card-info">
-      <h4 class="card-title" :title="item.title">{{ item.title }}</h4>
-      <p class="card-author">
-        <Icon icon="mdi:account-outline" class="meta-icon" />
-        {{ item.author }}
-      </p>
-      <p class="card-stats" v-if="showPlayCount">
-        <Icon icon="mdi:play-circle-outline" class="meta-icon" />
-        {{ formatNumber(item.play) }}
-      </p>
-    </div>
-  </div>
   </TooltipProvider>
 </template>
 
-<script>
+<script setup>
 import { usePlayerStore } from '../stores/player'
 import { useUserStore } from '../stores/user'
 import { Icon } from '@iconify/vue'
-import {
-  TooltipRoot, TooltipTrigger, TooltipPortal, TooltipContent, TooltipArrow,
-  TooltipProvider
-} from 'reka-ui'
+import { TooltipRoot, TooltipTrigger, TooltipPortal, TooltipContent, TooltipArrow, TooltipProvider } from 'reka-ui'
 
-export default {
-  name: 'SongCard',
-  components: {
-    Icon,
-    TooltipRoot, TooltipTrigger, TooltipPortal, TooltipContent, TooltipArrow,
-    TooltipProvider
-  },
-  props: {
-    item: {
-      type: Object,
-      required: true
-    },
-    showPlayCount: {
-      type: Boolean,
-      default: true
-    }
-  },
-  emits: ['fav-change'],
-  setup(props, { emit }) {
-    const player = usePlayerStore()
-    const user = useUserStore()
+const props = defineProps({
+  item: { type: Object, required: true },
+  showPlayCount: { type: Boolean, default: true }
+})
 
-    function play() {
-      player.playTrack(props.item)
-    }
+const emit = defineEmits(['fav-change'])
 
-    function addToPlaylist() {
-      player.addToPlaylist(props.item)
-    }
+const player = usePlayerStore()
+const user = useUserStore()
 
-    async function toggleFav() {
-      const result = await user.toggleFav(props.item)
-      if (result) {
-        emit('fav-change', result)
-      }
-    }
-
-    function formatDuration(duration) {
-      if (!duration) return '--:--'
-      if (typeof duration === 'string' && duration.includes(':')) return duration
-      const m = Math.floor(duration / 60)
-      const s = duration % 60
-      return `${m}:${String(s).padStart(2, '0')}`
-    }
-
-    function formatNumber(num) {
-      if (!num) return '0'
-      return num >= 10000 ? (num / 10000).toFixed(1) + '万' : String(num)
-    }
-
-    return { player, user, play, addToPlaylist, toggleFav, formatDuration, formatNumber }
-  }
+function play() { player.playTrack(props.item) }
+function addToPlaylist() { player.addToPlaylist(props.item) }
+async function toggleFav() {
+  const result = await user.toggleFav(props.item)
+  if (result) emit('fav-change', result)
+}
+function formatDuration(duration) {
+  if (!duration) return '--:--'
+  if (typeof duration === 'string' && duration.includes(':')) return duration
+  const m = Math.floor(duration / 60)
+  const s = duration % 60
+  return `${m}:${String(s).padStart(2, '0')}`
+}
+function formatNumber(num) {
+  if (!num) return '0'
+  return num >= 10000 ? (num / 10000).toFixed(1) + '万' : String(num)
 }
 </script>
 
@@ -137,7 +103,7 @@ export default {
 
 .card-cover {
   position: relative;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 16/9;
   overflow: hidden;
   background: var(--bg-tertiary);
 }
@@ -156,7 +122,7 @@ export default {
 .card-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.1) 50%, transparent 100%);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.1) 50%, transparent 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -170,8 +136,8 @@ export default {
 
 .play-icon {
   font-size: 40px;
-  color: white;
-  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5));
+  color: #fff;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
 }
 
 .card-duration {
@@ -179,7 +145,7 @@ export default {
   bottom: 8px;
   right: 8px;
   background: rgba(0, 0, 0, 0.75);
-  color: white;
+  color: #fff;
   font-size: 11px;
   font-weight: 600;
   padding: 2px 8px;
@@ -236,7 +202,7 @@ export default {
 
 .action-btn {
   background: rgba(0, 0, 0, 0.65);
-  color: white;
+  color: #fff;
   border: none;
   width: 28px;
   height: 28px;
