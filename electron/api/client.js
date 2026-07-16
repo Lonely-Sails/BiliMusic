@@ -91,11 +91,12 @@ async function apiFetch(url, options = {}) {
   return resp
 }
 
-async function apiGet(url, params = {}) {
+async function apiGet(url, params = {}, options = {}) {
+  const { skipCache = false } = options
   const cacheKey = getCacheKey(url, params)
 
   // Try cache first (only for GET requests to non-auth endpoints)
-  if (shouldCache(url)) {
+  if (!skipCache && shouldCache(url)) {
     const cached = responseCacheGet(cacheKey)
     if (cached !== undefined) return cached
   }
@@ -111,7 +112,7 @@ async function apiGet(url, params = {}) {
   const data = await resp.json()
 
   // Cache successful responses only
-  if (shouldCache(url) && data && data.code === 0) {
+  if (!skipCache && shouldCache(url) && data && data.code === 0) {
     responseCacheSet(cacheKey, data)
   }
 
@@ -136,7 +137,6 @@ async function apiPost(url, data = {}) {
 
 /**
  * 通用缓存请求 — 用于非 apiGet 但需要缓存的场景
- * 例如 B站字幕 JSON 等第三方 CDN 资源
  */
 async function cachedFetch(url, options = {}) {
   const cacheKey = `fetch:${url}`

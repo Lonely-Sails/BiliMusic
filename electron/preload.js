@@ -37,9 +37,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   searchLyricCandidates: (title) => ipcRenderer.invoke('lyric:search-candidates', title),
   searchRankedCandidates: (keyword, videoTitle, author) => ipcRenderer.invoke('lyric:search-ranked', keyword, videoTitle, author),
   fetchLyric: (source, id) => ipcRenderer.invoke('lyric:fetch', source, id),
-  getSubtitle: (bvid, cid) => ipcRenderer.invoke('lyric:get-subtitle', bvid, cid),
-  alignFirstLine: (lyrics, bvid, cid) => ipcRenderer.invoke('lyric:align-first-line', lyrics, bvid, cid),
-  autoAlignAll: (lyrics, bvid, cid) => ipcRenderer.invoke('lyric:auto-align', lyrics, bvid, cid),
+  // getSubtitle: (bvid, cid) => ipcRenderer.invoke('lyric:get-subtitle', bvid, cid),  // B站字幕已禁用
+  // alignFirstLine: (lyrics, bvid, cid) => ipcRenderer.invoke('lyric:align-first-line', lyrics, bvid, cid),  // B站字幕已禁用
+  // autoAlignAll: (lyrics, bvid, cid) => ipcRenderer.invoke('lyric:auto-align', lyrics, bvid, cid),  // B站字幕已禁用
   // Lyrics Editor
   openLyricsEditor: (trackInfo) => ipcRenderer.send('lyrics-editor:open', trackInfo),
   listLocalLyrics: () => ipcRenderer.invoke('lyric:list-local'),

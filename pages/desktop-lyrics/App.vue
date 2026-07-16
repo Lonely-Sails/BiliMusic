@@ -180,9 +180,8 @@ function loadSettings() {
 function showToolbar() {
   clearTimeout(toolbarTimer)
   document.body.classList.add('hover')
-  if (!locked.value) {
+  if (!locked.value)
     document.body.style.setProperty('--bg-alpha', '0.3')
-  }
 }
 
 function hideToolbar() {
@@ -209,9 +208,8 @@ function applyLockState() {
     document.body.style.setProperty('--bg-alpha', '0')
   } else {
     window.desktopLyricsAPI?.setIgnoreEvents(false)
-    if (document.body.classList.contains('hover')) {
+    if (document.body.classList.contains('hover'))
       document.body.style.setProperty('--bg-alpha', '0.3')
-    }
   }
 }
 
@@ -222,7 +220,7 @@ function setupIPC() {
   const api = window.desktopLyricsAPI
   if (!api) return
 
-  api.onLyricsUpdate((data) => {
+  api.onLyricsUpdate(data => {
     const newLyrics = data.lyrics || []
     const newTime   = data.currentTime || 0
 
@@ -232,18 +230,14 @@ function setupIPC() {
     hasTrack.value    = true
   })
 
-  api.onTimeUpdate((time) => {
-    currentTime.value = time
-  })
+  api.onTimeUpdate(time => currentTime.value = time)
 
   api.onTrackChange((track) => {
     trackTitle.value = track?.title || '未在播放'
     hasTrack.value   = !!track
   })
 
-  api.onPlayState((playing) => {
-    isPlaying.value = playing
-  })
+  api.onPlayState(playing => isPlaying.value = playing)
 }
 
 /* =========================

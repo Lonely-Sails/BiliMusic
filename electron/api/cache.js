@@ -1,6 +1,6 @@
 // ── Unified LRU Response Cache ──
 // 缓存所有 GET 请求的成功响应（code === 0），包括搜索、歌单、歌词等
-// 歌词字幕（B站 subtitle JSON）也通过 cachedFetch 纳入此缓存
+// 歌词字幕（B站 subtitle JSON，已禁用）
 // 独立模块，不依赖 client.js，避免循环引用
 
 let RESPONSE_CACHE_MAX = 500

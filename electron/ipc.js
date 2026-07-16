@@ -21,8 +21,8 @@ import { getVideoInfo, getAudioUrl } from './api/video.js'
 import { getQrcode, pollLogin, completeLogin, checkLogin, logout, saveSession, clearAuth } from './api/auth.js'
 import { listFavFolders, listFavResources, addFav, removeFav } from './api/fav.js'
 import {
-  getBilibiliSubtitle, searchCandidates, searchRankedCandidates,
-  alignFirstLine, autoAlignAll, fetchLyric, parseLRC, mergeTranslations
+  /* getBilibiliSubtitle, */ searchCandidates, searchRankedCandidates,
+  /* alignFirstLine, autoAlignAll, */ fetchLyric, parseLRC, mergeTranslations
 } from './api/lyric.js'
 import { getPopular } from './api/popular.js'
 import { getMusicBanner, getHotToplist, getHotRank, getNewMusic, getComprehensiveRank } from './api/musicCenter.js'
@@ -208,11 +208,11 @@ export function setupIPC(wm, currentLyricsData, currentTrackInfo) {
   })
 
   // ══════════════════════════════════════════
-  //  歌词获取 — 编排式获取（本地LRC → B站字幕 → 在线搜索）
+  //  歌词获取 — 编排式获取（本地LRC → 在线搜索）
   //  优先级：
   //    1. 本地已保存的 LRC 文件
-  //    2. B站 AI 字幕（最准确实时）
-  //    3. 第三方源（QQ/网易云），按相似度排序取最优
+  //    2. 第三方源（QQ/网易云），按相似度排序取最优
+  //    （B站 AI 字幕已禁用）
   // ══════════════════════════════════════════
 
   ipcMain.handle('lyric:get', async (_, bvid, cid, title) => {
@@ -225,10 +225,11 @@ export function setupIPC(wm, currentLyricsData, currentTrackInfo) {
         const local = findLocalLyric(keyword, bvid)
         if (local) return { source: 'local', lyrics: local }
       }
-      if (bvid && cid) {
-        const sub = await getBilibiliSubtitle(bvid, cid)
-        if (sub?.length > 0) return { source: 'subtitle', lyrics: sub, hasSubtitle: true }
-      }
+      // B站字幕已禁用
+      // if (bvid && cid) {
+      //   const sub = await getBilibiliSubtitle(bvid, cid)
+      //   if (sub?.length > 0) return { source: 'subtitle', lyrics: sub, hasSubtitle: true }
+      // }
       if (keyword) {
         const ranked = await searchRankedCandidates(keyword, videoInfo?.title || keyword, videoInfo?.author)
         const successful = []
@@ -266,25 +267,26 @@ export function setupIPC(wm, currentLyricsData, currentTrackInfo) {
     try { return await searchRankedCandidates(keyword, videoTitle, author) }
     catch (e) { return { error: e.message } }
   })
-  ipcMain.handle('lyric:get-subtitle', async (_, bvid, cid) => {
-    try { return await getBilibiliSubtitle(bvid, cid) }
-    catch { return null }
-  })
-  ipcMain.handle('lyric:align-first-line', async (_, lyrics, bvid, cid) => {
-    try {
-      const subs = await getBilibiliSubtitle(bvid, cid)
-      if (!subs?.length) return { lyrics, offset: 0, matched: false }
-      const result = alignFirstLine(lyrics, subs)
-      return result ? { ...result, matched: true } : { lyrics, offset: 0, matched: false }
-    } catch (e) { return { lyrics, offset: 0, matched: false, error: e.message } }
-  })
-  ipcMain.handle('lyric:auto-align', async (_, lyrics, bvid, cid) => {
-    try {
-      const subs = await getBilibiliSubtitle(bvid, cid)
-      if (!subs?.length) return { lyrics, matched: 0 }
-      return autoAlignAll(lyrics, subs)
-    } catch (e) { return { lyrics, matched: 0, error: e.message } }
-  })
+  // B站字幕已禁用
+  // ipcMain.handle('lyric:get-subtitle', async (_, bvid, cid) => {
+  //   try { return await getBilibiliSubtitle(bvid, cid) }
+  //   catch { return null }
+  // })
+  // ipcMain.handle('lyric:align-first-line', async (_, lyrics, bvid, cid) => {
+  //   try {
+  //     const subs = await getBilibiliSubtitle(bvid, cid)
+  //     if (!subs?.length) return { lyrics, offset: 0, matched: false }
+  //     const result = alignFirstLine(lyrics, subs)
+  //     return result ? { ...result, matched: true } : { lyrics, offset: 0, matched: false }
+  //   } catch (e) { return { lyrics, offset: 0, matched: false, error: e.message } }
+  // })
+  // ipcMain.handle('lyric:auto-align', async (_, lyrics, bvid, cid) => {
+  //   try {
+  //     const subs = await getBilibiliSubtitle(bvid, cid)
+  //     if (!subs?.length) return { lyrics, matched: 0 }
+  //     return autoAlignAll(lyrics, subs)
+  //   } catch (e) { return { lyrics, matched: 0, error: e.message } }
+  // })
   ipcMain.handle('lyric:fetch', async (_, source, id) => {
     try {
       const result = await fetchLyric(source, id)
@@ -439,9 +441,7 @@ export function setupIPC(wm, currentLyricsData, currentTrackInfo) {
   })
   ipcMain.on('window:maximize', () => {
     const win = getMainWindow()
-    if (win && !win.isDestroyed()) {
-      win.isMaximized() ? win.unmaximize() : win.maximize()
-    }
+    if (win && !win.isDestroyed()) win.isMaximized() ? win.unmaximize() : win.maximize()
   })
   ipcMain.handle('window:is-maximized', () => {
     const win = getMainWindow()

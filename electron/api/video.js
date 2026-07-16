@@ -31,8 +31,8 @@ async function getVideoInfo(bvid, aid) {
     cid: v.cid, // First page CIDs
     // BGM 信息（用于歌词搜索）
     bgm_info: v.bgm_info || null,
-    // 字幕信息
-    subtitle: v.subtitle || null
+    // 字幕信息（已禁用）
+    // subtitle: v.subtitle || null
   }
 }
 

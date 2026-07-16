@@ -282,8 +282,8 @@ export const usePlayerStore = defineStore('player', () => {
 			// 后端 IPC 内部会：
 			// 1. 获取视频信息（含 bgm_info）提取最佳搜索词
 			// 2. 检查本地文件
-			// 3. 获取 B 站 AI 字幕
-			// 4. 按相似度排序在线搜索
+			// 3. 按相似度排序在线搜索
+			//    （B站 AI 字幕已禁用）
 			const result = await window.electronAPI.getLyric(bvid, cid, title);
 			currentLyrics.value = result.lyrics || [];
 			lyricSource.value = result.source || '';
@@ -325,23 +325,24 @@ export const usePlayerStore = defineStore('player', () => {
 
 	async function selectLyricCandidate(source, id) {
 		try {
-			if (source === 'subtitle') {
-				const track = currentTrack.value;
-				if (track?.bvid) {
-					const result = await window.electronAPI.getLyric(
-						track.bvid,
-						track.cid || '',
-						track.title,
-					);
-					if (result?.lyrics) {
-						currentLyrics.value = result.lyrics;
-						lyricSource.value = result.source;
-						lyricCandidateId.value = id;
-						sendDesktopLyricsUpdate();
-						return;
-					}
-				}
-			}
+			// B站字幕已禁用
+			// if (source === 'subtitle') {
+			// 	const track = currentTrack.value;
+			// 	if (track?.bvid) {
+			// 		const result = await window.electronAPI.getLyric(
+			// 			track.bvid,
+			// 			track.cid || '',
+			// 			track.title,
+			// 		);
+			// 		if (result?.lyrics) {
+			// 			currentLyrics.value = result.lyrics;
+			// 			lyricSource.value = result.source;
+			// 			lyricCandidateId.value = id;
+			// 			sendDesktopLyricsUpdate();
+			// 			return;
+			// 		}
+			// 	}
+			// }
 			const result = await window.electronAPI.fetchLyric(source, id);
 			if (result && result.lyrics) {
 				currentLyrics.value = result.lyrics;
