@@ -85,7 +85,7 @@ async function doSearch() {
 
   loading.value = true; error.value = ''; page.value = 1
   try {
-    const result = await window.electronAPI.searchVideo(keyword.value, page.value)
+    const result = await window.electronAPI.searchVideo(keyword.value, page.value, player.searchMusicOnly)
     if (result.error) { error.value = result.error; results.value = [] }
     else { results.value = result.videos || []; total.value = result.total || 0; totalPages.value = result.totalPages || 1 }
   } catch (e) {
@@ -100,7 +100,7 @@ async function goToPage(newPage) {
   if (newPage < 1 || newPage > totalPages.value) return
   page.value = newPage; loading.value = true
   try {
-    const result = await window.electronAPI.searchVideo(keyword.value, page.value)
+    const result = await window.electronAPI.searchVideo(keyword.value, page.value, player.searchMusicOnly)
     results.value = result.error ? [] : (result.videos || [])
   } catch { /* ignore */ }
   loading.value = false

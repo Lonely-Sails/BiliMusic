@@ -40,6 +40,20 @@
 
           <TooltipRoot>
             <TooltipTrigger as-child>
+              <button class="ctrl-btn fav-btn" :class="{ active: isFav }" @click="toggleFavorite" :disabled="!player.currentTrack">
+                <Icon :icon="isFav ? 'mdi:heart' : 'mdi:heart-outline'" />
+              </button>
+            </TooltipTrigger>
+            <TooltipPortal>
+              <TooltipContent class="tooltip-content" :data-state="'instant-open'" side="top">
+                {{ isFav ? '取消收藏' : '收藏' }}
+                <TooltipArrow class="tooltip-arrow" />
+              </TooltipContent>
+            </TooltipPortal>
+          </TooltipRoot>
+
+          <TooltipRoot>
+            <TooltipTrigger as-child>
               <button class="ctrl-btn" @click="player.prevTrack()" :disabled="!player.currentTrack">
                 <Icon icon="mdi:skip-previous" />
               </button>
@@ -145,10 +159,14 @@
 
 import { computed, ref, onMounted, inject } from 'vue'
 import { usePlayerStore } from '../stores/player'
+import { useUserStore } from '../stores/user'
+import { useToast } from '../stores/toast'
 import { Icon } from '@iconify/vue'
 import { SliderRoot, SliderTrack, SliderRange, SliderThumb, TooltipRoot, TooltipTrigger, TooltipPortal, TooltipContent, TooltipArrow, TooltipProvider, HoverCardRoot, HoverCardTrigger, HoverCardPortal, HoverCardContent } from 'reka-ui'
 
 const player = usePlayerStore()
+const user = useUserStore()
+const { showToast } = useToast()
 const muted = ref(false)        // 是否静音
 const prevVolume = ref(0.7)     // 静音前的音量
 const desktopLyricsOpen = ref(false)
@@ -189,6 +207,16 @@ function toggleMute() {
 
 /** 切换桌面歌词窗口 */
 function toggleDesktopLyrics() { window.electronAPI?.desktopLyricsToggle() }
+
+const isFav = computed(() => user.isFavorited(player.currentTrack?.bvid))
+
+async function toggleFavorite() {
+  const track = player.currentTrack
+  if (!track) return
+  if (!user.loggedIn) return showToast('请先登录', 'error')
+  if (!user.favFolderId) return showToast('请先在设置中选择收藏夹', 'error')
+  await user.toggleFav(track)
+}
 
 /** 格式化秒数为 m:ss */
 const formatCurrentTime = computed(() => formatTime(player.currentTime))
@@ -340,6 +368,14 @@ function formatTime(seconds) {
 
 .ctrl-btn.active {
   color: var(--accent);
+}
+
+.fav-btn.active {
+  color: #e74c3c !important;
+}
+
+.fav-btn.active:hover {
+  background: rgba(231, 76, 60, 0.12) !important;
 }
 
 .play-btn {

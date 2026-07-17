@@ -1,14 +1,14 @@
 import { sign } from './sign'
 import { apiGet } from './client'
 
-async function searchVideo(keyword, page = 1, pageSize = 20) {
+async function searchVideo(keyword, page = 1, pageSize = 20, musicOnly = true) {
   const params = await sign({
     search_type: 'video',
     keyword,
     page,
     page_size: pageSize,
-    tids: 3 // 3 = music category, filters results to music videos only
   })
+  if (musicOnly) params.tids = 3 // 3 = music category, filters results to music videos only
 
   const data = await apiGet('https://api.bilibili.com/x/web-interface/wbi/search/type', params)
 

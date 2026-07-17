@@ -2,7 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 
 contextBridge.exposeInMainWorld('electronAPI', {
   // Search
-  searchVideo: (keyword, page) => ipcRenderer.invoke('search:video', keyword, page),
+  searchVideo: (keyword, page, musicOnly) => ipcRenderer.invoke('search:video', keyword, page, musicOnly),
   getSearchSuggest: (term) => ipcRenderer.invoke('search:suggest', term),
   getHotSearch: () => ipcRenderer.invoke('search:hot'),
   getPopular: (pn) => ipcRenderer.invoke('popular:get', pn),

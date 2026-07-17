@@ -123,7 +123,7 @@ export function setupIPC(wm, currentLyricsData, currentTrackInfo) {
   // ══════════════════════════════════════════
 
   const simpleHandlers = {
-    'search:video': (_, keyword, page) => searchVideo(keyword, page || 1),
+    'search:video': (_, keyword, page, musicOnly) => searchVideo(keyword, page || 1, 20, musicOnly !== false),
     'search:suggest': (_, term) => getSearchSuggest(term),
     'search:hot': () => getHotSearch(),
     'popular:get': (_, pn) => getPopular(pn || 1),

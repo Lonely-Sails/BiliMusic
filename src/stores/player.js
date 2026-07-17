@@ -21,6 +21,7 @@ const STORAGE_KEYS = {
 	volume: 'bilimusic_volume',
 	playMode: 'bilimusic_playmode',
 	loudness: 'bilimusic_loudness',
+	searchMusicOnly: 'bilimusic_search_music_only',
 };
 
 export const usePlayerStore = defineStore('player', () => {
@@ -45,6 +46,9 @@ export const usePlayerStore = defineStore('player', () => {
 	);
 	const loudnessEnabled = ref(
 		loadFromStorage(STORAGE_KEYS.loudness, false),
+	);
+	const searchMusicOnly = ref(
+		loadFromStorage(STORAGE_KEYS.searchMusicOnly, true),
 	);
 
 	/** <audio> 元素引用（由 App.vue 的 onMounted 设置） */
@@ -91,6 +95,8 @@ export const usePlayerStore = defineStore('player', () => {
 	watch(showTranslation, (val) =>
 		saveToStorage('bilimusic_show_translation', val),
 	);
+	watch(searchMusicOnly, (val) => saveToStorage(STORAGE_KEYS.searchMusicOnly, val));
+
 	watch(loudnessEnabled, async (val) => {
 		saveToStorage(STORAGE_KEYS.loudness, val);
 		if (!audioElement) return;
@@ -517,6 +523,7 @@ export const usePlayerStore = defineStore('player', () => {
 		lyricCandidateId,
 		showTranslation,
 		loudnessEnabled,
+		searchMusicOnly,
 		currentTrack,
 		audioElement,
 		setAudioElement,

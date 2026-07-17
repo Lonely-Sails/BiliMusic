@@ -92,10 +92,31 @@
               </span>
             </span>
             <div class="setting-control-row">
-              <SwitchRoot class="switch-root" v-model="player.loudnessEnabled">
+              <SwitchRoot class="switch-root" :model-value="player.loudnessEnabled" @update:model-value="onLoudnessToggle">
                 <SwitchThumb class="switch-thumb" />
               </SwitchRoot>
-              <span class="setting-hint">{{ player.loudnessEnabled ? '已开启' : '已关闭' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="setting-card">
+        <div class="setting-card-header">
+          <Icon icon="mdi:alpha-b-circle-outline" class="card-icon" /><span>B站相关</span>
+        </div>
+        <div class="setting-card-body">
+          <div class="setting-row">
+            <span class="setting-label">
+              <span>搜索限制音乐区</span>
+              <span class="inline-hint">
+                <Icon icon="mdi:information-outline" class="desc-icon" />
+                关闭后可搜索B站全站视频
+              </span>
+            </span>
+            <div class="setting-control-row">
+              <SwitchRoot class="switch-root" :model-value="player.searchMusicOnly" @update:model-value="onSearchMusicOnlyChange">
+                <SwitchThumb class="switch-thumb" />
+              </SwitchRoot>
             </div>
           </div>
         </div>
@@ -206,6 +227,15 @@ function onSelectFavFolder(val) {
   if (val === '__none__') user.saveFavFolderSetting(null, '')
   else { const folder = folders.value.find(f => String(f.id) === val); if (folder) user.saveFavFolderSetting(folder.id, folder.title) }
   selectedFavFolder.value = val
+}
+
+function onLoudnessToggle(val) {
+  player.loudnessEnabled = val
+  showToast(val ? '音量均衡已开启' : '音量均衡已关闭')
+}
+function onSearchMusicOnlyChange(val) {
+  player.searchMusicOnly = val
+  showToast(val ? '已限制搜索到音乐区' : '搜索已取消限制')
 }
 
 function toggleDesktopLyrics() { window.electronAPI?.desktopLyricsToggle() }

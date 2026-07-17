@@ -397,6 +397,8 @@ onUnmounted(() => {
   color: var(--accent);
 }
 
+
+
 .tool-btn:disabled {
   opacity: 0.2;
   cursor: default;
