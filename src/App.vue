@@ -129,7 +129,7 @@
       <LyricsOverlay :visible="showLyricsOverlay" @close="showLyricsOverlay = false" />
     </KeepAlive>
 
-    <audio ref="audioRef" @timeupdate="player.updateTime($event.target.currentTime)" @ended="player.onEnded()"
+    <audio ref="audioRef" crossorigin="anonymous" @timeupdate="player.updateTime($event.target.currentTime)" @ended="player.onEnded()"
       @loadedmetadata="player.setDuration($event.target.duration)" @error="player.isPlaying = false" preload="auto" />
 
     <ToastProvider>

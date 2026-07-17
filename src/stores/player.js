@@ -14,11 +14,13 @@
 
 import { defineStore } from 'pinia';
 import { ref, computed, watch } from 'vue';
+import { LoudnessNormalizer, clearGainCache } from '../utils/loudness';
 
 const STORAGE_KEYS = {
 	playlist: 'bilimusic_playlist',
 	volume: 'bilimusic_volume',
 	playMode: 'bilimusic_playmode',
+	loudness: 'bilimusic_loudness',
 };
 
 export const usePlayerStore = defineStore('player', () => {
@@ -41,9 +43,16 @@ export const usePlayerStore = defineStore('player', () => {
 	const showTranslation = ref(
 		loadFromStorage('bilimusic_show_translation', true),
 	);
+	const loudnessEnabled = ref(
+		loadFromStorage(STORAGE_KEYS.loudness, false),
+	);
 
 	/** <audio> 元素引用（由 App.vue 的 onMounted 设置） */
 	let audioElement = null;
+	/** 音量均衡器实例（惰性初始化） */
+	let loudnessNormalizer = null;
+	/** loadAndPlay 序列号，用于防止并发竞态 */
+	let _loadSeq = 0;
 
 	// ══════════════════════════════════════════
 	//  计算属性
@@ -70,27 +79,54 @@ export const usePlayerStore = defineStore('player', () => {
 	});
 	watch(volume, (val) => {
 		saveToStorage(STORAGE_KEYS.volume, val);
-		if (audioElement) audioElement.volume = val;
+		if (audioElement) {
+			if (loudnessEnabled.value && loudnessNormalizer?.ready) {
+				loudnessNormalizer.setUserVolume(val);
+			} else if (!loudnessEnabled.value || !loudnessNormalizer?.ready) {
+				audioElement.volume = val;
+			}
+		}
 	});
 	watch(playMode, (val) => saveToStorage(STORAGE_KEYS.playMode, val));
 	watch(showTranslation, (val) =>
 		saveToStorage('bilimusic_show_translation', val),
 	);
+	watch(loudnessEnabled, async (val) => {
+		saveToStorage(STORAGE_KEYS.loudness, val);
+		if (!audioElement) return;
+		if (val) {
+			initLoudnessNormalizer();
+			await loudnessNormalizer?.enable(volume.value);
+		} else {
+			loudnessNormalizer?.disable(volume.value);
+		}
+	});
 
-	// 曲目变化 → 同步到桌面歌词窗口
+	watch(playlist, () => clearGainCache(), { deep: false })
 	watch(currentTrack, () => sendDesktopLyricsTrack());
 	// 歌词变化 → 同步（仅监听引用变化，切歌时触发）
 	watch(currentLyrics, () => sendDesktopLyricsUpdate(), { deep: false });
 
 	// --- Actions ---
-	function setAudioElement(el) {
-		audioElement = el;
-		if (audioElement) audioElement.volume = volume.value;
+	function initLoudnessNormalizer() {
+		if (loudnessNormalizer || !audioElement) return
+		loudnessNormalizer = new LoudnessNormalizer(audioElement)
+		loudnessNormalizer.init()
+	}
+
+	async function setAudioElement(element) {
+		audioElement = element
+		if (!audioElement) return
+		audioElement.crossOrigin = 'anonymous'
+		if (loudnessEnabled.value) {
+			initLoudnessNormalizer()
+			await loudnessNormalizer?.enable(volume.value)
+		} else {
+			audioElement.volume = volume.value
+		}
 	}
 
 	function playTrack(track) {
-		// 先清空当前状态，再切换歌曲
-		clearCurrentState();
 		const idx = playlist.value.findIndex((t) => t.bvid === track.bvid);
 		if (idx >= 0) {
 			currentIndex.value = idx;
@@ -110,7 +146,6 @@ export const usePlayerStore = defineStore('player', () => {
 
 	function playAtIndex(index) {
 		if (index >= 0 && index < playlist.value.length) {
-			clearCurrentState();
 			currentIndex.value = index;
 			loadAndPlay();
 		}
@@ -223,14 +258,21 @@ export const usePlayerStore = defineStore('player', () => {
 	}
 
 	async function loadAndPlay() {
+		// 递增序列号，用于弃掉过时的异步结果
+		const seq = ++_loadSeq;
+
 		const track = currentTrack.value;
 		if (!track || !audioElement) return;
+
+		// ── 淡出当前音频（切歌时平滑过渡）──
+		if (loudnessEnabled.value && loudnessNormalizer?.ready) {
+			await loudnessNormalizer.fadeOut(200)
+		}
 
 		clearCurrentState();
 
 		try {
 			let cid = track.cid === '0' ? null : track.cid;
-			// bvid 为空时也需要调用 getVideoInfo 拿到真实的 bvid
 			if (!cid || !track.bvid) {
 				const info = await window.electronAPI.getVideoInfo(
 					track.bvid || '',
@@ -252,7 +294,6 @@ export const usePlayerStore = defineStore('player', () => {
 				return;
 			}
 
-			// 缓存音频 URL
 			const audioCacheKey = `${track.bvid}_${cid}`;
 			let audioData = audioCacheGet(audioCacheKey);
 			if (!audioData) {
@@ -264,15 +305,30 @@ export const usePlayerStore = defineStore('player', () => {
 					audioCacheSet(audioCacheKey, audioData);
 				}
 			}
+			if (seq !== _loadSeq) return;
+
 			if (audioData?.url) {
-				const proxyUrl = 'bili://' + encodeURIComponent(audioData.url);
+				const proxyUrl = 'bili://audio/' + encodeURIComponent(audioData.url);
 				audioElement.src = proxyUrl;
 				await audioElement.play();
+				if (seq !== _loadSeq) {
+					audioElement.pause();
+					audioElement.src = '';
+					return;
+				}
 				isPlaying.value = true;
+
+				// 新曲目 → 重新触发音量均衡（传入 songKey 以利用缓存）
+				if (loudnessEnabled.value) {
+					initLoudnessNormalizer();
+					await loudnessNormalizer?.enable(volume.value, audioCacheKey);
+				}
+
 				loadLyrics(track.bvid, cid, track.title);
 				sendDesktopLyricsTrack();
 			}
 		} catch (e) {
+			if (seq !== _loadSeq) return;
 			console.error('[BiliMusic] Failed to load audio:', e);
 		}
 	}
@@ -460,9 +516,11 @@ export const usePlayerStore = defineStore('player', () => {
 		lyricCandidates,
 		lyricCandidateId,
 		showTranslation,
+		loudnessEnabled,
 		currentTrack,
 		audioElement,
 		setAudioElement,
+		initLoudnessNormalizer,
 		playTrack,
 		addToPlaylist,
 		playAtIndex,

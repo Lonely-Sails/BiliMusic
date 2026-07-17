@@ -148,6 +148,7 @@
               <Icon icon="mdi:redo" />
             </button>
             <span class="le-tb-sep" />
+            <!-- B站字幕校对已禁用
             <button
               class="le-tb-btn le-tb-btn-accent"
               :disabled="!lyricLines.length || !currentTrackBvid || aligning"
@@ -165,6 +166,7 @@
               <Icon icon="mdi:auto-fix" />
             </button>
             <span class="le-tb-sep" />
+            -->
             <button class="le-tb-btn" :disabled="!lyricLines.length" @click="saveLyrics" title="保存为本地LRC文件">
               <Icon icon="mdi:content-save" />
             </button>
@@ -262,7 +264,7 @@ export default {
   setup() {
     const searchQuery = ref('')
     const searching = ref(false)
-    const aligning = ref(false)
+    // const aligning = ref(false)  // B站字幕已禁用
     const allLocalLyrics = ref([])
     const localLyrics = ref([])
     const searchResults = ref([])
@@ -480,32 +482,32 @@ export default {
       } catch {}
     }
 
-    // ── AI 字幕校对 ──
-    async function doAutoAlign(fullAlign) {
-      if (!lyricLines.value.length || !currentTrackBvid.value || aligning.value) return
-      aligning.value = true
-      pushHistory()
-      try {
-        // 深拷贝后再传入 IPC，避免 Vue 响应式代理对象无法被 structured clone
-        const plainLyrics = JSON.parse(JSON.stringify(lyricLines.value))
-        if (fullAlign) {
-          // 全部校对：匹配所有行
-          const result = await api.autoAlignAll(plainLyrics, currentTrackBvid.value, currentTrackCid.value)
-          if (result.lyrics) {
-            lyricLines.value = result.lyrics.map(l => ({ ...l }))
-          }
-        } else {
-          // 默认校对：只对齐第一句
-          const result = await api.alignFirstLine(plainLyrics, currentTrackBvid.value, currentTrackCid.value)
-          if (result.lyrics) {
-            lyricLines.value = result.lyrics.map(l => ({ ...l }))
-          }
-        }
-      } catch (e) {
-        console.error('Auto-align failed:', e)
-      }
-      aligning.value = false
-    }
+    // ── AI 字幕校对（已禁用）──
+    // async function doAutoAlign(fullAlign) {
+    //   if (!lyricLines.value.length || !currentTrackBvid.value || aligning.value) return
+    //   aligning.value = true
+    //   pushHistory()
+    //   try {
+    //     // 深拷贝后再传入 IPC，避免 Vue 响应式代理对象无法被 structured clone
+    //     const plainLyrics = JSON.parse(JSON.stringify(lyricLines.value))
+    //     if (fullAlign) {
+    //       // 全部校对：匹配所有行
+    //       const result = await api.autoAlignAll(plainLyrics, currentTrackBvid.value, currentTrackCid.value)
+    //       if (result.lyrics) {
+    //         lyricLines.value = result.lyrics.map(l => ({ ...l }))
+    //       }
+    //     } else {
+    //       // 默认校对：只对齐第一句
+    //       const result = await api.alignFirstLine(plainLyrics, currentTrackBvid.value, currentTrackCid.value)
+    //       if (result.lyrics) {
+    //         lyricLines.value = result.lyrics.map(l => ({ ...l }))
+    //       }
+    //     }
+    //   } catch (e) {
+    //     console.error('Auto-align failed:', e)
+    //   }
+    //   aligning.value = false
+    // }
 
     function parseLRC(lrcText) {
       if (!lrcText) return []
@@ -600,14 +602,14 @@ export default {
     })
 
     return {
-      searchQuery, searching, aligning, allLocalLyrics, localLyrics, searchResults, selectedKey,
+      searchQuery, searching, allLocalLyrics, localLyrics, searchResults, selectedKey,
       lyricLines, currentSourceLabel, currentTrackBvid, selectedLineIdx,
       editingLineIdx, editText, hoveredLineIdx, editInputRef,
       canUndo, canRedo, stepValue,
       scoreClass,
       doSearch, onSelect, selectLine, startEdit, finishEdit, cancelEdit,
       insertLineAfter, deleteSelectedLine, adjustFromSelected,
-      undo, redo, saveLyrics, doAutoAlign, formatTimeTag, closeWindow,
+      undo, redo, saveLyrics, formatTimeTag, closeWindow,
       onCoverError, isCoverErrored
     }
   }

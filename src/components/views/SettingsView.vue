@@ -80,13 +80,37 @@
 
       <div class="setting-card">
         <div class="setting-card-header">
-          <Icon icon="mdi:database-outline" class="card-icon" /><span>缓存</span>
+          <Icon icon="mdi:play-circle-outline" class="card-icon" /><span>播放</span>
         </div>
         <div class="setting-card-body">
-          <div class="setting-cache-desc">
-            <Icon icon="mdi:information-outline" class="desc-icon" />
-            <span>缓存搜索、榜单、歌词等 API 请求结果，减少重复请求</span>
+          <div class="setting-row">
+            <span class="setting-label">
+              <span>音量均衡</span>
+              <span class="inline-hint">
+                <Icon icon="mdi:information-outline" class="desc-icon" />
+                自动调节音量，让每首歌听起来响度一致
+              </span>
+            </span>
+            <div class="setting-control-row">
+              <SwitchRoot class="switch-root" v-model="player.loudnessEnabled">
+                <SwitchThumb class="switch-thumb" />
+              </SwitchRoot>
+              <span class="setting-hint">{{ player.loudnessEnabled ? '已开启' : '已关闭' }}</span>
+            </div>
           </div>
+        </div>
+      </div>
+
+      <div class="setting-card">
+        <div class="setting-card-header">
+          <Icon icon="mdi:database-outline" class="card-icon" />
+          <span>缓存</span>
+          <span class="header-hint">
+            <Icon icon="mdi:information-outline" class="desc-icon" />
+            缓存搜索、榜单、歌词等 API 请求结果，减少重复请求
+          </span>
+        </div>
+        <div class="setting-card-body">
           <div class="setting-row">
             <span class="setting-label">API 响应缓存上限</span>
             <div class="setting-control-row">
@@ -129,7 +153,7 @@ import { useUserStore } from '../../stores/user'
 import { usePlayerStore } from '../../stores/player'
 import { useToast } from '../../stores/toast'
 import { Icon } from '@iconify/vue'
-import { SelectRoot, SelectTrigger, SelectValue, SelectPortal, SelectContent, SelectViewport, SelectItem, SelectItemText, SelectSeparator, NumberFieldRoot, NumberFieldInput, NumberFieldDecrement, NumberFieldIncrement } from 'reka-ui'
+import { SelectRoot, SelectTrigger, SelectValue, SelectPortal, SelectContent, SelectViewport, SelectItem, SelectItemText, SelectSeparator, NumberFieldRoot, NumberFieldInput, NumberFieldDecrement, NumberFieldIncrement, SwitchRoot, SwitchThumb } from 'reka-ui'
 
 const user = useUserStore()
 const player = usePlayerStore()
@@ -261,6 +285,9 @@ async function clearAllCache() {
 }
 
 .setting-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-size: 14px;
   color: var(--text-secondary);
   flex-shrink: 0;
@@ -371,18 +398,63 @@ async function clearAllCache() {
   color: var(--text-muted);
 }
 
-.setting-cache-desc {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
+.header-hint {
   font-size: 12px;
   color: var(--text-muted);
-  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
 }
 
 .desc-icon {
   font-size: 16px;
   flex-shrink: 0;
+}
+
+.inline-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+
+
+/* ── Switch (Reka UI) ── */
+.switch-root {
+  all: unset;
+  width: 44px;
+  height: 24px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  position: relative;
+  cursor: pointer;
+  transition: all var(--transition);
+  flex-shrink: 0;
+}
+
+.switch-root[data-state='checked'] {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.switch-thumb {
+  display: block;
+  width: 18px;
+  height: 18px;
+  background: white;
+  border-radius: 999px;
+  transition: transform var(--transition);
+  transform: translateX(2px);
+  will-change: transform;
+}
+
+.switch-root[data-state='checked'] .switch-thumb {
+  transform: translateX(24px);
 }
 </style>

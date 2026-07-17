@@ -17,6 +17,24 @@ import { createTrayManager } from './tray.js'
 import { setupIPC } from './ipc.js'
 import { loadSession } from './api/client.js'
 
+// ══════════════════════════════════════════
+//  注册 bili:// 为特权协议（必须在 app.whenReady 之前）
+// ══════════════════════════════════════════
+// 用途：允许前端通过 createMediaElementSource / captureStream 处理音频
+// 需要：standard + corsEnabled 让 Chromium 把 bili:// 视为支持 CORS 的标准协议
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'bili',
+    privileges: {
+      standard: true,
+      secure: true,
+      corsEnabled: true,
+      stream: true,
+      supportFetchAPI: true,
+    },
+  },
+])
+
 // ── 全局共享状态 ──
 // SESSION_PATH: 由 app.whenReady 设置，供 IPC 模块持久化 session
 global.__SESSION_PATH = ''
@@ -34,15 +52,24 @@ app.whenReady().then(() => {
    * 通过 Electron 的 protocol.handle 代理请求，
    * 在服务端附加 B站要求的请求头后转发。
    */
-  protocol.handle('bili', (request) => {
-    const url = request.url.slice('bili://'.length)
+  protocol.handle('bili', async (request) => {
+    // URL 格式: bili://audio/<encoded-url>（standard scheme 需要合法 host）
+    const url = request.url.slice('bili://audio/'.length)
     const decodedUrl = decodeURIComponent(url)
     logger.debug('Audio proxy:', decodedUrl.slice(0, 80) + '...')
-    return net.fetch(decodedUrl, {
+    const response = await net.fetch(decodedUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Referer': 'https://www.bilibili.com'
       }
+    })
+    // 添加 CORS 头，允许前端 createMediaElementSource/captureStream
+    const headers = new Headers(response.headers)
+    headers.set('Access-Control-Allow-Origin', '*')
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
     })
   })
 

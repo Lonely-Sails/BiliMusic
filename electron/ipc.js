@@ -10,7 +10,7 @@
  * - 复杂 handler（如 lyric:get 编排式获取）单独实现
  */
 
-import { ipcMain, app, shell, BrowserWindow } from 'electron'
+import { ipcMain, app, shell, BrowserWindow, net } from 'electron'
 import { join } from 'path'
 import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, unlinkSync } from 'fs'
 import { logger } from './utils/logger.js'
@@ -151,6 +151,18 @@ export function setupIPC(wm, currentLyricsData, currentTrackInfo) {
   ipcMain.handle('player:get-audio-url', async (_, bvid, cid) => {
     try { return await getAudioUrl(bvid, cid) }
     catch (e) { return { error: e.message } }
+  })
+  ipcMain.handle('player:get-audio-buffer', async (_, url) => {
+    try {
+      const response = await net.fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Referer': 'https://www.bilibili.com'
+        }
+      })
+      const buffer = await response.arrayBuffer()
+      return Buffer.from(buffer)
+    } catch (e) { return { error: e.message } }
   })
 
   // ══════════════════════════════════════════

@@ -18,6 +18,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Player
   getVideoInfo: (bvid, aid) => ipcRenderer.invoke('player:get-video-info', bvid, aid),
   getAudioUrl: (bvid, cid) => ipcRenderer.invoke('player:get-audio-url', bvid, cid),
+  getAudioBuffer: (url) => ipcRenderer.invoke('player:get-audio-buffer', url),
 
   // Auth
   getQrcode: () => ipcRenderer.invoke('auth:get-qrcode'),

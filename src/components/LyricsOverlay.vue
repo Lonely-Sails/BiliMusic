@@ -65,7 +65,7 @@
             <div v-else ref="lyricsContainer" class="lyrics-scroll">
               <div class="lyrics-list">
                 <div v-for="(line, index) in player.currentLyrics" :key="index" class="line"
-                  :class="{ active: index === activeIndex }" v-memo="[index === activeIndex, player.showTranslation]">
+                  :class="{ active: index === activeIndex }" @click="player.seek(line.time)">
                   <span class="line-text">{{ line.text || '♫' }}</span>
                   <span v-if="player.showTranslation && line.trans" class="line-trans"
                     :class="{ 'active-trans': index === activeIndex }">{{ line.trans }}</span>
@@ -484,6 +484,7 @@ onUnmounted(() => {
   color: rgba(255, 255, 255, 0.5);
   transition: all 0.3s;
   line-height: 1.5;
+  will-change: color, font-size, font-weight;
 }
 
 .line.active .line-text {
