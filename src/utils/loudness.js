@@ -1,6 +1,6 @@
 /** 音量均衡器 — createMediaElementSource → GainNode → Compressor → AnalyserNode */
 
-const RMS_TARGET = 0.18
+const RMS_TARGET = 0.08
 const MAX_GAIN = 5.0
 const MIN_GAIN = 0.25
 const ANALYSIS_SAMPLES = 40

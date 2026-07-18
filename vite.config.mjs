@@ -54,6 +54,34 @@ export default defineConfig({
             }
           }
         }
+      },
+      {
+        entry: 'electron/preload/desktopLyrics.js',
+        onstart(args) {
+          args.reload()
+        },
+        vite: {
+          build: {
+            outDir: 'dist-electron',
+            rollupOptions: {
+              external: ['electron']
+            }
+          }
+        }
+      },
+      {
+        entry: 'electron/preload/lyricsEditor.js',
+        onstart(args) {
+          args.reload()
+        },
+        vite: {
+          build: {
+            outDir: 'dist-electron',
+            rollupOptions: {
+              external: ['electron']
+            }
+          }
+        }
       }
     ]),
     renderer()

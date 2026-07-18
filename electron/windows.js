@@ -110,7 +110,7 @@ export function createWindowManager() {
       webPreferences: {
         preload: process.env.VITE_DEV_SERVER_URL
           ? join(PROJECT_ROOT, 'electron/preload/desktopLyrics.js')
-          : join(__dirname, 'preload/desktopLyrics.js'),
+          : join(__dirname, 'desktopLyrics.js'),
         contextIsolation: true,
         nodeIntegration: false,
         webSecurity: false
@@ -192,7 +192,7 @@ export function createWindowManager() {
       webPreferences: {
         preload: process.env.VITE_DEV_SERVER_URL
           ? join(PROJECT_ROOT, 'electron/preload/lyricsEditor.js')
-          : join(__dirname, 'preload/lyricsEditor.js'),
+          : join(__dirname, 'lyricsEditor.js'),
         contextIsolation: true,
         nodeIntegration: false,
         webSecurity: false
