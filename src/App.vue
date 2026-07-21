@@ -84,6 +84,9 @@
 
     <div class="app-body">
       <aside class="sidebar">
+        <button class="nav-back" :disabled="!canGoBack" @click="goBack" title="返回">
+          <Icon icon="mdi:chevron-left" />
+        </button>
         <nav class="sidebar-nav">
           <router-link to="/home" class="nav-item" active-class="active">
             <Icon icon="mdi:fire" class="nav-icon" />
@@ -166,8 +169,8 @@
  * 额外：歌词弹层 (LyricsOverlay)、Toast 通知
  */
 
-import { ref, onMounted, onUnmounted, provide, defineAsyncComponent } from "vue";
-import { useRouter } from "vue-router";
+import { ref, computed, watch, onMounted, onUnmounted, provide, defineAsyncComponent } from "vue";
+import { useRouter, useRoute } from "vue-router";
 import { usePlayerStore } from "./stores/player";
 import { useUserStore } from "./stores/user";
 import { useToast } from "./stores/toast";
@@ -208,6 +211,7 @@ const LyricsOverlay = defineAsyncComponent(() => import("./components/LyricsOver
 
 // ── Store / Router ──
 const router = useRouter();
+const route = useRoute();
 const player = usePlayerStore();
 const user = useUserStore();
 const { toasts } = useToast();
@@ -313,6 +317,22 @@ function selectSuggestion(value) {
   showDropdown.value = false;
   saveHistoryItem(value);
   router.push({ path: "/search", query: { q: value } }).catch(() => searchKey.value++);
+}
+
+/** 侧边栏返回按钮 — 跟踪路由深度，无历史时置灰 */
+const historyDepth = ref(0)
+const canGoBack = computed(() => historyDepth.value > 0)
+let isBackNav = false
+watch(() => route.fullPath, () => {
+  if (isBackNav) { isBackNav = false; return }
+  historyDepth.value++
+})
+
+function goBack() {
+  if (!historyDepth.value) return
+  isBackNav = true
+  historyDepth.value--
+  router.back()
 }
 
 /** 按回车搜索 */
@@ -558,6 +578,37 @@ onUnmounted(() => {
   flex-shrink: 0;
   padding: 12px 0;
   align-items: center;
+}
+
+.nav-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin: 0 0 10px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: all var(--transition);
+  font-size: 28px;
+  flex-shrink: 0;
+}
+
+.nav-back:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.nav-back:active:not(:disabled) {
+  transform: scale(0.9);
+}
+
+.nav-back:disabled {
+  opacity: 0.25;
+  cursor: default;
 }
 
 .sidebar-nav {

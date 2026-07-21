@@ -20,6 +20,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getAudioUrl: (bvid, cid) => ipcRenderer.invoke('player:get-audio-url', bvid, cid),
   getAudioBuffer: (url) => ipcRenderer.invoke('player:get-audio-buffer', url),
 
+  // Season / Collection
+  checkVideoSeasonBatch: (bvids) => ipcRenderer.invoke('season:check-batch', bvids),
+  getSeasonArchives: (mid, seasonId, pageNum, pageSize) => ipcRenderer.invoke('season:archives', mid, seasonId, pageNum, pageSize),
+
   // Auth
   getQrcode: () => ipcRenderer.invoke('auth:get-qrcode'),
   pollLogin: (qrcodeKey) => ipcRenderer.invoke('auth:poll-login', qrcodeKey),

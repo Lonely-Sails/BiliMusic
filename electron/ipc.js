@@ -17,7 +17,7 @@ import { logger } from './utils/logger.js'
 import { loadSession, apiGet, parseSetCookie, getSession } from './api/client.js'
 import { getResponseCacheStats, clearResponseCache, setResponseCacheMax } from './api/cache.js'
 import { searchVideo, getSearchSuggest, getHotSearch } from './api/search.js'
-import { getVideoInfo, getAudioUrl } from './api/video.js'
+import { getVideoInfo, getAudioUrl, getSeasonArchives, batchCheckVideoSeason } from './api/video.js'
 import { getQrcode, pollLogin, completeLogin, checkLogin, logout, saveSession, clearAuth } from './api/auth.js'
 import { listFavFolders, listFavResources, addFav, removeFav } from './api/fav.js'
 import {
@@ -163,6 +163,19 @@ export function setupIPC(wm, currentLyricsData, currentTrackInfo) {
       const buffer = await response.arrayBuffer()
       return Buffer.from(buffer)
     } catch (e) { return { error: e.message } }
+  })
+
+  // ══════════════════════════════════════════
+  //  合集 — 检测视频合集 / 获取合集内容
+  // ══════════════════════════════════════════
+
+  ipcMain.handle('season:check-batch', async (_, bvids) => {
+    try { return await batchCheckVideoSeason(bvids || []) }
+    catch (e) { return { error: e.message } }
+  })
+  ipcMain.handle('season:archives', async (_, mid, seasonId, pageNum, pageSize) => {
+    try { return await getSeasonArchives(mid, seasonId, pageNum || 1, pageSize || 30) }
+    catch (e) { return { error: e.message } }
   })
 
   // ══════════════════════════════════════════

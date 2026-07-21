@@ -7,6 +7,20 @@
           <Icon icon="mdi:play-circle-outline" class="play-icon" />
         </div>
         <span class="card-duration">{{ formatDuration(item.duration) }}</span>
+        <TooltipRoot v-if="item.season">
+          <TooltipTrigger as-child>
+            <button class="season-badge" @click.stop="openSeason">
+              <Icon icon="mdi:layers-outline" />
+              <span>{{ item.season.epCount || '合集' }}</span>
+            </button>
+          </TooltipTrigger>
+          <TooltipPortal>
+            <TooltipContent class="tooltip-content" :data-state="'instant-open'" side="top">
+              查看合集「{{ item.season.title }}」
+              <TooltipArrow class="tooltip-arrow" />
+            </TooltipContent>
+          </TooltipPortal>
+        </TooltipRoot>
         <div class="card-actions">
           <TooltipRoot>
             <TooltipTrigger as-child>
@@ -51,6 +65,7 @@
 </template>
 
 <script setup>
+import { useRouter } from 'vue-router'
 import { usePlayerStore } from '../stores/player'
 import { useUserStore } from '../stores/user'
 import { Icon } from '@iconify/vue'
@@ -63,11 +78,16 @@ const props = defineProps({
 
 const emit = defineEmits(['fav-change'])
 
+const router = useRouter()
 const player = usePlayerStore()
 const user = useUserStore()
 
 function play() { player.playTrack(props.item) }
 function addToPlaylist() { player.addToPlaylist(props.item) }
+function openSeason() {
+  const s = props.item.season
+  if (s) router.push({ name: 'collection', query: { mid: s.mid, seasonId: s.seasonId, name: s.title } })
+}
 async function toggleFav() {
   const result = await user.toggleFav(props.item)
   if (result) emit('fav-change', result)
@@ -152,6 +172,31 @@ function formatNumber(num) {
   border-radius: 4px;
   backdrop-filter: blur(4px);
   z-index: 2;
+}
+
+.season-badge {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  backdrop-filter: blur(4px);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  transition: background var(--transition);
+}
+
+.season-badge:hover {
+  background: var(--accent);
 }
 
 .card-info {

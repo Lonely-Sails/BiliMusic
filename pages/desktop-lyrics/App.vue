@@ -32,7 +32,7 @@
 </template>
 
 <script setup>
-import { ref, computed, shallowRef, onMounted, onUnmounted } from 'vue'
+import { ref, computed, shallowRef, watch, onMounted, onUnmounted } from 'vue'
 import Toolbar from './components/Toolbar.vue'
 
 /* =========================
@@ -76,40 +76,26 @@ const activeIdx = computed(() => {
 })
 
 /* =========================
-   滚动偏移 — 用 requestAnimationFrame 批量读取 DOM，避免 layout thrashing
+   滚动偏移 — flush:'post' 保证在 DOM 更新后读取，避免 layout thrashing
    ========================= */
 const scrollOffset = ref(0)
-let rafId = null
-let lastContainerHeight = 0
 
-function scheduleScrollUpdate() {
-  if (rafId) return
-  rafId = requestAnimationFrame(() => {
-    rafId = null
-    const idx = activeIdx.value
-    const container = containerRef.value
-    if (idx < 0 || !container) {
-      scrollOffset.value = 0
-      return
-    }
-    // 批量读取 DOM（只触发一次 layout）
-    const containerHeight = container.offsetHeight
-    lastContainerHeight = containerHeight
-    const lines = container.querySelectorAll('.lyric-line')
-    const el = lines[idx]
-    if (!el) { scrollOffset.value = 0; return }
-    const offset = el.offsetTop + el.offsetHeight - containerHeight / 2 + 20
-    scrollOffset.value = offset
-  })
-}
+watch(activeIdx, (idx) => {
+  const container = containerRef.value
+  if (idx < 0 || !container) {
+    scrollOffset.value = 0
+    return
+  }
+  const containerHeight = container.offsetHeight
+  const el = container.children[0]?.children[idx]
+  if (!el) { scrollOffset.value = 0; return }
+  const offset = el.offsetTop + el.offsetHeight - containerHeight / 2 + 20
+  scrollOffset.value = offset
+}, { flush: 'post' })
 
-// 监听 activeIdx 变化 → 触发滚动更新
-const scrollStyle = computed(() => {
-  // 触发 scheduleScrollUpdate 的依赖追踪
-  const _idx = activeIdx.value
-  scheduleScrollUpdate()
-  return { transform: `translateY(-${scrollOffset.value}px)` }
-})
+const scrollStyle = computed(() => ({
+  transform: `translateY(-${scrollOffset.value}px)`
+}))
 
 /* =========================
    自动字体大小 — 根据窗口高度计算（resize 时更新）
@@ -254,9 +240,8 @@ function onKeyDown(e) {
    ========================= */
 function onResize() {
   applyFontSize()
-  // 强制重新计算滚动位置
+  // 强制重新计算滚动位置（watch flush:'post' 会在 DOM 更新后自动触发）
   scrollOffset.value = 0
-  scheduleScrollUpdate()
 }
 
 /* =========================
@@ -361,10 +346,6 @@ body.hover {
   text-overflow: ellipsis;
   width: 100%;
   opacity: 0;
-  /* 提示浏览器此元素会频繁变化，提升到独立合成层 */
-  will-change: opacity, transform, color;
-  /* 隔离布局影响，防止重排扩散 */
-  contain: layout style paint;
 }
 
 .lyric-text { display: block; }

@@ -87,7 +87,10 @@ async function doSearch() {
   try {
     const result = await window.electronAPI.searchVideo(keyword.value, page.value, player.searchMusicOnly)
     if (result.error) { error.value = result.error; results.value = [] }
-    else { results.value = result.videos || []; total.value = result.total || 0; totalPages.value = result.totalPages || 1 }
+    else {
+      results.value = result.videos || []; total.value = result.total || 0; totalPages.value = result.totalPages || 1
+      detectSeasons(results.value)
+    }
   } catch (e) {
     if (e.name === 'AbortError') return
     error.value = '搜索失败: ' + e.message; results.value = []
@@ -102,8 +105,21 @@ async function goToPage(newPage) {
   try {
     const result = await window.electronAPI.searchVideo(keyword.value, page.value, player.searchMusicOnly)
     results.value = result.error ? [] : (result.videos || [])
+    if (results.value.length) detectSeasons(results.value)
   } catch { /* ignore */ }
   loading.value = false
+}
+
+/** 批量检测搜索结果中的合集信息 */
+async function detectSeasons(videos) {
+  if (!videos.length) return
+  try {
+    const bvids = videos.map(v => v.bvid)
+    const seasonMap = await window.electronAPI.checkVideoSeasonBatch(bvids)
+    if (seasonMap && !seasonMap.error) {
+      videos.forEach(v => { if (seasonMap[v.bvid]) v.season = seasonMap[v.bvid] })
+    }
+  } catch { /* 静默失败，不影响搜索体验 */ }
 }
 </script>
 

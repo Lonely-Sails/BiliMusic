@@ -54,7 +54,7 @@ export function createWindowManager() {
     mainWindow.on('unmaximize', () => mainWindow.webContents.send('window:maximize-change', false))
 
     mainWindow.webContents.session.webRequest.onBeforeSendHeaders(
-      { urls: ['*://*.hdslb.com/*', '*://*.hdslb.net/*'] },
+      { urls: ['*://*.hdslb.com/*', '*://*.hdslb.net/*', '*://*.biliimg.com/*'] },
       (details, callback) => {
         callback({
           requestHeaders: {
