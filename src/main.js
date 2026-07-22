@@ -14,7 +14,6 @@ import { createPinia } from 'pinia';
 import App from './App.vue';
 import router from './router';
 import './styles/main.css';
-import './styles/ui.css';
 import './utils/icon-init';
 
 // ── 全局错误捕获（用于调试） ──

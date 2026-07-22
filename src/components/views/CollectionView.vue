@@ -72,7 +72,7 @@ import { useRoute } from 'vue-router'
 import { usePlayerStore } from '../../stores/player'
 import { Icon } from '@iconify/vue'
 import SongCard from '../SongCard.vue'
-import { TooltipProvider } from 'reka-ui'
+import TooltipProvider from '../ui/TooltipProvider.vue'
 
 const route = useRoute()
 const player = usePlayerStore()

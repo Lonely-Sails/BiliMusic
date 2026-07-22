@@ -7,48 +7,24 @@
           <Icon icon="mdi:play-circle-outline" class="play-icon" />
         </div>
         <span class="card-duration">{{ formatDuration(item.duration) }}</span>
-        <TooltipRoot v-if="item.season">
-          <TooltipTrigger as-child>
-            <button class="season-badge" @click.stop="openSeason">
-              <Icon icon="mdi:layers-outline" />
-              <span>{{ item.season.epCount || '合集' }}</span>
-            </button>
-          </TooltipTrigger>
-          <TooltipPortal>
-            <TooltipContent class="tooltip-content" :data-state="'instant-open'" side="top">
-              查看合集「{{ item.season.title }}」
-              <TooltipArrow class="tooltip-arrow" />
-            </TooltipContent>
-          </TooltipPortal>
-        </TooltipRoot>
+        <Tooltip v-if="item.season" :text="'查看合集「' + item.season.title + '」'" side="top">
+          <button class="season-badge" @click.stop="openSeason">
+            <Icon icon="mdi:layers-outline" />
+            <span>{{ item.season.epCount || '合集' }}</span>
+          </button>
+        </Tooltip>
         <div class="card-actions">
-          <TooltipRoot>
-            <TooltipTrigger as-child>
-              <button class="action-btn add-btn" @click.stop="addToPlaylist">
-                <Icon icon="mdi:plus" />
-              </button>
-            </TooltipTrigger>
-            <TooltipPortal>
-              <TooltipContent class="tooltip-content" :data-state="'instant-open'" side="top">
-                添加到播放列表
-                <TooltipArrow class="tooltip-arrow" />
-              </TooltipContent>
-            </TooltipPortal>
-          </TooltipRoot>
-          <TooltipRoot v-if="user.loggedIn && user.favFolderId">
-            <TooltipTrigger as-child>
-              <button class="action-btn fav-btn" :class="{ favorited: user.isFavorited(item.bvid) }"
-                @click.stop="toggleFav">
-                <Icon :icon="user.isFavorited(item.bvid) ? 'mdi:heart' : 'mdi:heart-outline'" />
-              </button>
-            </TooltipTrigger>
-            <TooltipPortal>
-              <TooltipContent class="tooltip-content" :data-state="'instant-open'" side="top">
-                {{ user.isFavorited(item.bvid) ? '取消收藏' : '收藏到「' + user.favFolderName + '」' }}
-                <TooltipArrow class="tooltip-arrow" />
-              </TooltipContent>
-            </TooltipPortal>
-          </TooltipRoot>
+          <Tooltip text="添加到播放列表" side="top">
+            <button class="action-btn add-btn" @click.stop="addToPlaylist">
+              <Icon icon="mdi:plus" />
+            </button>
+          </Tooltip>
+          <Tooltip v-if="user.loggedIn && user.favFolderId" :text="user.isFavorited(item.bvid) ? '取消收藏' : '收藏到「' + user.favFolderName + '」'" side="top">
+            <button class="action-btn fav-btn" :class="{ favorited: user.isFavorited(item.bvid) }"
+              @click.stop="toggleFav">
+              <Icon :icon="user.isFavorited(item.bvid) ? 'mdi:heart' : 'mdi:heart-outline'" />
+            </button>
+          </Tooltip>
         </div>
       </div>
       <div class="card-info">
@@ -69,7 +45,8 @@ import { useRouter } from 'vue-router'
 import { usePlayerStore } from '../stores/player'
 import { useUserStore } from '../stores/user'
 import { Icon } from '@iconify/vue'
-import { TooltipRoot, TooltipTrigger, TooltipPortal, TooltipContent, TooltipArrow, TooltipProvider } from 'reka-ui'
+import TooltipProvider from './ui/TooltipProvider.vue'
+import Tooltip from './ui/Tooltip.vue'
 
 const props = defineProps({
   item: { type: Object, required: true },

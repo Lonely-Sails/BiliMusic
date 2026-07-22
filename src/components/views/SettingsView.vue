@@ -21,26 +21,18 @@
             <div class="setting-row">
               <span class="setting-label">歌曲收藏夹</span>
               <div class="setting-control">
-                <SelectRoot v-model="selectedFavFolder" @update:model-value="onSelectFavFolder">
-                  <SelectTrigger class="setting-select-trigger">
-                    <SelectValue :placeholder="loadingFolders ? '加载中...' : '选择收藏夹'" />
-                    <Icon icon="mdi:chevron-down" class="select-chevron" />
-                  </SelectTrigger>
-                  <SelectPortal>
-                    <SelectContent class="select-content" side="bottom" align="end">
-                      <SelectViewport>
-                        <SelectItem v-for="folder in folders" :key="folder.id" :value="String(folder.id)">
-                          <SelectItemText>{{ folder.title }}</SelectItemText>
-                          <span class="select-item-count">{{ folder.mediaCount }} 项</span>
-                        </SelectItem>
-                        <SelectSeparator class="select-separator" />
-                        <SelectItem value="__none__">
-                          <SelectItemText class="text-muted">不使用收藏夹</SelectItemText>
-                        </SelectItem>
-                      </SelectViewport>
-                    </SelectContent>
-                  </SelectPortal>
-                </SelectRoot>
+                <Select v-model="selectedFavFolder" :items="selectItems" :placeholder="loadingFolders ? '加载中...' : '选择收藏夹'" @update:model-value="onSelectFavFolder">
+                  <template #default>
+                    <SelectItem v-for="folder in folders" :key="folder.id" :value="String(folder.id)">
+                      <SelectItemText>{{ folder.title }}</SelectItemText>
+                      <span class="select-item-count">{{ folder.mediaCount }} 项</span>
+                    </SelectItem>
+                    <SelectSeparator class="select-separator" />
+                    <SelectItem value="__none__">
+                      <SelectItemText class="text-muted">不使用收藏夹</SelectItemText>
+                    </SelectItem>
+                  </template>
+                </Select>
                 <span v-if="user.favFolderName" class="fav-hint">
                   <Icon icon="mdi:check-circle" class="hint-icon" />歌曲将收藏到「{{ user.favFolderName }}」
                 </span>
@@ -92,9 +84,7 @@
               </span>
             </span>
             <div class="setting-control-row">
-              <SwitchRoot class="switch-root" :model-value="player.loudnessEnabled" @update:model-value="onLoudnessToggle">
-                <SwitchThumb class="switch-thumb" />
-              </SwitchRoot>
+              <Switch :model-value="player.loudnessEnabled" @update:model-value="onLoudnessToggle" />
             </div>
           </div>
         </div>
@@ -114,9 +104,7 @@
               </span>
             </span>
             <div class="setting-control-row">
-              <SwitchRoot class="switch-root" :model-value="player.searchMusicOnly" @update:model-value="onSearchMusicOnlyChange">
-                <SwitchThumb class="switch-thumb" />
-              </SwitchRoot>
+              <Switch :model-value="player.searchMusicOnly" @update:model-value="onSearchMusicOnlyChange" />
             </div>
           </div>
         </div>
@@ -135,16 +123,8 @@
           <div class="setting-row">
             <span class="setting-label">API 响应缓存上限</span>
             <div class="setting-control-row">
-              <NumberFieldRoot class="number-field" :model-value="responseCacheMax" :min="50" :max="5000" :step="50"
-                @update:model-value="onResponseCacheMaxChange">
-                <NumberFieldDecrement class="nf-btn">
-                  <Icon icon="mdi:minus" />
-                </NumberFieldDecrement>
-                <NumberFieldInput class="nf-input" />
-                <NumberFieldIncrement class="nf-btn">
-                  <Icon icon="mdi:plus" />
-                </NumberFieldIncrement>
-              </NumberFieldRoot>
+              <NumberField :model-value="responseCacheMax" :min="50" :max="5000" :step="50"
+                @update:model-value="onResponseCacheMaxChange" />
               <span class="setting-hint" v-if="apiCacheLoading">获取中...</span>
               <span class="setting-hint" v-else>当前 {{ apiCacheSize }} 项</span>
             </div>
@@ -169,12 +149,17 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useUserStore } from '../../stores/user'
 import { usePlayerStore } from '../../stores/player'
 import { useToast } from '../../stores/toast'
 import { Icon } from '@iconify/vue'
-import { SelectRoot, SelectTrigger, SelectValue, SelectPortal, SelectContent, SelectViewport, SelectItem, SelectItemText, SelectSeparator, NumberFieldRoot, NumberFieldInput, NumberFieldDecrement, NumberFieldIncrement, SwitchRoot, SwitchThumb } from 'reka-ui'
+import Select from '../../components/ui/Select.vue'
+import SelectItem from '../../components/ui/SelectItem.vue'
+import SelectItemText from '../../components/ui/SelectItemText.vue'
+import SelectSeparator from '../../components/ui/SelectSeparator.vue'
+import Switch from '../../components/ui/Switch.vue'
+import NumberField from '../../components/ui/NumberField.vue'
 
 const user = useUserStore()
 const player = usePlayerStore()
@@ -182,6 +167,7 @@ const { showToast } = useToast()
 const folders = ref([])
 const selectedFavFolder = ref(user.favFolderId ? String(user.favFolderId) : '__none__')
 const loadingFolders = ref(false)
+const selectItems = computed(() => folders.value.map(f => ({ value: String(f.id), label: f.title })))
 const desktopLyricsVisible = ref(false)
 const audioCacheInfo = ref(null)
 const apiCacheSize = ref(0)
@@ -378,33 +364,6 @@ async function clearAllCache() {
   border-color: var(--danger);
 }
 
-.setting-select-trigger {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 8px 12px;
-  font-size: 13px;
-  color: var(--text-primary);
-  cursor: pointer;
-  min-width: 180px;
-  justify-content: space-between;
-  transition: border-color var(--transition);
-  font-family: inherit;
-}
-
-.setting-select-trigger:hover {
-  border-color: var(--accent-dim);
-}
-
-.select-chevron {
-  font-size: 16px;
-  color: var(--text-muted);
-  flex-shrink: 0;
-}
-
 .fav-hint {
   font-size: 11px;
   color: var(--accent);
@@ -454,37 +413,10 @@ async function clearAllCache() {
 
 
 
-/* ── Switch (Reka UI) ── */
-.switch-root {
-  all: unset;
-  width: 44px;
-  height: 24px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  position: relative;
-  cursor: pointer;
-  transition: all var(--transition);
+.select-item-count {
+  font-size: 11px;
+  color: var(--text-muted);
   flex-shrink: 0;
 }
 
-.switch-root[data-state='checked'] {
-  background: var(--accent);
-  border-color: var(--accent);
-}
-
-.switch-thumb {
-  display: block;
-  width: 18px;
-  height: 18px;
-  background: white;
-  border-radius: 999px;
-  transition: transform var(--transition);
-  transform: translateX(2px);
-  will-change: transform;
-}
-
-.switch-root[data-state='checked'] .switch-thumb {
-  transform: translateX(24px);
-}
 </style>

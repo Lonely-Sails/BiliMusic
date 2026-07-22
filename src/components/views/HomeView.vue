@@ -70,9 +70,7 @@
               <p class="toplist-artist">{{ item.singer }}</p>
             </div>
             <div class="toplist-heat">
-              <ProgressRoot :model-value="item.heat / maxHeat * 100" class="heat-bar" :max="100">
-                <ProgressIndicator class="heat-fill" />
-              </ProgressRoot>
+              <Progress :model-value="item.heat / maxHeat * 100" :max="100" root-class="heat-bar" indicator-class="heat-fill" />
               <span class="heat-text">{{ formatHeat(item.heat) }}</span>
             </div>
             <button class="toplist-play-btn" @click.stop="playToplist(item)">
@@ -105,29 +103,24 @@
           </h2>
           <span class="section-subtitle">最新上架的优质音乐</span>
         </div>
-        <ScrollAreaRoot class="nm-scrollarea-root">
-          <ScrollAreaViewport class="nm-scrollarea-viewport">
-            <div class="new-music-track">
-              <div v-for="item in newMusic" :key="item.music_id" class="new-music-card" @click="playNewMusic(item)">
-                <div class="nm-card-cover">
-                  <img :src="item.cover + '@400w_400h.webp'" :alt="item.music_title" loading="lazy" />
-                  <div class="nm-card-overlay">
-                    <Icon icon="mdi:play-circle" class="nm-play-icon" />
-                  </div>
-                  <span class="nm-card-corner" v-if="item.music_corner">{{ item.music_corner }}</span>
+        <ScrollArea orientation="horizontal" root-class="nm-scrollarea-root" viewport-class="nm-scrollarea-viewport"
+          scrollbar-class="nm-scrollarea-scrollbar" thumb-class="nm-scrollarea-thumb" corner-class="nm-scrollarea-corner">
+          <div class="new-music-track">
+            <div v-for="item in newMusic" :key="item.music_id" class="new-music-card" @click="playNewMusic(item)">
+              <div class="nm-card-cover">
+                <img :src="item.cover + '@400w_400h.webp'" :alt="item.music_title" loading="lazy" />
+                <div class="nm-card-overlay">
+                  <Icon icon="mdi:play-circle" class="nm-play-icon" />
                 </div>
-                <div class="nm-card-info">
-                  <h4 class="nm-card-title">{{ item.music_title }}</h4>
-                  <p class="nm-card-artist">{{ item.author }}</p>
-                </div>
+                <span class="nm-card-corner" v-if="item.music_corner">{{ item.music_corner }}</span>
+              </div>
+              <div class="nm-card-info">
+                <h4 class="nm-card-title">{{ item.music_title }}</h4>
+                <p class="nm-card-artist">{{ item.author }}</p>
               </div>
             </div>
-          </ScrollAreaViewport>
-          <ScrollAreaScrollbar class="nm-scrollarea-scrollbar" orientation="horizontal">
-            <ScrollAreaThumb class="nm-scrollarea-thumb" />
-          </ScrollAreaScrollbar>
-          <ScrollAreaCorner class="nm-scrollarea-corner" />
-        </ScrollAreaRoot>
+          </div>
+        </ScrollArea>
       </section>
     </template>
   </div>
@@ -151,7 +144,8 @@ import { Icon } from '@iconify/vue'
 import SongCard from '../SongCard.vue'
 import { usePlayerStore } from '../../stores/player'
 import { useUserStore } from '../../stores/user'
-import { ProgressRoot, ProgressIndicator, ScrollAreaRoot, ScrollAreaViewport, ScrollAreaScrollbar, ScrollAreaThumb, ScrollAreaCorner } from 'reka-ui'
+import Progress from '../../components/ui/Progress.vue'
+import ScrollArea from '../../components/ui/ScrollArea.vue'
 
 const player = usePlayerStore()
 const user = useUserStore()

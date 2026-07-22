@@ -7,20 +7,12 @@
         </h2>
         <div class="playlist-actions" v-if="player.playlist.length">
           <span class="playlist-count">{{ player.playlist.length }} 首</span>
-          <Separator orientation="vertical" class="playlist-separator" />
-          <TooltipRoot>
-            <TooltipTrigger as-child>
-              <button class="clear-btn" @click="player.clearPlaylist()">
-                <Icon icon="mdi:delete-sweep-outline" />清空列表
-              </button>
-            </TooltipTrigger>
-            <TooltipPortal>
-              <TooltipContent class="tooltip-content" :data-state="'instant-open'" side="top">
-                清空播放列表
-                <TooltipArrow class="tooltip-arrow" />
-              </TooltipContent>
-            </TooltipPortal>
-          </TooltipRoot>
+          <Separator orientation="vertical" />
+          <Tooltip text="清空播放列表" side="top">
+            <button class="clear-btn" @click="player.clearPlaylist()">
+              <Icon icon="mdi:delete-sweep-outline" />清空列表
+            </button>
+          </Tooltip>
         </div>
       </div>
 
@@ -47,33 +39,17 @@
           </div>
           <div class="item-duration">{{ formatDuration(item.duration) }}</div>
           <div class="item-actions">
-            <TooltipRoot v-if="user.loggedIn && user.favFolderId">
-              <TooltipTrigger as-child>
-                <button class="item-fav-btn" :class="{ favorited: user.isFavorited(item.bvid) }"
-                  @click.stop="user.toggleFav(item)">
-                  <Icon :icon="user.isFavorited(item.bvid) ? 'mdi:heart' : 'mdi:heart-outline'" />
-                </button>
-              </TooltipTrigger>
-              <TooltipPortal>
-                <TooltipContent class="tooltip-content" :data-state="'instant-open'" side="top">
-                  {{ user.isFavorited(item.bvid) ? '取消收藏' : '收藏到「' + user.favFolderName + '」' }}
-                  <TooltipArrow class="tooltip-arrow" />
-                </TooltipContent>
-              </TooltipPortal>
-            </TooltipRoot>
-            <TooltipRoot>
-              <TooltipTrigger as-child>
-                <button class="item-remove" @click.stop="player.removeFromPlaylist(index)">
-                  <Icon icon="mdi:close" />
-                </button>
-              </TooltipTrigger>
-              <TooltipPortal>
-                <TooltipContent class="tooltip-content" :data-state="'instant-open'" side="top">
-                  从播放列表移除
-                  <TooltipArrow class="tooltip-arrow" />
-                </TooltipContent>
-              </TooltipPortal>
-            </TooltipRoot>
+            <Tooltip v-if="user.loggedIn && user.favFolderId" :text="user.isFavorited(item.bvid) ? '取消收藏' : '收藏到「' + user.favFolderName + '」'" side="top">
+              <button class="item-fav-btn" :class="{ favorited: user.isFavorited(item.bvid) }"
+                @click.stop="user.toggleFav(item)">
+                <Icon :icon="user.isFavorited(item.bvid) ? 'mdi:heart' : 'mdi:heart-outline'" />
+              </button>
+            </Tooltip>
+            <Tooltip text="从播放列表移除" side="top">
+              <button class="item-remove" @click.stop="player.removeFromPlaylist(index)">
+                <Icon icon="mdi:close" />
+              </button>
+            </Tooltip>
           </div>
         </div>
       </div>
@@ -92,7 +68,9 @@
 import { usePlayerStore } from '../../stores/player'
 import { useUserStore } from '../../stores/user'
 import { Icon } from '@iconify/vue'
-import { TooltipRoot, TooltipTrigger, TooltipPortal, TooltipContent, TooltipArrow, TooltipProvider, Separator } from 'reka-ui'
+import TooltipProvider from '../ui/TooltipProvider.vue'
+import Tooltip from '../ui/Tooltip.vue'
+import Separator from '../ui/Separator.vue'
 
 const player = usePlayerStore()
 const user = useUserStore()
@@ -138,11 +116,6 @@ function formatDuration(seconds) {
   color: var(--text-secondary);
 }
 
-.playlist-separator {
-  width: 1px;
-  height: 16px;
-  background: var(--border);
-}
 
 .clear-btn {
   background: transparent;

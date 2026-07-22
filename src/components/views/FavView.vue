@@ -7,19 +7,11 @@
         </h2>
         <div class="fav-header-actions" v-if="resources.length">
           <span class="fav-count">{{ total }} 首</span>
-          <TooltipRoot>
-            <TooltipTrigger as-child>
-              <button class="play-all-btn" @click="playAll">
-                <Icon icon="mdi:playlist-plus" />一键播放
-              </button>
-            </TooltipTrigger>
-            <TooltipPortal>
-              <TooltipContent class="tooltip-content" side="top">
-                将当前页全部添加到播放列表
-                <TooltipArrow class="tooltip-arrow" />
-              </TooltipContent>
-            </TooltipPortal>
-          </TooltipRoot>
+          <Tooltip text="将当前页全部添加到播放列表" side="top">
+            <button class="play-all-btn" @click="playAll">
+              <Icon icon="mdi:playlist-plus" />一键播放
+            </button>
+          </Tooltip>
         </div>
       </div>
 
@@ -79,7 +71,8 @@ import { useUserStore } from '../../stores/user'
 import { usePlayerStore } from '../../stores/player'
 import { Icon } from '@iconify/vue'
 import SongCard from '../SongCard.vue'
-import { TooltipRoot, TooltipTrigger, TooltipPortal, TooltipContent, TooltipArrow, TooltipProvider } from 'reka-ui'
+import TooltipProvider from '../ui/TooltipProvider.vue'
+import Tooltip from '../ui/Tooltip.vue'
 
 const user = useUserStore()
 const player = usePlayerStore()

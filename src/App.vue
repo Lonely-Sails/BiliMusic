@@ -21,60 +21,9 @@
       </div>
 
       <div class="drag-region header-center search-wrapper">
-        <AutocompleteRoot class="autocomplete-root" v-model="searchQuery" v-model:open="showDropdown"
-          :open-on-focus="true" :open-on-click="true" :ignore-filter="true" @update:model-value="onInput">
-          <AutocompleteAnchor class="search-bar">
-            <Icon icon="mdi:magnify" class="search-bar-icon" />
-            <AutocompleteInput placeholder="搜索B站音乐..." class="search-input" @keyup.enter="doSearch" />
-            <AutocompleteCancel v-if="searchQuery" as-child>
-              <button class="search-clear">
-                <Icon icon="mdi:close-circle" />
-              </button>
-            </AutocompleteCancel>
-          </AutocompleteAnchor>
-
-          <AutocompletePortal>
-            <AutocompleteContent class="search-dropdown" position="popper" :side-offset="6" :hide-when-empty="false">
-              <AutocompleteViewport class="sd-viewport">
-                <AutocompleteGroup v-if="searchQuery && suggestions.length > 0">
-                  <AutocompleteLabel class="sd-title">搜索建议</AutocompleteLabel>
-                  <AutocompleteItem v-for="s in suggestions" :key="s.value" :value="s.value" class="sd-item"
-                    @select="selectSuggestion(s.value)">
-                    <Icon icon="mdi:magnify" class="sd-item-icon" />
-                    <span>{{ s.name }}</span>
-                  </AutocompleteItem>
-                </AutocompleteGroup>
-
-                <template v-if="!searchQuery">
-                  <AutocompleteGroup v-if="history.length > 0">
-                    <AutocompleteLabel class="sd-title sd-title-row">
-                      <span>搜索历史</span>
-                      <button class="sd-clear-btn" @click="clearHistory">清空</button>
-                    </AutocompleteLabel>
-                    <AutocompleteItem v-for="h in history" :key="h" :value="h" class="sd-item"
-                      @select="selectSuggestion(h)">
-                      <Icon icon="mdi:history" class="sd-item-icon" />
-                      <span>{{ h }}</span>
-                    </AutocompleteItem>
-                  </AutocompleteGroup>
-
-                  <AutocompleteGroup v-if="hotSearch.length > 0">
-                    <AutocompleteLabel class="sd-title">B站热搜</AutocompleteLabel>
-                    <AutocompleteItem v-for="(hot, i) in hotSearch" :key="'hot-' + i" :value="hot.keyword"
-                      class="sd-item" @select="selectSuggestion(hot.keyword)">
-                      <span class="sd-rank" :class="{
-                        'sd-rank-top': i < 3,
-                      }">{{ i + 1 }}</span>
-                      <span class="sd-hot-text">{{ hot.showName }}</span>
-                    </AutocompleteItem>
-                  </AutocompleteGroup>
-                </template>
-
-                <AutocompleteEmpty class="sd-empty">暂无数据</AutocompleteEmpty>
-              </AutocompleteViewport>
-            </AutocompleteContent>
-          </AutocompletePortal>
-        </AutocompleteRoot>
+        <Autocomplete v-model="searchQuery" v-model:open="showDropdown" placeholder="搜索B站音乐..."
+          :groups="autocompleteGroups" @update:model-value="onInput" @keyup.enter="doSearch"
+          @select="selectSuggestion" @clear-history="clearHistory" />
       </div>
 
       <div class="header-right">
@@ -114,15 +63,9 @@
       </aside>
 
       <main class="main-content">
-        <ScrollAreaRoot class="scrollarea-root">
-          <ScrollAreaViewport class="scrollarea-viewport">
-            <router-view :key="$route.name" />
-          </ScrollAreaViewport>
-          <ScrollAreaScrollbar class="scrollarea-scrollbar" orientation="vertical">
-            <ScrollAreaThumb class="scrollarea-thumb" />
-          </ScrollAreaScrollbar>
-          <ScrollAreaCorner class="scrollarea-corner" />
-        </ScrollAreaRoot>
+        <ScrollArea>
+          <router-view :key="$route.name" />
+        </ScrollArea>
       </main>
     </div>
 
@@ -136,19 +79,7 @@
       @loadedmetadata="player.setDuration($event.target.duration)" @error="player.isPlaying = false" preload="auto" />
 
     <ToastProvider>
-      <ToastRoot v-for="toast in toasts" :key="toast.id" :duration="3000" class="toast-root"
-        :class="'toast-' + toast.type">
-        <div class="toast-content">
-          <Icon :icon="toast.type === 'error' ? 'mdi:alert-circle' : 'mdi:check-circle'" class="toast-icon" />
-          <ToastDescription class="toast-description">{{
-            toast.message
-            }}</ToastDescription>
-        </div>
-        <ToastClose class="toast-close" aria-label="关闭">
-          <Icon icon="mdi:close" />
-        </ToastClose>
-      </ToastRoot>
-      <ToastViewport class="toast-viewport" />
+      <Toast v-for="toast in toasts" :key="toast.id" :message="toast.message" :type="toast.type" :on-close="() => removeToast(toast.id)" />
     </ToastProvider>
   </div>
 </template>
@@ -177,29 +108,10 @@ import { useToast } from "./stores/toast";
 import { Icon } from "@iconify/vue";
 import PlayerBar from "./components/PlayerBar.vue";
 import LoginPanel from "./components/LoginPanel.vue";
-import {
-  ScrollAreaRoot,
-  ScrollAreaViewport,
-  ScrollAreaScrollbar,
-  ScrollAreaThumb,
-  ScrollAreaCorner,
-  AutocompleteRoot,
-  AutocompleteAnchor,
-  AutocompleteInput,
-  AutocompleteCancel,
-  AutocompletePortal,
-  AutocompleteContent,
-  AutocompleteViewport,
-  AutocompleteGroup,
-  AutocompleteLabel,
-  AutocompleteItem,
-  AutocompleteEmpty,
-  ToastProvider,
-  ToastRoot,
-  ToastDescription,
-  ToastClose,
-  ToastViewport,
-} from "reka-ui";
+import ScrollArea from "./components/ui/ScrollArea.vue";
+import Autocomplete from "./components/ui/Autocomplete.vue";
+import ToastProvider from "./components/ui/ToastProvider.vue";
+import Toast from "./components/ui/Toast.vue";
 
 // ── 常量 ──
 const HISTORY_KEY = "bilimusic_search_history";
@@ -215,6 +127,10 @@ const route = useRoute();
 const player = usePlayerStore();
 const user = useUserStore();
 const { toasts } = useToast();
+
+function removeToast(id) {
+  toasts.value = toasts.value.filter(t => t.id !== id)
+}
 
 // ── 响应式状态 ──
 const searchQuery = ref(""); // 搜索框输入
@@ -234,6 +150,33 @@ const suggestions = ref([]); // 搜索建议列表
 const hotSearch = ref([]); // 热搜列表
 const history = ref([]); // 搜索历史
 const suggestTimer = ref(null); // 输入防抖定时器（ref 确保组件卸载时清理）
+
+// Autocomplete 分组数据
+const autocompleteGroups = computed(() => {
+  const groups = []
+  if (searchQuery.value && suggestions.value.length) {
+    groups.push({
+      label: '搜索建议',
+      items: suggestions.value.map(s => ({ value: s.value, label: s.name, icon: 'mdi:magnify' }))
+    })
+  }
+  if (!searchQuery.value) {
+    if (history.value.length) {
+      groups.push({
+        label: '搜索历史',
+        clearable: true,
+        items: history.value.map(h => ({ value: h, label: h, icon: 'mdi:history' }))
+      })
+    }
+    if (hotSearch.value.length) {
+      groups.push({
+        label: 'B站热搜',
+        items: hotSearch.value.map((hot, i) => ({ value: hot.keyword, label: hot.showName, rank: i + 1 }))
+      })
+    }
+  }
+  return groups
+})
 
 // 窗口相关
 const isMaxed = ref(false); // 窗口是否最大化
@@ -443,65 +386,6 @@ onUnmounted(() => {
   display: flex;
   justify-content: center;
   -webkit-app-region: no-drag;
-}
-
-.autocomplete-root {
-  width: 100%;
-  max-width: 420px;
-}
-
-.search-bar {
-  display: flex;
-  align-items: center;
-  background: var(--bg-primary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  padding: 0 16px;
-  transition: border-color var(--transition);
-  width: 420px;
-}
-
-.search-bar:focus-within {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-dim);
-}
-
-.search-bar-icon {
-  font-size: 18px;
-  color: var(--text-muted);
-  flex-shrink: 0;
-}
-
-.search-input {
-  flex: 1;
-  background: transparent;
-  border: none;
-  outline: none;
-  padding: 10px 12px;
-  color: var(--text-primary);
-  font-size: 14px;
-  font-family: inherit;
-}
-
-.search-input::placeholder {
-  color: var(--text-muted);
-}
-
-.search-clear {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  font-size: 16px;
-  cursor: pointer;
-  padding: 4px;
-  display: flex;
-  align-items: center;
-  transition: color var(--transition);
-  flex-shrink: 0;
-}
-
-.search-clear:hover {
-  color: var(--text-primary);
 }
 
 .header-right {

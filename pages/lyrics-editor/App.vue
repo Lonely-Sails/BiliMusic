@@ -12,77 +12,47 @@
     </div>
 
     <!-- Splitter: Left / Right -->
-    <SplitterGroup
-      class="splitter-group le-body"
-      direction="horizontal"
-      auto-save-id="lyrics-editor-splitter"
-    >
-      <!-- Left Panel: 搜索 + 列表 -->
+    <Splitter class="splitter-group le-body" direction="horizontal" auto-save-id="lyrics-editor-splitter">
       <SplitterPanel :default-size="36" :min-size="25" class="splitter-panel le-left">
         <div class="le-search-bar">
-          <input
-            v-model="searchQuery"
-            class="le-input"
-            placeholder="输入歌曲名搜索歌词..."
-            @keyup.enter="doSearch"
-          />
+          <input v-model="searchQuery" class="le-input" placeholder="输入歌曲名搜索歌词..." @keyup.enter="doSearch" />
           <button class="le-search-btn" :disabled="searching || !searchQuery.trim()" @click="doSearch">
             <Icon icon="mdi:magnify" />
           </button>
         </div>
 
-        <ScrollAreaRoot class="scrollarea-root">
-          <ScrollAreaViewport class="scrollarea-viewport">
-            <div class="le-list">
-            <!-- Local -->
+        <ScrollArea>
+          <div class="le-list">
             <div v-if="localLyrics.length > 0" class="le-section">
               <div class="le-section-title">
-                <Icon icon="mdi:harddisk" />
-                本地已保存
+                <Icon icon="mdi:harddisk" /> 本地已保存
               </div>
-              <div
-                v-for="item in localLyrics"
-                :key="'local-' + item.fileName"
-                class="le-list-item"
-                :class="{ selected: selectedKey === 'local|' + item.fileName }"
-                @click="onSelect(item, 'local')"
-              >
+              <div v-for="item in localLyrics" :key="'local-' + item.fileName" class="le-list-item"
+                :class="{ selected: selectedKey === 'local|' + item.fileName }" @click="onSelect(item, 'local')">
                 <div class="le-list-item-radio">
                   <div v-if="selectedKey === 'local|' + item.fileName" class="le-list-item-dot" />
                 </div>
                 <div class="le-list-item-info">
                   <span class="le-list-item-title">{{ item.song || item.fileName.replace('.lrc', '') }}</span>
-                  <span class="le-list-item-meta">
-                    {{ item.artist || '未知歌手' }} · {{ item.lineCount }} 行
-                  </span>
+                  <span class="le-list-item-meta">{{ item.artist || '未知歌手' }} · {{ item.lineCount }} 行</span>
                 </div>
               </div>
             </div>
-
-            <!-- Online -->
             <div v-if="searchResults.length > 0" class="le-section">
               <div class="le-section-title">
-                <Icon icon="mdi:cloud-outline" />
-                在线搜索结果
+                <Icon icon="mdi:cloud-outline" /> 在线搜索结果
               </div>
-              <div
-                v-for="item in searchResults"
-                :key="'online-' + item.source + '-' + item.id"
-                class="le-list-item"
-                :class="{ selected: selectedKey === 'online|' + item.source + '|' + item.id }"
-                @click="onSelect(item, 'online')"
-              >
+              <div v-for="item in searchResults" :key="'online-' + item.source + '-' + item.id" class="le-list-item"
+                :class="{ selected: selectedKey === 'online|' + item.source + '|' + item.id }" @click="onSelect(item, 'online')">
                 <div class="le-list-item-radio">
                   <div v-if="selectedKey === 'online|' + item.source + '|' + item.id" class="le-list-item-dot" />
                 </div>
                 <div class="le-list-item-info">
                   <span class="le-list-item-title">{{ item.song }}</span>
-                  <span class="le-list-item-meta">
-                    {{ item.singer || '未知歌手' }}
+                  <span class="le-list-item-meta">{{ item.singer || '未知歌手' }}
                     <span class="le-list-item-source">{{ item.sourceName }}</span>
                   </span>
                 </div>
-                <!-- 相似度指示器 -->
                 <div v-if="item.score != null" class="le-score-badge" :class="scoreClass(item.score)">
                   {{ (item.score * 100).toFixed(0) }}%
                 </div>
@@ -95,8 +65,6 @@
                 </div>
               </div>
             </div>
-
-            <!-- Empty -->
             <div v-if="localLyrics.length === 0 && searchResults.length === 0 && !searching" class="le-list-empty">
               <Icon icon="mdi:file-music-outline" class="le-empty-icon" />
               <p>暂无歌词</p>
@@ -107,32 +75,18 @@
               <p>搜索中...</p>
             </div>
           </div>
-          </ScrollAreaViewport>
-          <ScrollAreaScrollbar class="scrollarea-scrollbar" orientation="vertical">
-            <ScrollAreaThumb class="scrollarea-thumb" />
-          </ScrollAreaScrollbar>
-          <ScrollAreaCorner class="scrollarea-corner" />
-        </ScrollAreaRoot>
+        </ScrollArea>
       </SplitterPanel>
 
-      <SplitterResizeHandle class="splitter-handle" />
+      <SplitterHandle class="splitter-handle" />
 
-      <!-- Right Panel -->
       <SplitterPanel :default-size="64" :min-size="30" class="splitter-panel le-right">
         <div class="le-toolbar">
           <div class="le-toolbar-group">
             <button class="le-tb-btn" :class="{ active: selectedLineIdx >= 0 }" :disabled="!lyricLines.length" @click="adjustFromSelected(-1)" :title="`选中行及之后全部减 ${stepValue} 秒`">
               <Icon icon="mdi:clock-minus-outline" />
             </button>
-            <NumberFieldRoot v-model="stepValue" :min="0.01" :step="0.01" :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 2 }" class="number-field">
-              <NumberFieldDecrement class="nf-btn">
-                <Icon icon="mdi:minus" />
-              </NumberFieldDecrement>
-              <NumberFieldInput class="nf-input" />
-              <NumberFieldIncrement class="nf-btn">
-                <Icon icon="mdi:plus" />
-              </NumberFieldIncrement>
-            </NumberFieldRoot>
+            <NumberField v-model="stepValue" :min="0.01" :step="0.01" :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 2 }" />
             <button class="le-tb-btn" :class="{ active: selectedLineIdx >= 0 }" :disabled="!lyricLines.length" @click="adjustFromSelected(1)" :title="`选中行及之后全部加 ${stepValue} 秒`">
               <Icon icon="mdi:clock-plus-outline" />
             </button>
@@ -148,25 +102,6 @@
               <Icon icon="mdi:redo" />
             </button>
             <span class="le-tb-sep" />
-            <!-- B站字幕校对已禁用
-            <button
-              class="le-tb-btn le-tb-btn-accent"
-              :disabled="!lyricLines.length || !currentTrackBvid || aligning"
-              @click="doAutoAlign(false)"
-              title="默认校对：用AI字幕对齐第一句歌词时间（自动过滤作词/作曲等非歌词行）"
-            >
-              <Icon icon="mdi:clock-auto" />
-            </button>
-            <button
-              class="le-tb-btn le-tb-btn-accent"
-              :disabled="!lyricLines.length || !currentTrackBvid || aligning"
-              @click="doAutoAlign(true)"
-              title="全部校对：用AI字幕对齐所有歌词时间（自动过滤作词/作曲等非歌词行）"
-            >
-              <Icon icon="mdi:auto-fix" />
-            </button>
-            <span class="le-tb-sep" />
-            -->
             <button class="le-tb-btn" :disabled="!lyricLines.length" @click="saveLyrics" title="保存为本地LRC文件">
               <Icon icon="mdi:content-save" />
             </button>
@@ -178,67 +113,44 @@
           </div>
         </div>
 
-        <ScrollAreaRoot class="scrollarea-root">
-          <ScrollAreaViewport class="scrollarea-viewport">
-            <div v-if="lyricLines.length === 0" class="le-lyrics-empty">
-              <Icon icon="mdi:playlist-edit" class="le-empty-icon" />
-              <p>选择歌词开始编辑</p>
-              <p class="le-empty-hint">左侧列表选择后，歌词和时间戳将显示在此处</p>
-            </div>
-            <div v-else class="le-lyrics-list">
-              <div
-                v-for="(line, i) in lyricLines"
-                :key="i"
-                class="le-lyric-line"
-                :class="{ selected: i === selectedLineIdx, 'after-selected': selectedLineIdx >= 0 && i > selectedLineIdx, 'has-trans': !!line.trans }"
-                @click="selectLine(i)"
-                @dblclick="startEdit(i)"
-              >
-                <span class="le-lyric-time">{{ formatTimeTag(line.time) }}</span>
-                <div class="le-lyric-content">
-                  <template v-if="editingLineIdx === i">
-                    <input
-                      ref="editInputRef"
-                      v-model="editText"
-                      class="le-lyric-edit-input"
-                      @blur="finishEdit(i)"
-                      @keyup.enter="finishEdit(i)"
-                      @keyup.escape="cancelEdit"
-                    />
-                  </template>
-                  <span v-else class="le-lyric-text">{{ line.text }}</span>
-                  <span v-if="line.trans" class="le-lyric-trans">{{ line.trans }}</span>
-                </div>
-                <button
-                  class="le-lyric-add-btn"
-                  :class="{ show: hoveredLineIdx === i }"
-                  @click.stop="insertLineAfter(i)"
-                  title="在此后插入新行"
-                >
-                  <Icon icon="mdi:plus-circle" />
-                </button>
+        <ScrollArea>
+          <div v-if="lyricLines.length === 0" class="le-lyrics-empty">
+            <Icon icon="mdi:playlist-edit" class="le-empty-icon" />
+            <p>选择歌词开始编辑</p>
+            <p class="le-empty-hint">左侧列表选择后，歌词和时间戳将显示在此处</p>
+          </div>
+          <div v-else class="le-lyrics-list">
+            <div v-for="(line, i) in lyricLines" :key="i" class="le-lyric-line"
+              :class="{ selected: i === selectedLineIdx, 'after-selected': selectedLineIdx >= 0 && i > selectedLineIdx, 'has-trans': !!line.trans }"
+              @click="selectLine(i)" @dblclick="startEdit(i)">
+              <span class="le-lyric-time">{{ formatTimeTag(line.time) }}</span>
+              <div class="le-lyric-content">
+                <template v-if="editingLineIdx === i">
+                  <input ref="editInputRef" v-model="editText" class="le-lyric-edit-input" @blur="finishEdit(i)"
+                    @keyup.enter="finishEdit(i)" @keyup.escape="cancelEdit" />
+                </template>
+                <span v-else class="le-lyric-text">{{ line.text }}</span>
+                <span v-if="line.trans" class="le-lyric-trans">{{ line.trans }}</span>
               </div>
+              <button class="le-lyric-add-btn" :class="{ show: hoveredLineIdx === i }" @click.stop="insertLineAfter(i)" title="在此后插入新行">
+                <Icon icon="mdi:plus-circle" />
+              </button>
             </div>
-          </ScrollAreaViewport>
-          <ScrollAreaScrollbar class="scrollarea-scrollbar" orientation="vertical">
-            <ScrollAreaThumb class="scrollarea-thumb" />
-          </ScrollAreaScrollbar>
-          <ScrollAreaCorner class="scrollarea-corner" />
-        </ScrollAreaRoot>
+          </div>
+        </ScrollArea>
       </SplitterPanel>
-    </SplitterGroup>
+    </Splitter>
   </div>
 </template>
 
 <script>
 import { ref, onMounted } from 'vue'
 import { Icon } from '@iconify/vue'
-import {
-  SplitterGroup, SplitterPanel, SplitterResizeHandle,
-  ScrollAreaRoot, ScrollAreaViewport,
-  ScrollAreaScrollbar, ScrollAreaThumb, ScrollAreaCorner,
-  NumberFieldRoot, NumberFieldInput, NumberFieldDecrement, NumberFieldIncrement
-} from 'reka-ui'
+import Splitter from '../../src/components/ui/Splitter.vue'
+import SplitterPanel from '../../src/components/ui/SplitterPanel.vue'
+import SplitterHandle from '../../src/components/ui/SplitterHandle.vue'
+import ScrollArea from '../../src/components/ui/ScrollArea.vue'
+import NumberField from '../../src/components/ui/NumberField.vue'
 
 const api = window.lyricsEditorAPI
 
@@ -256,10 +168,8 @@ export default {
   name: 'LyricsEditorApp',
   components: {
     Icon,
-    SplitterGroup, SplitterPanel, SplitterResizeHandle,
-    ScrollAreaRoot, ScrollAreaViewport,
-    ScrollAreaScrollbar, ScrollAreaThumb, ScrollAreaCorner,
-    NumberFieldRoot, NumberFieldInput, NumberFieldDecrement, NumberFieldIncrement
+    Splitter, SplitterPanel, SplitterHandle,
+    ScrollArea, NumberField
   },
   setup() {
     const searchQuery = ref('')

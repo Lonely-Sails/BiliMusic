@@ -24,124 +24,65 @@
     <div class="player-controls">
       <div class="controls-buttons">
         <TooltipProvider>
-          <TooltipRoot>
-            <TooltipTrigger as-child>
-              <button class="ctrl-btn" :class="{ active: player.playMode !== 0 }" @click="player.cyclePlayMode()">
-                <Icon :icon="modeIcon" />
-              </button>
-            </TooltipTrigger>
-            <TooltipPortal>
-              <TooltipContent class="tooltip-content" :data-state="'instant-open'" side="top">
-                {{ modeText }}
-                <TooltipArrow class="tooltip-arrow" />
-              </TooltipContent>
-            </TooltipPortal>
-          </TooltipRoot>
+          <Tooltip :text="modeText" side="top">
+            <button class="ctrl-btn" :class="{ active: player.playMode !== 0 }" @click="player.cyclePlayMode()">
+              <Icon :icon="modeIcon" />
+            </button>
+          </Tooltip>
 
-          <TooltipRoot>
-            <TooltipTrigger as-child>
-              <button class="ctrl-btn fav-btn" :class="{ active: isFav }" @click="toggleFavorite" :disabled="!player.currentTrack">
-                <Icon :icon="isFav ? 'mdi:heart' : 'mdi:heart-outline'" />
-              </button>
-            </TooltipTrigger>
-            <TooltipPortal>
-              <TooltipContent class="tooltip-content" :data-state="'instant-open'" side="top">
-                {{ isFav ? '取消收藏' : '收藏' }}
-                <TooltipArrow class="tooltip-arrow" />
-              </TooltipContent>
-            </TooltipPortal>
-          </TooltipRoot>
+          <Tooltip :text="isFav ? '取消收藏' : '收藏'" side="top">
+            <button class="ctrl-btn fav-btn" :class="{ active: isFav }" @click="toggleFavorite" :disabled="!player.currentTrack">
+              <Icon :icon="isFav ? 'mdi:heart' : 'mdi:heart-outline'" />
+            </button>
+          </Tooltip>
 
-          <TooltipRoot>
-            <TooltipTrigger as-child>
-              <button class="ctrl-btn" @click="player.prevTrack()" :disabled="!player.currentTrack">
-                <Icon icon="mdi:skip-previous" />
-              </button>
-            </TooltipTrigger>
-            <TooltipPortal>
-              <TooltipContent class="tooltip-content" :data-state="'instant-open'" side="top">
-                上一首
-                <TooltipArrow class="tooltip-arrow" />
-              </TooltipContent>
-            </TooltipPortal>
-          </TooltipRoot>
+          <Tooltip text="上一首" side="top">
+            <button class="ctrl-btn" @click="player.prevTrack()" :disabled="!player.currentTrack">
+              <Icon icon="mdi:skip-previous" />
+            </button>
+          </Tooltip>
 
-          <TooltipRoot>
-            <TooltipTrigger as-child>
-              <button class="ctrl-btn play-btn" @click="player.togglePlay()" :disabled="!player.currentTrack">
-                <Icon :icon="player.isPlaying ? 'mdi:pause' : 'mdi:play'" />
-              </button>
-            </TooltipTrigger>
-            <TooltipPortal>
-              <TooltipContent class="tooltip-content" :data-state="'instant-open'" side="top">
-                {{ player.isPlaying ? '暂停' : '播放' }}
-                <TooltipArrow class="tooltip-arrow" />
-              </TooltipContent>
-            </TooltipPortal>
-          </TooltipRoot>
+          <Tooltip :text="player.isPlaying ? '暂停' : '播放'" side="top">
+            <button class="ctrl-btn play-btn" @click="player.togglePlay()" :disabled="!player.currentTrack">
+              <Icon :icon="player.isPlaying ? 'mdi:pause' : 'mdi:play'" />
+            </button>
+          </Tooltip>
 
-          <TooltipRoot>
-            <TooltipTrigger as-child>
-              <button class="ctrl-btn" @click="player.nextTrack()" :disabled="!player.currentTrack">
-                <Icon icon="mdi:skip-next" />
-              </button>
-            </TooltipTrigger>
-            <TooltipPortal>
-              <TooltipContent class="tooltip-content" :data-state="'instant-open'" side="top">
-                下一首
-                <TooltipArrow class="tooltip-arrow" />
-              </TooltipContent>
-            </TooltipPortal>
-          </TooltipRoot>
+          <Tooltip text="下一首" side="top">
+            <button class="ctrl-btn" @click="player.nextTrack()" :disabled="!player.currentTrack">
+              <Icon icon="mdi:skip-next" />
+            </button>
+          </Tooltip>
 
-          <HoverCardRoot :open-delay="0" :close-delay="200">
-            <HoverCardTrigger as-child>
+          <HoverCard :open-delay="0" :close-delay="200">
+            <template #trigger>
               <button class="ctrl-btn" @click="toggleMute">
                 <Icon :icon="volumeIcon" />
               </button>
-            </HoverCardTrigger>
-            <HoverCardPortal>
-              <HoverCardContent class="volume-hover-content" side="top" :side-offset="12">
-                <div class="volume-popup-body">
-                  <SliderRoot class="volume-popup-slider" orientation="vertical"
-                    :model-value="[muted ? 0 : player.volume]" :max="1" :step="0.05"
-                    @update:model-value="([val]) => { player.setVolume(val); muted = false }">
-                    <SliderTrack class="volume-popup-track">
-                      <SliderRange class="volume-popup-range" />
-                    </SliderTrack>
-                    <SliderThumb class="volume-popup-thumb" />
-                  </SliderRoot>
-                </div>
-                <div class="volume-popup-label">{{ muted ? 0 : Math.round(player.volume * 100) }}%</div>
-              </HoverCardContent>
-            </HoverCardPortal>
-          </HoverCardRoot>
+            </template>
+            <div class="volume-popup-body">
+              <Slider class="volume-popup-slider" orientation="vertical"
+                :model-value="[muted ? 0 : player.volume]" :max="1" :step="0.05"
+                root-class="volume-popup-slider" track-class="volume-popup-track"
+                range-class="volume-popup-range" thumb-class="volume-popup-thumb"
+                @update:model-value="([val]) => { player.setVolume(val); muted = false }" />
+            </div>
+            <div class="volume-popup-label">{{ muted ? 0 : Math.round(player.volume * 100) }}%</div>
+          </HoverCard>
 
-          <TooltipRoot>
-            <TooltipTrigger as-child>
-              <button class="ctrl-btn" :class="{ active: desktopLyricsOpen }" @click="toggleDesktopLyrics">
-                <Icon icon="mdi:monitor-screenshot" />
-              </button>
-            </TooltipTrigger>
-            <TooltipPortal>
-              <TooltipContent class="tooltip-content" :data-state="'instant-open'" side="top">
-                {{ desktopLyricsOpen ? '关闭桌面歌词' : '桌面歌词' }}
-                <TooltipArrow class="tooltip-arrow" />
-              </TooltipContent>
-            </TooltipPortal>
-          </TooltipRoot>
+          <Tooltip :text="desktopLyricsOpen ? '关闭桌面歌词' : '桌面歌词'" side="top">
+            <button class="ctrl-btn" :class="{ active: desktopLyricsOpen }" @click="toggleDesktopLyrics">
+              <Icon icon="mdi:monitor-screenshot" />
+            </button>
+          </Tooltip>
         </TooltipProvider>
       </div>
 
       <div class="progress-area">
         <span class="time current">{{ formatCurrentTime }}</span>
-        <SliderRoot class="progress-bar" :model-value="[player.currentTime]" :max="player.duration || 1" :step="1"
-          :disabled="!player.currentTrack" @update:model-value="([val]) => player.seek(val)">
-          <SliderTrack class="slider-track">
-            <SliderRange class="slider-range" />
-          </SliderTrack>
-          <SliderThumb class="slider-thumb" />
-        </SliderRoot>
+        <Slider class="progress-bar" :model-value="[player.currentTime]" :max="player.duration || 1" :step="1"
+          :disabled="!player.currentTrack" track-class="slider-track" range-class="slider-range" thumb-class="slider-thumb"
+          @update:model-value="([val]) => player.seek(val)" />
         <span class="time total">{{ formatDuration }}</span>
       </div>
     </div>
@@ -162,7 +103,10 @@ import { usePlayerStore } from '../stores/player'
 import { useUserStore } from '../stores/user'
 import { useToast } from '../stores/toast'
 import { Icon } from '@iconify/vue'
-import { SliderRoot, SliderTrack, SliderRange, SliderThumb, TooltipRoot, TooltipTrigger, TooltipPortal, TooltipContent, TooltipArrow, TooltipProvider, HoverCardRoot, HoverCardTrigger, HoverCardPortal, HoverCardContent } from 'reka-ui'
+import Slider from './ui/Slider.vue'
+import Tooltip from './ui/Tooltip.vue'
+import TooltipProvider from './ui/TooltipProvider.vue'
+import HoverCard from './ui/HoverCard.vue'
 
 const player = usePlayerStore()
 const user = useUserStore()
@@ -420,9 +364,69 @@ function formatTime(seconds) {
   position: relative;
 }
 
-.progress-bar:hover .slider-thumb {
+.progress-bar:hover :deep(.slider-thumb) {
   opacity: 1;
 }
 
+.volume-popup-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 80px;
+}
 
+.volume-popup-slider {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  width: 24px;
+  cursor: pointer;
+}
+
+.volume-popup-slider :deep(.volume-popup-track) {
+  position: relative;
+  flex-grow: 1;
+  width: 4px;
+  background: var(--border-light);
+  border-radius: 2px;
+}
+
+.volume-popup-slider :deep(.volume-popup-range) {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  background: var(--text-muted);
+  border-radius: 2px;
+}
+
+.volume-popup-slider :deep(.volume-popup-thumb) {
+  --reka-slider-thumb-transform: translate(-50%, 50%);
+  display: block;
+  width: 14px;
+  height: 14px;
+  background: white;
+  border: 2px solid var(--text-muted);
+  border-radius: 50%;
+  position: absolute;
+  left: 50%;
+  opacity: 0;
+  transition: opacity 0.15s;
+  cursor: grab;
+  box-shadow: 0 1px 4px var(--shadow);
+  z-index: 1;
+}
+
+.volume-popup-slider:hover :deep(.volume-popup-thumb) {
+  opacity: 1;
+}
+
+.volume-popup-label {
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 6px;
+  font-variant-numeric: tabular-nums;
+}
 </style>

@@ -1,12 +1,7 @@
 <template>
   <div class="login-panel">
     <div v-if="user.loggedIn" class="user-info">
-      <AvatarRoot class="user-avatar-root">
-        <AvatarImage class="user-avatar" :src="user.avatar + '@96w_96h.webp'" :alt="user.nickname" />
-        <AvatarFallback class="user-avatar-fallback">
-          <Icon icon="mdi:account" />
-        </AvatarFallback>
-      </AvatarRoot>
+      <Avatar :src="user.avatar + '@96w_96h.webp'" :alt="user.nickname" root-class="user-avatar-root" image-class="user-avatar" fallback-class="user-avatar-fallback" />
       <span class="user-name">{{ user.nickname }}</span>
       <button class="logout-btn" @click="handleLogout">
         <Icon icon="mdi:logout" />
@@ -18,48 +13,36 @@
       <span>登录B站</span>
     </button>
 
-    <DialogRoot v-model:open="dialogOpen">
-      <DialogPortal>
-        <DialogOverlay class="dialog-overlay" />
-        <DialogContent class="dialog-content">
-          <DialogClose class="dialog-close-btn">
-            <Icon icon="mdi:close" />
-          </DialogClose>
-          <div class="dialog-body">
-            <DialogTitle class="dialog-title">扫码登录</DialogTitle>
-            <DialogDescription class="dialog-desc">使用B站App扫描二维码登录</DialogDescription>
-            <div class="qr-status-wrap">
-              <template v-if="qrStatus === 'loading'">
-                <div class="spinner" />
-                <p class="qr-status-text">获取二维码中...</p>
-              </template>
-              <template v-else-if="qrStatus === 'pending'">
-                <img :src="qrDataURL" alt="QR Code" class="qr-image" />
-                <p class="qr-status-text active">请用B站App扫码</p>
-              </template>
-              <template v-else-if="qrStatus === 'scanning'">
-                <div class="spinner" />
-                <p class="qr-status-text highlight">已扫码，请在手机上确认</p>
-              </template>
-              <template v-else-if="qrStatus === 'success'">
-                <Icon icon="mdi:check-circle" class="qr-success-icon" />
-                <p class="qr-status-text success">登录成功！</p>
-              </template>
-              <template v-else-if="qrStatus === 'expired'">
-                <Icon icon="mdi:alert-circle-outline" class="qr-error-icon" />
-                <p class="qr-status-text error">二维码已过期</p>
-                <button @click="startQRLogin" class="retry-btn">重新获取</button>
-              </template>
-              <template v-else-if="qrStatus === 'error'">
-                <Icon icon="mdi:alert-circle-outline" class="qr-error-icon" />
-                <p class="qr-status-text error">{{ qrError }}</p>
-                <button @click="startQRLogin" class="retry-btn">重试</button>
-              </template>
-            </div>
-          </div>
-        </DialogContent>
-      </DialogPortal>
-    </DialogRoot>
+    <Dialog v-model="dialogOpen" title="扫码登录" description="使用B站App扫描二维码登录">
+      <div class="qr-status-wrap">
+        <template v-if="qrStatus === 'loading'">
+          <div class="spinner" />
+          <p class="qr-status-text">获取二维码中...</p>
+        </template>
+        <template v-else-if="qrStatus === 'pending'">
+          <img :src="qrDataURL" alt="QR Code" class="qr-image" />
+          <p class="qr-status-text active">请用B站App扫码</p>
+        </template>
+        <template v-else-if="qrStatus === 'scanning'">
+          <div class="spinner" />
+          <p class="qr-status-text highlight">已扫码，请在手机上确认</p>
+        </template>
+        <template v-else-if="qrStatus === 'success'">
+          <Icon icon="mdi:check-circle" class="qr-success-icon" />
+          <p class="qr-status-text success">登录成功！</p>
+        </template>
+        <template v-else-if="qrStatus === 'expired'">
+          <Icon icon="mdi:alert-circle-outline" class="qr-error-icon" />
+          <p class="qr-status-text error">二维码已过期</p>
+          <button @click="startQRLogin" class="retry-btn">重新获取</button>
+        </template>
+        <template v-else-if="qrStatus === 'error'">
+          <Icon icon="mdi:alert-circle-outline" class="qr-error-icon" />
+          <p class="qr-status-text error">{{ qrError }}</p>
+          <button @click="startQRLogin" class="retry-btn">重试</button>
+        </template>
+      </div>
+    </Dialog>
   </div>
 </template>
 
@@ -68,7 +51,8 @@ import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useUserStore } from '../stores/user'
 import QRCode from 'qrcode'
 import { Icon } from '@iconify/vue'
-import { DialogRoot, DialogPortal, DialogOverlay, DialogContent, DialogClose, DialogTitle, DialogDescription, AvatarRoot, AvatarImage, AvatarFallback } from 'reka-ui'
+import Dialog from './ui/Dialog.vue'
+import Avatar from './ui/Avatar.vue'
 
 const user = useUserStore()
 const dialogOpen = ref(false)
