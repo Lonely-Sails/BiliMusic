@@ -839,13 +839,5 @@ export default {
   color: #9ca3af;
 }
 
-/* ── 工具栏强调按钮（自动校对） ── */
-.le-tb-btn-accent {
-  color: var(--accent);
-}
-.le-tb-btn-accent:hover:not(:disabled) {
-  background: var(--accent-dim);
-  color: var(--accent-hover);
-}
 
 </style>

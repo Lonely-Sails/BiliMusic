@@ -723,20 +723,5 @@ function formatHeat(heat) {
   text-overflow: ellipsis;
 }
 
-.nm-scrollarea-scrollbar {
-  display: flex;
-  height: 6px;
-  padding: 1px 0;
-}
 
-.nm-scrollarea-thumb {
-  flex: 1;
-  background: var(--border);
-  border-radius: 3px;
-  min-height: 4px;
-}
-
-.nm-scrollarea-corner {
-  background: transparent;
-}
 </style>

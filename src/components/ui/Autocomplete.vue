@@ -223,13 +223,6 @@ for (const key of Object.keys(attrs)) {
   color: var(--accent);
 }
 
-.sd-hot-text {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .sd-empty {
   padding: 24px 14px;
   text-align: center;
