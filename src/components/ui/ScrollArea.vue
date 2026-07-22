@@ -23,6 +23,8 @@ const attrs = useAttrs()
 
 <style>
 .scrollarea-root {
+  position: relative;
+  overflow: hidden;
   width: 100%;
   height: 100%;
 }
@@ -30,11 +32,19 @@ const attrs = useAttrs()
 .scrollarea-viewport {
   width: 100%;
   height: 100%;
-  overflow: hidden;
+  overflow: auto;
+  scrollbar-width: none;
+}
+.scrollarea-viewport::-webkit-scrollbar {
+  display: none;
 }
 
 .scrollarea-scrollbar {
   display: flex;
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
   width: 6px;
   padding: 1px 0;
   z-index: 10;
@@ -42,6 +52,10 @@ const attrs = useAttrs()
 
 .scrollarea-scrollbar[data-orientation="horizontal"] {
   flex-direction: row;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  top: auto;
   width: auto;
   height: 6px;
   padding: 0 1px;
@@ -51,7 +65,14 @@ const attrs = useAttrs()
   flex: 1;
   background: var(--border);
   border-radius: 3px;
+}
+
+.scrollarea-scrollbar[data-orientation="vertical"] .scrollarea-thumb {
   min-height: 40px;
+}
+
+.scrollarea-scrollbar[data-orientation="horizontal"] .scrollarea-thumb {
+  min-width: 40px;
 }
 
 .scrollarea-thumb:hover {

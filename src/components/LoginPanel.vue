@@ -1,7 +1,7 @@
 <template>
   <div class="login-panel">
     <div v-if="user.loggedIn" class="user-info">
-      <Avatar :src="user.avatar + '@96w_96h.webp'" :alt="user.nickname" root-class="user-avatar-root" image-class="user-avatar" fallback-class="user-avatar-fallback" />
+      <Avatar :src="user.avatar + '@96w_96h.webp'" :alt="user.nickname" :size="28" />
       <span class="user-name">{{ user.nickname }}</span>
       <button class="logout-btn" @click="handleLogout">
         <Icon icon="mdi:logout" />
@@ -120,31 +120,6 @@ async function handleLogout() { await user.logout() }
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.user-avatar-root {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-.user-avatar {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.user-avatar-fallback {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg-tertiary);
-  color: var(--text-muted);
-  font-size: 16px;
 }
 
 .user-name {

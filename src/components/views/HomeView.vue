@@ -44,7 +44,7 @@
       <section class="section" v-if="toplist.length > 0">
         <div class="section-header">
           <h2 class="section-title">
-            <Icon icon="mdi:chart-bar" class="section-icon" />热歌 TOP 10
+            <Icon icon="mdi:chart-bar" class="section-icon" />热歌 TOP 5
           </h2>
           <span class="section-subtitle">B站本周最热音乐排行</span>
         </div>
@@ -103,8 +103,7 @@
           </h2>
           <span class="section-subtitle">最新上架的优质音乐</span>
         </div>
-        <ScrollArea orientation="horizontal" root-class="nm-scrollarea-root" viewport-class="nm-scrollarea-viewport"
-          scrollbar-class="nm-scrollarea-scrollbar" thumb-class="nm-scrollarea-thumb" corner-class="nm-scrollarea-corner">
+        <ScrollArea orientation="horizontal">
           <div class="new-music-track">
             <div v-for="item in newMusic" :key="item.music_id" class="new-music-card" @click="playNewMusic(item)">
               <div class="nm-card-cover">
@@ -461,6 +460,10 @@ function formatHeat(heat) {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 8px;
 }
 
 .toplist-item {
@@ -474,7 +477,7 @@ function formatHeat(heat) {
 }
 
 .toplist-item:hover {
-  background: var(--bg-card);
+  background: var(--bg-hover);
 }
 
 .toplist-rank {
@@ -594,8 +597,9 @@ function formatHeat(heat) {
 .heat-text {
   font-size: 11px;
   color: var(--text-muted);
-  min-width: 36px;
+  min-width: 42px;
   text-align: right;
+  white-space: nowrap;
 }
 
 .toplist-play-btn,
@@ -631,18 +635,10 @@ function formatHeat(heat) {
   gap: 16px;
 }
 
-.nm-scrollarea-root {
-  width: 100%;
-}
-
-.nm-scrollarea-viewport {
-  overflow-x: auto;
-}
-
 .new-music-track {
   display: flex;
   gap: 16px;
-  padding-bottom: 4px;
+  padding-bottom: 12px;
 }
 
 .new-music-card {
