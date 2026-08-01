@@ -11,14 +11,20 @@
 </template>
 
 <script setup>
-import { useAttrs } from 'vue'
-import { ScrollAreaRoot, ScrollAreaViewport, ScrollAreaScrollbar, ScrollAreaThumb, ScrollAreaCorner } from 'reka-ui'
+import { useAttrs } from 'vue';
+import {
+  ScrollAreaRoot,
+  ScrollAreaViewport,
+  ScrollAreaScrollbar,
+  ScrollAreaThumb,
+  ScrollAreaCorner,
+} from 'reka-ui';
 
 defineProps({
-  orientation: { type: String, default: 'vertical' }
-})
+  orientation: { type: String, default: 'vertical' },
+});
 
-const attrs = useAttrs()
+const attrs = useAttrs();
 </script>
 
 <style>
@@ -50,7 +56,7 @@ const attrs = useAttrs()
   z-index: 10;
 }
 
-.scrollarea-scrollbar[data-orientation="horizontal"] {
+.scrollarea-scrollbar[data-orientation='horizontal'] {
   flex-direction: row;
   bottom: 0;
   left: 0;
@@ -67,11 +73,11 @@ const attrs = useAttrs()
   border-radius: 3px;
 }
 
-.scrollarea-scrollbar[data-orientation="vertical"] .scrollarea-thumb {
+.scrollarea-scrollbar[data-orientation='vertical'] .scrollarea-thumb {
   min-height: 40px;
 }
 
-.scrollarea-scrollbar[data-orientation="horizontal"] .scrollarea-thumb {
+.scrollarea-scrollbar[data-orientation='horizontal'] .scrollarea-thumb {
   min-width: 40px;
 }
 

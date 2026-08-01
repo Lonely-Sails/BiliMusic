@@ -16,31 +16,31 @@
 
 ## ✨ 功能特色
 
-| 功能 | 说明 |
-|------|------|
-| 🔍 **搜索** | 调用搜索 API 获取音乐视频，支持搜索建议、热搜排行、搜索历史持久化 |
-| ▶️ **音频播放** | 获取视频音频流播放，支持播放控制、进度拖拽、音量调节 |
-| 📃 **歌词同步** | 优先获取视频字幕，回退至第三方歌词源，LRC 格式解析，支持多源切换 |
-| 🔐 **B 站登录** | 二维码扫码登录，Cookie 持久化 |
-| ⭐ **收藏管理** | 浏览收藏夹、加载收藏歌曲、一键收藏/取消，状态实时同步 |
+| 功能            | 说明                                                                   |
+| --------------- | ---------------------------------------------------------------------- |
+| 🔍 **搜索**     | 调用搜索 API 获取音乐视频，支持搜索建议、热搜排行、搜索历史持久化      |
+| ▶️ **音频播放** | 获取视频音频流播放，支持播放控制、进度拖拽、音量调节                   |
+| 📃 **歌词同步** | 优先获取视频字幕，回退至第三方歌词源，LRC 格式解析，支持多源切换       |
+| 🔐 **B 站登录** | 二维码扫码登录，Cookie 持久化                                          |
+| ⭐ **收藏管理** | 浏览收藏夹、加载收藏歌曲、一键收藏/取消，状态实时同步                  |
 | 📋 **播放列表** | 队列管理（添加、删除），当前曲目高亮 + 音频条动画，localStorage 持久化 |
-| 🔁 **播放模式** | 顺序播放、随机播放、单曲循环三种模式一键切换 |
-| 🖥️ **桌面歌词** | 独立窗口，歌词动画，自动调整字号，锁定/穿透模式，拖拽移动，置顶显示 |
-| 🎛️ **设置面板** | 收藏夹选择器、音频/歌词 LRU 缓存上限调节、缓存用量查看与清理 |
+| 🔁 **播放模式** | 顺序播放、随机播放、单曲循环三种模式一键切换                           |
+| 🖥️ **桌面歌词** | 独立窗口，歌词动画，自动调整字号，锁定/穿透模式，拖拽移动，置顶显示    |
+| 🎛️ **设置面板** | 收藏夹选择器、音频/歌词 LRU 缓存上限调节、缓存用量查看与清理           |
 
 ## 🛠️ 技术栈
 
-| 层级 | 技术 |
-|------|------|
-| 🏗️ 桌面框架 | [Electron 33+](https://www.electronjs.org/) — 主进程 + 渲染进程隔离 |
-| 🎨 前端框架 | [Vue 3](https://vuejs.org/) + [Vue Router 4](https://router.vuejs.org/)（Hash History） |
-| 📦 状态管理 | [Pinia 3](https://pinia.vuejs.org/) — 三个 Store（player / user / toast） |
-| 🧩 UI 组件 | [Reka UI 2](https://reka-ui.com/) — Autocomplete, Slider, Dialog, Select, Tooltip, Toast, ScrollArea, NumberField |
-| 🎭 图标 | [Iconify](https://iconify.design/)（`@iconify/vue`）— Material Design Icons |
-| ⚡ 构建工具 | [Vite 6](https://vitejs.dev/) + [`vite-plugin-electron`](https://github.com/electron-vite/vite-plugin-electron) |
-| 📦 包管理 | [Bun](https://bun.sh/) |
-| 🔲 二维码 | [`qrcode`](https://www.npmjs.com/package/qrcode) — 登录二维码生成 |
-| 🎵 歌词源 | 视频自带字幕 + 第三方歌词 API（QQ 音乐 / 网易云） |
+| 层级        | 技术                                                                                                              |
+| ----------- | ----------------------------------------------------------------------------------------------------------------- |
+| 🏗️ 桌面框架 | [Electron 33+](https://www.electronjs.org/) — 主进程 + 渲染进程隔离                                               |
+| 🎨 前端框架 | [Vue 3](https://vuejs.org/) + [Vue Router 4](https://router.vuejs.org/)（Hash History）                           |
+| 📦 状态管理 | [Pinia 3](https://pinia.vuejs.org/) — 三个 Store（player / user / toast）                                         |
+| 🧩 UI 组件  | [Reka UI 2](https://reka-ui.com/) — Autocomplete, Slider, Dialog, Select, Tooltip, Toast, ScrollArea, NumberField |
+| 🎭 图标     | [Iconify](https://iconify.design/)（`@iconify/vue`）— Material Design Icons                                       |
+| ⚡ 构建工具 | [Vite 6](https://vitejs.dev/) + [`vite-plugin-electron`](https://github.com/electron-vite/vite-plugin-electron)   |
+| 📦 包管理   | [Bun](https://bun.sh/)                                                                                            |
+| 🔲 二维码   | [`qrcode`](https://www.npmjs.com/package/qrcode) — 登录二维码生成                                                 |
+| 🎵 歌词源   | 视频自带字幕 + 第三方歌词 API（QQ 音乐 / 网易云）                                                                 |
 
 ## 🗺️ 项目结构
 
@@ -97,11 +97,11 @@ npm run dev
 
 ### 脚本说明
 
-| 命令 | 说明 |
-|------|------|
-| `bun run dev` | 启动 Vite 开发服务器 + Electron 窗口，Vue 文件热重载，主进程自动重启 |
+| 命令            | 说明                                                                        |
+| --------------- | --------------------------------------------------------------------------- |
+| `bun run dev`   | 启动 Vite 开发服务器 + Electron 窗口，Vue 文件热重载，主进程自动重启        |
 | `bun run build` | Vite 构建 + 复制 `electron/api/` 和 `electron/preload/` 到 `dist-electron/` |
-| `bun run start` | 以生产模式启动 Electron（加载 `dist/` 中的构建产物） |
+| `bun run start` | 以生产模式启动 Electron（加载 `dist/` 中的构建产物）                        |
 
 ## 📡 IPC 通信架构
 

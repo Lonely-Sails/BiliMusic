@@ -1,8 +1,14 @@
 <template>
-  <AutocompleteRoot class="autocomplete-root" :model-value="modelValue" :open="open"
-    :open-on-focus="true" :open-on-click="true" :ignore-filter="true"
+  <AutocompleteRoot
+    class="autocomplete-root"
+    :model-value="modelValue"
+    :open="open"
+    :open-on-focus="true"
+    :open-on-click="true"
+    :ignore-filter="true"
     @update:open="emit('update:open', $event)"
-    @update:model-value="emit('update:modelValue', $event)">
+    @update:model-value="emit('update:modelValue', $event)"
+  >
     <AutocompleteAnchor class="search-bar">
       <Icon icon="mdi:magnify" class="search-bar-icon" />
       <AutocompleteInput :placeholder="placeholder" class="search-input" v-on="listeners" />
@@ -13,18 +19,35 @@
       </AutocompleteCancel>
     </AutocompleteAnchor>
     <AutocompletePortal>
-      <AutocompleteContent class="search-dropdown" position="popper" :side-offset="6" :hide-when-empty="false">
+      <AutocompleteContent
+        class="search-dropdown"
+        position="popper"
+        :side-offset="6"
+        :hide-when-empty="false"
+      >
         <AutocompleteViewport class="sd-viewport">
           <template v-for="(group, gi) in groups" :key="gi">
             <AutocompleteGroup>
               <AutocompleteLabel class="sd-title" :class="{ 'sd-title-row': group.clearable }">
                 <span>{{ group.label }}</span>
-                <button v-if="group.clearable" class="sd-clear-btn" @click="emit('clear-history')">清空</button>
+                <button v-if="group.clearable" class="sd-clear-btn" @click="emit('clear-history')">
+                  清空
+                </button>
               </AutocompleteLabel>
-              <AutocompleteItem v-for="(item, ii) in group.items" :key="ii" :value="item.value" class="sd-item"
-                @select="emit('select', item.value)">
+              <AutocompleteItem
+                v-for="(item, ii) in group.items"
+                :key="ii"
+                :value="item.value"
+                class="sd-item"
+                @select="emit('select', item.value)"
+              >
                 <Icon v-if="item.icon" :icon="item.icon" class="sd-item-icon" />
-                <span v-if="item.rank != null" class="sd-rank" :class="{ 'sd-rank-top': item.rank <= 3 }">{{ item.rank }}</span>
+                <span
+                  v-if="item.rank != null"
+                  class="sd-rank"
+                  :class="{ 'sd-rank-top': item.rank <= 3 }"
+                  >{{ item.rank }}</span
+                >
                 <span>{{ item.label }}</span>
               </AutocompleteItem>
             </AutocompleteGroup>
@@ -38,28 +61,36 @@
 
 <script setup>
 import {
-  AutocompleteRoot, AutocompleteAnchor, AutocompleteInput, AutocompleteCancel,
-  AutocompletePortal, AutocompleteContent, AutocompleteViewport,
-  AutocompleteEmpty, AutocompleteGroup, AutocompleteLabel, AutocompleteItem
-} from 'reka-ui'
-import { Icon } from '@iconify/vue'
-import { useAttrs } from 'vue'
+  AutocompleteRoot,
+  AutocompleteAnchor,
+  AutocompleteInput,
+  AutocompleteCancel,
+  AutocompletePortal,
+  AutocompleteContent,
+  AutocompleteViewport,
+  AutocompleteEmpty,
+  AutocompleteGroup,
+  AutocompleteLabel,
+  AutocompleteItem,
+} from 'reka-ui';
+import { Icon } from '@iconify/vue';
+import { useAttrs } from 'vue';
 
-defineOptions({ inheritAttrs: false })
+defineOptions({ inheritAttrs: false });
 
 defineProps({
   modelValue: { type: String, default: '' },
   open: { type: Boolean, default: false },
   placeholder: { type: String, default: '搜索...' },
-  groups: { type: Array, default: () => [] }
-})
+  groups: { type: Array, default: () => [] },
+});
 
-const emit = defineEmits(['update:modelValue', 'update:open', 'select', 'clear-history'])
+const emit = defineEmits(['update:modelValue', 'update:open', 'select', 'clear-history']);
 
-const attrs = useAttrs()
-const listeners = {}
+const attrs = useAttrs();
+const listeners = {};
 for (const key of Object.keys(attrs)) {
-  if (key.startsWith('on')) listeners[key] = attrs[key]
+  if (key.startsWith('on')) listeners[key] = attrs[key];
 }
 </script>
 

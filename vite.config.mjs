@@ -1,13 +1,13 @@
-import { defineConfig } from 'vite'
-import { resolve } from 'path'
-import vue from '@vitejs/plugin-vue'
-import electron from 'vite-plugin-electron'
-import renderer from 'vite-plugin-electron-renderer'
+import { defineConfig } from 'vite';
+import { resolve } from 'path';
+import vue from '@vitejs/plugin-vue';
+import electron from 'vite-plugin-electron';
+import renderer from 'vite-plugin-electron-renderer';
 
 export default defineConfig({
   server: {
     host: '127.0.0.1',
-    port: 5173
+    port: 5173,
   },
   build: {
     crossorigin: false,
@@ -21,11 +21,11 @@ export default defineConfig({
       output: {
         manualChunks: {
           'reka-ui': ['reka-ui'],
-          'iconify': ['@iconify/vue'],
+          iconify: ['@iconify/vue'],
           'vue-vendor': ['vue', 'vue-router', 'pinia'],
-        }
-      }
-    }
+        },
+      },
+    },
   },
   plugins: [
     vue(),
@@ -36,54 +36,54 @@ export default defineConfig({
           build: {
             outDir: 'dist-electron',
             rollupOptions: {
-              external: ['electron']
-            }
-          }
-        }
+              external: ['electron'],
+            },
+          },
+        },
       },
       {
         entry: 'electron/preload.js',
         onstart(args) {
-          args.reload()
+          args.reload();
         },
         vite: {
           build: {
             outDir: 'dist-electron',
             rollupOptions: {
-              external: ['electron']
-            }
-          }
-        }
+              external: ['electron'],
+            },
+          },
+        },
       },
       {
         entry: 'electron/preload/desktopLyrics.js',
         onstart(args) {
-          args.reload()
+          args.reload();
         },
         vite: {
           build: {
             outDir: 'dist-electron',
             rollupOptions: {
-              external: ['electron']
-            }
-          }
-        }
+              external: ['electron'],
+            },
+          },
+        },
       },
       {
         entry: 'electron/preload/lyricsEditor.js',
         onstart(args) {
-          args.reload()
+          args.reload();
         },
         vite: {
           build: {
             outDir: 'dist-electron',
             rollupOptions: {
-              external: ['electron']
-            }
-          }
-        }
-      }
+              external: ['electron'],
+            },
+          },
+        },
+      },
     ]),
-    renderer()
-  ]
-})
+    renderer(),
+  ],
+});

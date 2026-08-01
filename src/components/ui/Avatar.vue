@@ -10,14 +10,14 @@
 </template>
 
 <script setup>
-import { AvatarRoot, AvatarImage, AvatarFallback } from 'reka-ui'
-import { Icon } from '@iconify/vue'
+import { AvatarRoot, AvatarImage, AvatarFallback } from 'reka-ui';
+import { Icon } from '@iconify/vue';
 
 defineProps({
   src: { type: String, default: '' },
   alt: { type: String, default: '' },
-  size: { type: Number, default: 32 }
-})
+  size: { type: Number, default: 32 },
+});
 </script>
 
 <style>

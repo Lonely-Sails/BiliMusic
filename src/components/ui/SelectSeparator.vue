@@ -3,5 +3,5 @@
 </template>
 
 <script setup>
-import { SelectSeparator } from 'reka-ui'
+import { SelectSeparator } from 'reka-ui';
 </script>

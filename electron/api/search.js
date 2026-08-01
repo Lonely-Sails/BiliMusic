@@ -1,5 +1,5 @@
-import { sign } from './sign'
-import { apiGet } from './client'
+import { sign } from './sign.js';
+import { apiGet } from './client.js';
 
 async function searchVideo(keyword, page = 1, pageSize = 20, musicOnly = true) {
   const params = await sign({
@@ -7,16 +7,16 @@ async function searchVideo(keyword, page = 1, pageSize = 20, musicOnly = true) {
     keyword,
     page,
     page_size: pageSize,
-  })
-  if (musicOnly) params.tids = 3 // 3 = music category, filters results to music videos only
+  });
+  if (musicOnly) params.tids = 3; // 3 = music category, filters results to music videos only
 
-  const data = await apiGet('https://api.bilibili.com/x/web-interface/wbi/search/type', params)
+  const data = await apiGet('https://api.bilibili.com/x/web-interface/wbi/search/type', params);
 
   if (data.code !== 0) {
-    throw new Error(`Search API error: ${data.code} - ${data.message}`)
+    throw new Error(`Search API error: ${data.code} - ${data.message}`);
   }
 
-  const result = data.data || {}
+  const result = data.data || {};
 
   const videos = (result.result || []).map((item) => ({
     bvid: item.bvid,
@@ -32,16 +32,16 @@ async function searchVideo(keyword, page = 1, pageSize = 20, musicOnly = true) {
     tag: item.tag,
     description: item.description,
     create: item.create,
-    cid: item.cid || null
-  }))
+    cid: item.cid || null,
+  }));
 
   return {
     videos,
     page: result.page || page,
     pageSize: result.pagesize || pageSize,
     total: result.numResults || result.total || videos.length,
-    totalPages: result.numPages || 1
-  }
+    totalPages: result.numPages || 1,
+  };
 }
 
 /**
@@ -49,18 +49,18 @@ async function searchVideo(keyword, page = 1, pageSize = 20, musicOnly = true) {
  * GET https://s.search.bilibili.com/main/suggest?term=xxx
  */
 async function getSearchSuggest(term) {
-  const params = { term, func: 'suggest', suggest_type: 'accurate', sub_type: 'tag' }
-  const data = await apiGet('https://s.search.bilibili.com/main/suggest', params)
+  const params = { term, func: 'suggest', suggest_type: 'accurate', sub_type: 'tag' };
+  const data = await apiGet('https://s.search.bilibili.com/main/suggest', params);
 
   if (data.code !== 0) {
-    return []
+    return [];
   }
 
-  const tags = data.result?.tag || []
+  const tags = data.result?.tag || [];
   return tags.map((t) => ({
     value: t.value,
-    name: t.name.replace(/<[^>]+>/g, '')
-  }))
+    name: t.name.replace(/<[^>]+>/g, ''),
+  }));
 }
 
 /**
@@ -69,18 +69,18 @@ async function getSearchSuggest(term) {
  * GET https://s.search.bilibili.com/main/hotword
  */
 async function getHotSearch() {
-  const data = await apiGet('https://s.search.bilibili.com/main/hotword')
+  const data = await apiGet('https://s.search.bilibili.com/main/hotword');
 
   if (data.code !== 0) {
-    return []
+    return [];
   }
 
-  const list = data.list || []
+  const list = data.list || [];
   return list.map((item) => ({
     keyword: item.keyword,
     showName: item.show_name,
-    icon: item.icon || ''
-  }))
+    icon: item.icon || '',
+  }));
 }
 
-export { searchVideo, getSearchSuggest, getHotSearch }
+export { searchVideo, getSearchSuggest, getHotSearch };

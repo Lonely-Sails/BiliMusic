@@ -2,10 +2,8 @@
   <TooltipProvider>
     <div class="playlist-view">
       <div class="playlist-header">
-        <h2>
-          <Icon icon="mdi:playlist-music" class="section-icon" />播放列表
-        </h2>
-        <div class="playlist-actions" v-if="player.playlist.length">
+        <h2><Icon icon="mdi:playlist-music" class="section-icon" />播放列表</h2>
+        <div v-if="player.playlist.length" class="playlist-actions">
           <span class="playlist-count">{{ player.playlist.length }} 首</span>
           <Separator orientation="vertical" />
           <Tooltip text="清空播放列表" side="top">
@@ -23,25 +21,40 @@
       </div>
 
       <div v-else class="playlist-items">
-        <div v-for="(item, index) in player.playlist" :key="item.bvid + '-' + index" class="playlist-item"
-          :class="{ active: index === player.currentIndex }" @click="player.playAtIndex(index)">
+        <div
+          v-for="(item, index) in player.playlist"
+          :key="item.bvid + '-' + index"
+          class="playlist-item"
+          :class="{ active: index === player.currentIndex }"
+          @click="player.playAtIndex(index)"
+        >
           <div class="item-cover">
             <img :src="item.cover + '@200w_200h.webp'" :alt="item.title" loading="lazy" />
-            <div class="item-playing" v-if="index === player.currentIndex">
-              <span class="bar" v-for="n in 4" :key="n" />
+            <div v-if="index === player.currentIndex" class="item-playing">
+              <span v-for="n in 4" :key="n" class="bar" />
             </div>
           </div>
           <div class="item-info">
             <div class="item-title" :title="item.title">
-              <span v-if="index === player.currentIndex" class="now-label">NOW</span>{{ item.title }}
+              <span v-if="index === player.currentIndex" class="now-label">NOW</span
+              >{{ item.title }}
             </div>
             <div class="item-author">{{ item.author || '未知' }}</div>
           </div>
           <div class="item-duration">{{ formatDuration(item.duration) }}</div>
           <div class="item-actions">
-            <Tooltip v-if="user.loggedIn && user.favFolderId" :text="user.isFavorited(item.bvid) ? '取消收藏' : '收藏到「' + user.favFolderName + '」'" side="top">
-              <button class="item-fav-btn" :class="{ favorited: user.isFavorited(item.bvid) }"
-                @click.stop="user.toggleFav(item)">
+            <Tooltip
+              v-if="user.loggedIn && user.favFolderId"
+              :text="
+                user.isFavorited(item.bvid) ? '取消收藏' : '收藏到「' + user.favFolderName + '」'
+              "
+              side="top"
+            >
+              <button
+                class="item-fav-btn"
+                :class="{ favorited: user.isFavorited(item.bvid) }"
+                @click.stop="user.toggleFav(item)"
+              >
                 <Icon :icon="user.isFavorited(item.bvid) ? 'mdi:heart' : 'mdi:heart-outline'" />
               </button>
             </Tooltip>
@@ -65,22 +78,22 @@
  * 收藏切换、从列表移除。
  */
 
-import { usePlayerStore } from '../../stores/player'
-import { useUserStore } from '../../stores/user'
-import { Icon } from '@iconify/vue'
-import TooltipProvider from '../ui/TooltipProvider.vue'
-import Tooltip from '../ui/Tooltip.vue'
-import Separator from '../ui/Separator.vue'
+import { usePlayerStore } from '../stores/player';
+import { useUserStore } from '../stores/user';
+import { Icon } from '@iconify/vue';
+import TooltipProvider from '../components/ui/TooltipProvider.vue';
+import Tooltip from '../components/ui/Tooltip.vue';
+import Separator from '../components/ui/Separator.vue';
 
-const player = usePlayerStore()
-const user = useUserStore()
+const player = usePlayerStore();
+const user = useUserStore();
 
 /** 格式化秒数为 m:ss 或 --:-- */
 function formatDuration(seconds) {
-  if (!seconds) return '--:--'
-  const m = Math.floor(seconds / 60)
-  const s = seconds % 60
-  return `${m}:${String(s).padStart(2, '0')}`
+  if (!seconds) return '--:--';
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
 }
 </script>
 
@@ -115,7 +128,6 @@ function formatDuration(seconds) {
   font-size: 13px;
   color: var(--text-secondary);
 }
-
 
 .clear-btn {
   background: transparent;
@@ -263,17 +275,21 @@ function formatDuration(seconds) {
   gap: 2px;
 }
 
-.item-fav-btn {
+.item-fav-btn,
+.item-remove {
   background: transparent;
   border: none;
   color: var(--text-muted);
-  font-size: 15px;
   cursor: pointer;
   padding: 4px;
   transition: all var(--transition);
   display: flex;
   align-items: center;
   border-radius: 4px;
+}
+
+.item-fav-btn {
+  font-size: 15px;
 }
 
 .item-fav-btn:hover {
@@ -286,16 +302,7 @@ function formatDuration(seconds) {
 }
 
 .item-remove {
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
   font-size: 16px;
-  cursor: pointer;
-  padding: 4px;
-  transition: all var(--transition);
-  display: flex;
-  align-items: center;
-  border-radius: 4px;
 }
 
 .item-remove:hover {

@@ -13,7 +13,11 @@
     "dist": "bun run build && electron-builder",
     "dist:mac": "bun run build && electron-builder --mac --publish never",
     "dist:win": "bun run build && electron-builder --win --publish never",
-    "dist:linux": "bun run build && electron-builder --linux --publish never"
+    "dist:linux": "bun run build && electron-builder --linux --publish never",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "qrcode": "^1.5.4"
@@ -21,7 +25,10 @@
   "build": {
     "appId": "com.bilimusic.app",
     "productName": "BiliMusic",
-    "electronLanguages": ["en-US", "zh-CN"],
+    "electronLanguages": [
+      "en-US",
+      "zh-CN"
+    ],
     "directories": {
       "output": "release"
     },
@@ -53,12 +60,18 @@
     }
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@iconify/json": "^2.2.498",
     "@iconify/vue": "^5.0.1",
     "@vitejs/plugin-vue": "^5.2.4",
     "electron": "^42.4.0",
     "electron-builder": "^26.15.3",
+    "eslint": "^10.8.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-vue": "^10.10.0",
+    "globals": "^17.8.0",
     "pinia": "^3.0.4",
+    "prettier": "^3.9.6",
     "reka-ui": "^2.10.1",
     "vite": "^6.4.3",
     "vite-plugin-electron": "^0.29.1",

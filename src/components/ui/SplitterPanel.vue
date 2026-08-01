@@ -5,7 +5,7 @@
 </template>
 
 <script setup>
-import { SplitterPanel } from 'reka-ui'
+import { SplitterPanel } from 'reka-ui';
 </script>
 
 <style scoped>

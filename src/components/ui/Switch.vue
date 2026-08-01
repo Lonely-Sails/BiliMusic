@@ -1,17 +1,21 @@
 <template>
-  <SwitchRoot class="switch-root" :model-value="modelValue" @update:model-value="emit('update:modelValue', $event)">
+  <SwitchRoot
+    class="switch-root"
+    :model-value="modelValue"
+    @update:model-value="emit('update:modelValue', $event)"
+  >
     <SwitchThumb class="switch-thumb" />
   </SwitchRoot>
 </template>
 
 <script setup>
-import { SwitchRoot, SwitchThumb } from 'reka-ui'
+import { SwitchRoot, SwitchThumb } from 'reka-ui';
 
 defineProps({
-  modelValue: { type: Boolean, default: false }
-})
+  modelValue: { type: Boolean, default: false },
+});
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue']);
 </script>
 
 <style scoped>

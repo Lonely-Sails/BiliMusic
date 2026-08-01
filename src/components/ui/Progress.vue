@@ -5,12 +5,12 @@
 </template>
 
 <script setup>
-import { ProgressRoot, ProgressIndicator } from 'reka-ui'
+import { ProgressRoot, ProgressIndicator } from 'reka-ui';
 
 defineProps({
   modelValue: { type: Number, default: 0 },
-  max: { type: Number, default: 100 }
-})
+  max: { type: Number, default: 100 },
+});
 </script>
 
 <style>

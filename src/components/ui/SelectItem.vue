@@ -5,5 +5,5 @@
 </template>
 
 <script setup>
-import { SelectItem } from 'reka-ui'
+import { SelectItem } from 'reka-ui';
 </script>

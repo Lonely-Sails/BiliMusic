@@ -6,7 +6,7 @@
 </template>
 
 <script setup>
-import { ToastProvider, ToastViewport } from 'reka-ui'
+import { ToastProvider, ToastViewport } from 'reka-ui';
 </script>
 
 <style>

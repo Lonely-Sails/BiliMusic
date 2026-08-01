@@ -1,160 +1,173 @@
-import { shouldCache, getCacheKey, responseCacheGet, responseCacheSet } from './cache.js'
-export { getResponseCacheStats, clearResponseCache, setResponseCacheMax } from './cache.js'
+import { shouldCache, getCacheKey, responseCacheGet, responseCacheSet } from './cache.js';
+export { getResponseCacheStats, clearResponseCache, setResponseCacheMax } from './cache.js';
 
-let cookies = []
+let cookies = [];
 
-const BASE_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+const BASE_UA =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
 function cookieString() {
   return cookies
     .filter((c) => !c.expires || c.expires > Date.now() / 1000)
     .map((c) => `${c.name}=${c.value}`)
-    .join('; ')
+    .join('; ');
 }
 
 function parseSetCookie(setCookieArr) {
-  if (!setCookieArr) return
+  if (!setCookieArr) return;
   for (const sc of setCookieArr) {
-    const parts = sc.split(';').map((p) => p.trim())
-    const [name, ...rest] = parts[0].split('=')
-    const value = rest.join('=')
-    const existing = cookies.findIndex((c) => c.name === name)
-    const entry = { name, value }
+    const parts = sc.split(';').map((p) => p.trim());
+    const [name, ...rest] = parts[0].split('=');
+    const value = rest.join('=');
+    const existing = cookies.findIndex((c) => c.name === name);
+    const entry = { name, value };
 
     for (let i = 1; i < parts.length; i++) {
-      const [k, ...v] = parts[i].split('=')
+      const [k, ...v] = parts[i].split('=');
       if (k.toLowerCase() === 'max-age') {
-        entry.expires = Date.now() / 1000 + parseInt(v.join('='))
+        entry.expires = Date.now() / 1000 + parseInt(v.join('='));
       } else if (k.toLowerCase() === 'expires') {
-        entry.expires = new Date(v.join('=')).getTime() / 1000
+        entry.expires = new Date(v.join('=')).getTime() / 1000;
       }
     }
 
     if (existing >= 0) {
-      cookies[existing] = { ...cookies[existing], ...entry }
+      cookies[existing] = { ...cookies[existing], ...entry };
     } else {
-      cookies.push(entry)
+      cookies.push(entry);
     }
   }
 }
 
 function clearCookies() {
-  cookies = []
+  cookies = [];
 }
 
 function loadSession(sessionData) {
   if (sessionData && sessionData.cookies) {
-    cookies = sessionData.cookies
+    cookies = sessionData.cookies;
   }
 }
 
 function getSession() {
-  return { cookies }
+  return { cookies };
 }
 
-const REQUEST_TIMEOUT = 20000 // 20 seconds
+const REQUEST_TIMEOUT = 20000; // 20 seconds
 
 async function apiFetch(url, options = {}) {
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT)
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
 
   const headers = {
     'User-Agent': BASE_UA,
-    'Origin': 'https://www.bilibili.com',
-    'Referer': 'https://www.bilibili.com',
-    ...options.headers
-  }
+    Origin: 'https://www.bilibili.com',
+    Referer: 'https://www.bilibili.com',
+    ...options.headers,
+  };
 
-  const cookieStr = cookieString()
-  if (cookieStr) headers['Cookie'] = cookieStr
+  const cookieStr = cookieString();
+  if (cookieStr) headers['Cookie'] = cookieStr;
 
-
-  let resp
+  let resp;
   try {
     resp = await fetch(url, {
       ...options,
       headers,
-      signal: controller.signal
-    })
+      signal: controller.signal,
+    });
   } finally {
-    clearTimeout(timeoutId)
+    clearTimeout(timeoutId);
   }
 
   // Parse set-cookie headers (supports multiple Set-Cookie headers)
-  const allCookies = typeof resp.headers.getSetCookie === 'function'
-    ? resp.headers.getSetCookie()
-    : (resp.headers.get('set-cookie') ? [resp.headers.get('set-cookie')] : [])
+  const allCookies =
+    typeof resp.headers.getSetCookie === 'function'
+      ? resp.headers.getSetCookie()
+      : resp.headers.get('set-cookie')
+        ? [resp.headers.get('set-cookie')]
+        : [];
   if (allCookies.length > 0) {
-    parseSetCookie(allCookies)
+    parseSetCookie(allCookies);
   }
 
-  return resp
+  return resp;
 }
 
 async function apiGet(url, params = {}, options = {}) {
-  const { skipCache = false } = options
-  const cacheKey = getCacheKey(url, params)
+  const { skipCache = false } = options;
+  const cacheKey = getCacheKey(url, params);
 
   // Try cache first (only for GET requests to non-auth endpoints)
   if (!skipCache && shouldCache(url)) {
-    const cached = responseCacheGet(cacheKey)
-    if (cached !== undefined) return cached
+    const cached = responseCacheGet(cacheKey);
+    if (cached !== undefined) return cached;
   }
 
-  const searchParams = new URLSearchParams()
+  const searchParams = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
-    searchParams.append(key, String(value))
+    searchParams.append(key, String(value));
   }
-  const queryString = searchParams.toString()
-  const fullUrl = queryString ? `${url}?${queryString}` : url
+  const queryString = searchParams.toString();
+  const fullUrl = queryString ? `${url}?${queryString}` : url;
 
-  const resp = await apiFetch(fullUrl, { method: 'GET' })
-  const data = await resp.json()
+  const resp = await apiFetch(fullUrl, { method: 'GET' });
+  const data = await resp.json();
 
   // Cache successful responses only
   if (!skipCache && shouldCache(url) && data && data.code === 0) {
-    responseCacheSet(cacheKey, data)
+    responseCacheSet(cacheKey, data);
   }
 
-  return data
+  return data;
 }
 
 async function apiPost(url, data = {}) {
-  const body = new URLSearchParams()
+  const body = new URLSearchParams();
   for (const [key, value] of Object.entries(data)) {
-    body.append(key, String(value))
+    body.append(key, String(value));
   }
 
   const resp = await apiFetch(url, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/x-www-form-urlencoded'
+      'Content-Type': 'application/x-www-form-urlencoded',
     },
-    body: body.toString()
-  })
-  return resp.json()
+    body: body.toString(),
+  });
+  return resp.json();
 }
 
 /**
  * 通用缓存请求 — 用于非 apiGet 但需要缓存的场景
  */
 async function cachedFetch(url, options = {}) {
-  const cacheKey = `fetch:${url}`
+  const cacheKey = `fetch:${url}`;
   if (shouldCache(url)) {
-    const cached = responseCacheGet(cacheKey)
-    if (cached !== undefined) return cached
+    const cached = responseCacheGet(cacheKey);
+    if (cached !== undefined) return cached;
   }
-  const resp = await apiFetch(url, { method: 'GET', ...options })
-  let data
+  const resp = await apiFetch(url, { method: 'GET', ...options });
+  let data;
   try {
-    data = await resp.json()
+    data = await resp.json();
   } catch {
-    data = await resp.text()
+    data = await resp.text();
   }
   if (shouldCache(url) && data) {
-    responseCacheSet(cacheKey, data)
+    responseCacheSet(cacheKey, data);
   }
-  return data
+  return data;
 }
 
-export { apiGet, apiPost, apiFetch, cachedFetch, loadSession, getSession, parseSetCookie, clearCookies }
+export {
+  BASE_UA,
+  apiGet,
+  apiPost,
+  apiFetch,
+  cachedFetch,
+  loadSession,
+  getSession,
+  parseSetCookie,
+  clearCookies,
+};

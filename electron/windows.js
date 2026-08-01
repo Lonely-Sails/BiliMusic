@@ -9,25 +9,25 @@
  * 桌面歌词支持位置/大小持久化，重启后自动恢复。
  */
 
-import { BrowserWindow, screen, app } from 'electron'
-import { join } from 'path'
-import { existsSync, readFileSync, writeFileSync } from 'fs'
-import { logger } from './utils/logger.js'
+import { BrowserWindow, screen, app } from 'electron';
+import { join } from 'path';
+import { existsSync, readFileSync, writeFileSync } from 'fs';
+import { logger } from './utils/logger.js';
 
 // 项目根目录（dev: electron/../ → 项目根; prod: dist-electron/../ → 项目根）
-const PROJECT_ROOT = join(__dirname, '..')
+const PROJECT_ROOT = join(__dirname, '..');
 
 export function createWindowManager() {
-  let mainWindow = null
-  let desktopLyricsWindow = null
-  let lyricsEditorWindow = null
+  let mainWindow = null;
+  let desktopLyricsWindow = null;
+  let lyricsEditorWindow = null;
 
   // ══════════════════════════════════════════
   //  主窗口 — 应用主界面
   // ══════════════════════════════════════════
   function createMainWindow() {
-    const isMac = process.platform === 'darwin'
-    logger.info('Creating main window')
+    const isMac = process.platform === 'darwin';
+    logger.info('Creating main window');
 
     mainWindow = new BrowserWindow({
       width: 1200,
@@ -36,22 +36,21 @@ export function createWindowManager() {
       minHeight: 600,
       ...(isMac
         ? { titleBarStyle: 'hiddenInset', trafficLightPosition: { x: 18, y: 22 } }
-        : { frame: false }
-      ),
+        : { frame: false }),
       webPreferences: {
         preload: join(__dirname, 'preload.js'),
         contextIsolation: true,
         nodeIntegration: false,
-        webSecurity: true
+        webSecurity: true,
       },
       show: false,
-      backgroundColor: '#0a0a14'
-    })
+      backgroundColor: '#0a0a14',
+    });
 
-    mainWindow.once('ready-to-show', () => mainWindow.show())
+    mainWindow.once('ready-to-show', () => mainWindow.show());
 
-    mainWindow.on('maximize', () => mainWindow.webContents.send('window:maximize-change', true))
-    mainWindow.on('unmaximize', () => mainWindow.webContents.send('window:maximize-change', false))
+    mainWindow.on('maximize', () => mainWindow.webContents.send('window:maximize-change', true));
+    mainWindow.on('unmaximize', () => mainWindow.webContents.send('window:maximize-change', false));
 
     mainWindow.webContents.session.webRequest.onBeforeSendHeaders(
       { urls: ['*://*.hdslb.com/*', '*://*.hdslb.net/*', '*://*.biliimg.com/*'] },
@@ -59,23 +58,27 @@ export function createWindowManager() {
         callback({
           requestHeaders: {
             ...details.requestHeaders,
-            'Referer': 'https://www.bilibili.com',
-            'Origin': 'https://www.bilibili.com'
-          }
-        })
+            Referer: 'https://www.bilibili.com',
+            Origin: 'https://www.bilibili.com',
+          },
+        });
       }
-    )
+    );
 
     if (process.env.VITE_DEV_SERVER_URL) {
-      mainWindow.webContents.openDevTools()
-      mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL)
+      mainWindow.webContents.openDevTools();
+      mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
     } else {
-      mainWindow.loadFile(join(PROJECT_ROOT, 'dist/index.html'))
+      mainWindow.loadFile(join(PROJECT_ROOT, 'dist/index.html'));
     }
   }
 
-  function getMainWindow() { return mainWindow }
-  function isMainWindowAlive() { return mainWindow && !mainWindow.isDestroyed() }
+  function getMainWindow() {
+    return mainWindow;
+  }
+  function isMainWindowAlive() {
+    return mainWindow && !mainWindow.isDestroyed();
+  }
 
   // ══════════════════════════════════════════
   //  桌面歌词窗口 — 透明悬浮窗，始终置顶
@@ -83,15 +86,15 @@ export function createWindowManager() {
   // ══════════════════════════════════════════
   function createDesktopLyricsWindow() {
     if (desktopLyricsWindow && !desktopLyricsWindow.isDestroyed()) {
-      desktopLyricsWindow.show()
-      desktopLyricsWindow.focus()
-      return
+      desktopLyricsWindow.show();
+      desktopLyricsWindow.focus();
+      return;
     }
 
-    logger.info('Creating desktop lyrics window')
-    const savedPos = readDesktopLyricsPosition()
-    const { width: sw, height: sh } = screen.getPrimaryDisplay().workAreaSize
-    const pos = savedPos || { x: sw - 520, y: sh - 180, width: 500, height: 140 }
+    logger.info('Creating desktop lyrics window');
+    const savedPos = readDesktopLyricsPosition();
+    const { width: sw, height: sh } = screen.getPrimaryDisplay().workAreaSize;
+    const pos = savedPos || { x: sw - 520, y: sh - 180, width: 500, height: 140 };
 
     desktopLyricsWindow = new BrowserWindow({
       width: pos.width,
@@ -113,75 +116,87 @@ export function createWindowManager() {
           : join(__dirname, 'desktopLyrics.js'),
         contextIsolation: true,
         nodeIntegration: false,
-        webSecurity: false
+        webSecurity: false,
       },
       show: false,
-      backgroundColor: '#00000000'
-    })
+      backgroundColor: '#00000000',
+    });
 
-    desktopLyricsWindow.setVisibleOnAllWorkspaces(true)
+    desktopLyricsWindow.setVisibleOnAllWorkspaces(true);
 
     if (process.env.VITE_DEV_SERVER_URL) {
-      desktopLyricsWindow.loadURL(process.env.VITE_DEV_SERVER_URL + 'pages/desktop-lyrics/index.html')
+      desktopLyricsWindow.loadURL(
+        process.env.VITE_DEV_SERVER_URL + 'pages/desktop-lyrics/index.html'
+      );
     } else {
-      desktopLyricsWindow.loadFile(join(PROJECT_ROOT, 'dist/pages/desktop-lyrics/index.html'))
+      desktopLyricsWindow.loadFile(join(PROJECT_ROOT, 'dist/pages/desktop-lyrics/index.html'));
     }
 
-    desktopLyricsWindow.once('ready-to-show', () => desktopLyricsWindow.show())
+    desktopLyricsWindow.once('ready-to-show', () => desktopLyricsWindow.show());
 
-    if (pos?.x != null) desktopLyricsWindow.setPosition(pos.x, pos.y)
-    desktopLyricsWindow.on('resize', () => saveDesktopLyricsPosition())
-    desktopLyricsWindow.on('moved', () => saveDesktopLyricsPosition())
+    if (pos?.x != null) desktopLyricsWindow.setPosition(pos.x, pos.y);
+    desktopLyricsWindow.on('resize', () => saveDesktopLyricsPosition());
+    desktopLyricsWindow.on('moved', () => saveDesktopLyricsPosition());
     desktopLyricsWindow.on('closed', () => {
-      desktopLyricsWindow = null
-      notifyMain('desktop-lyrics:visibility', false)
-    })
+      desktopLyricsWindow = null;
+      notifyMain('desktop-lyrics:visibility', false);
+    });
   }
 
   function restoreDesktopLyricsPosition() {
     try {
-      const posPath = join(app.getPath('userData'), 'desktop-lyrics-pos.json')
+      const posPath = join(app.getPath('userData'), 'desktop-lyrics-pos.json');
       if (existsSync(posPath)) {
-        const state = JSON.parse(readFileSync(posPath, 'utf-8'))
+        const state = JSON.parse(readFileSync(posPath, 'utf-8'));
         if (state.visible) {
-          logger.info('Restoring desktop lyrics from saved state')
-          createDesktopLyricsWindow()
+          logger.info('Restoring desktop lyrics from saved state');
+          createDesktopLyricsWindow();
         }
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
 
   function saveDesktopLyricsPosition() {
-    if (!desktopLyricsWindow || desktopLyricsWindow.isDestroyed()) return
+    if (!desktopLyricsWindow || desktopLyricsWindow.isDestroyed()) return;
     try {
-      const [x, y] = desktopLyricsWindow.getPosition()
-      const [width, height] = desktopLyricsWindow.getSize()
-      const visible = desktopLyricsWindow.isVisible()
-      const posPath = join(app.getPath('userData'), 'desktop-lyrics-pos.json')
-      writeFileSync(posPath, JSON.stringify({ x, y, width, height, visible }))
-    } catch { /* ignore */ }
+      const [x, y] = desktopLyricsWindow.getPosition();
+      const [width, height] = desktopLyricsWindow.getSize();
+      const visible = desktopLyricsWindow.isVisible();
+      const posPath = join(app.getPath('userData'), 'desktop-lyrics-pos.json');
+      writeFileSync(posPath, JSON.stringify({ x, y, width, height, visible }));
+    } catch {
+      /* ignore */
+    }
   }
 
   function readDesktopLyricsPosition() {
     try {
-      const posPath = join(app.getPath('userData'), 'desktop-lyrics-pos.json')
-      if (existsSync(posPath)) return JSON.parse(readFileSync(posPath, 'utf-8'))
-    } catch { /* ignore */ }
-    return null
+      const posPath = join(app.getPath('userData'), 'desktop-lyrics-pos.json');
+      if (existsSync(posPath)) return JSON.parse(readFileSync(posPath, 'utf-8'));
+    } catch {
+      /* ignore */
+    }
+    return null;
   }
 
-  function getDesktopLyricsWindow() { return desktopLyricsWindow }
-  function isDesktopLyricsAlive() { return desktopLyricsWindow && !desktopLyricsWindow.isDestroyed() }
+  function getDesktopLyricsWindow() {
+    return desktopLyricsWindow;
+  }
+  function isDesktopLyricsAlive() {
+    return desktopLyricsWindow && !desktopLyricsWindow.isDestroyed();
+  }
 
   // ── Lyrics Editor Window ──
   function createLyricsEditorWindow() {
     if (lyricsEditorWindow && !lyricsEditorWindow.isDestroyed()) {
-      lyricsEditorWindow.show()
-      lyricsEditorWindow.focus()
-      return
+      lyricsEditorWindow.show();
+      lyricsEditorWindow.focus();
+      return;
     }
 
-    logger.info('Creating lyrics editor window')
+    logger.info('Creating lyrics editor window');
     lyricsEditorWindow = new BrowserWindow({
       width: 960,
       height: 680,
@@ -195,34 +210,46 @@ export function createWindowManager() {
           : join(__dirname, 'lyricsEditor.js'),
         contextIsolation: true,
         nodeIntegration: false,
-        webSecurity: false
+        webSecurity: false,
       },
       show: false,
-      backgroundColor: '#0f0f1a'
-    })
+      backgroundColor: '#0f0f1a',
+    });
 
     if (process.env.VITE_DEV_SERVER_URL) {
-      lyricsEditorWindow.loadURL(process.env.VITE_DEV_SERVER_URL + 'pages/lyrics-editor/index.html')
+      lyricsEditorWindow.loadURL(
+        process.env.VITE_DEV_SERVER_URL + 'pages/lyrics-editor/index.html'
+      );
     } else {
-      lyricsEditorWindow.loadFile(join(PROJECT_ROOT, 'dist/pages/lyrics-editor/index.html'))
+      lyricsEditorWindow.loadFile(join(PROJECT_ROOT, 'dist/pages/lyrics-editor/index.html'));
     }
 
-    lyricsEditorWindow.once('ready-to-show', () => lyricsEditorWindow.show())
-    lyricsEditorWindow.on('closed', () => { lyricsEditorWindow = null })
+    lyricsEditorWindow.once('ready-to-show', () => lyricsEditorWindow.show());
+    lyricsEditorWindow.on('closed', () => {
+      lyricsEditorWindow = null;
+    });
   }
 
-  function getLyricsEditorWindow() { return lyricsEditorWindow }
+  function getLyricsEditorWindow() {
+    return lyricsEditorWindow;
+  }
 
   // ── Helpers ──
   function notifyMain(channel, data) {
-    if (isMainWindowAlive()) mainWindow.webContents.send(channel, data)
+    if (isMainWindowAlive()) mainWindow.webContents.send(channel, data);
   }
 
   return {
-    createMainWindow, getMainWindow, isMainWindowAlive,
-    createDesktopLyricsWindow, getDesktopLyricsWindow, isDesktopLyricsAlive,
-    restoreDesktopLyricsPosition, saveDesktopLyricsPosition,
-    createLyricsEditorWindow, getLyricsEditorWindow,
-    notifyMain
-  }
+    createMainWindow,
+    getMainWindow,
+    isMainWindowAlive,
+    createDesktopLyricsWindow,
+    getDesktopLyricsWindow,
+    isDesktopLyricsAlive,
+    restoreDesktopLyricsPosition,
+    saveDesktopLyricsPosition,
+    createLyricsEditorWindow,
+    getLyricsEditorWindow,
+    notifyMain,
+  };
 }

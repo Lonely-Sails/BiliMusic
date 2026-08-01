@@ -1,9 +1,10 @@
-const { contextBridge, ipcRenderer } = require('electron')
+const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('lyricsEditorAPI', {
   // Search
   searchLyricCandidates: (title) => ipcRenderer.invoke('lyric:search-candidates', title),
-  searchRankedCandidates: (keyword, videoTitle, author) => ipcRenderer.invoke('lyric:search-ranked', keyword, videoTitle, author),
+  searchRankedCandidates: (keyword, videoTitle, author) =>
+    ipcRenderer.invoke('lyric:search-ranked', keyword, videoTitle, author),
   fetchLyric: (source, id) => ipcRenderer.invoke('lyric:fetch', source, id),
 
   // Local files
@@ -19,6 +20,6 @@ contextBridge.exposeInMainWorld('lyricsEditorAPI', {
   // Window
   closeWindow: () => ipcRenderer.send('lyrics-editor:close'),
   onTrackInfo: (callback) => {
-    ipcRenderer.on('lyrics-editor:track', (_event, info) => callback(info))
+    ipcRenderer.on('lyrics-editor:track', (_event, info) => callback(info));
   },
-})
+});

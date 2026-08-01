@@ -59,32 +59,38 @@ BiliMusic/
 ## 功能模块
 
 ### 1. 搜索
+
 - 调用 Bilibili 搜索 API (`/x/web-interface/wbi/search/type`)
 - 按关键词搜索视频，展示结果列表（封面、标题、时长、UP主）
 - 支持将搜索结果添加到播放列表
 
 ### 2. 播放
+
 - 通过视频 playurl API 获取 DASH 音频流 URL
 - HTML5 `<audio>` 播放，支持播放/暂停/上一首/下一首
 - 进度条、音量控制、播放模式（顺序/随机/单曲循环）
 - 迷你播放条（固定在底部）
 
 ### 3. 歌词
+
 - 优先从 Bilibili 字幕 API 获取字幕/CC
 - 回退到第三方歌词 API（如 歌词源）
 - LRC 格式解析与同步滚动显示
 
 ### 4. 登录
+
 - 二维码登录流程：获取二维码 → 轮询扫码状态 → 保存 Cookie
 - Cookie 持久化到本地文件（`session.json`）
 - 显示用户头像、昵称
 
 ### 5. 收藏
+
 - 展示用户的 Bilibili 收藏夹列表
 - 从收藏夹加载视频到播放列表
 - 将当前播放歌曲添加到指定收藏夹
 
 ### 6. 播放列表
+
 - 当前队列管理（添加、删除、拖拽排序）
 - 本地持久化播放列表
 - 支持从搜索结果/收藏夹添加
@@ -103,47 +109,53 @@ BiliMusic/
 
 ## Bilibili API 使用
 
-| 用途 | 端点 | 认证 |
-|------|------|------|
-| 搜索视频 | `/x/web-interface/wbi/search/type` | WBI 签名 |
-| 视频信息 | `/x/web-interface/wbi/view` | WBI 签名 |
-| 音频流 | `/x/player/wbi/playurl` | WBI 签名 + Cookie |
-| 二维码登录 | `/x/passport-login/web/qrcode/generate` | 无 |
-| 轮询扫码 | `/x/passport-login/web/qrcode/poll` | 无 |
-| 收藏夹列表 | `/x/v3/fav/folder/created/list-all` | Cookie |
-| 收藏夹内容 | `/x/v3/fav/resource/list` | Cookie |
-| 收藏操作 | `/x/v3/fav/resource/deal` | Cookie + CSRF |
-| 字幕 | `/x/player/v2` | WBI 签名 |
+| 用途       | 端点                                    | 认证              |
+| ---------- | --------------------------------------- | ----------------- |
+| 搜索视频   | `/x/web-interface/wbi/search/type`      | WBI 签名          |
+| 视频信息   | `/x/web-interface/wbi/view`             | WBI 签名          |
+| 音频流     | `/x/player/wbi/playurl`                 | WBI 签名 + Cookie |
+| 二维码登录 | `/x/passport-login/web/qrcode/generate` | 无                |
+| 轮询扫码   | `/x/passport-login/web/qrcode/poll`     | 无                |
+| 收藏夹列表 | `/x/v3/fav/folder/created/list-all`     | Cookie            |
+| 收藏夹内容 | `/x/v3/fav/resource/list`               | Cookie            |
+| 收藏操作   | `/x/v3/fav/resource/deal`               | Cookie + CSRF     |
+| 字幕       | `/x/player/v2`                          | WBI 签名          |
 
 ## 实施步骤
 
 ### Step 1: 项目初始化
+
 - 初始化 `package.json`，安装 Electron
 - 创建主进程 `main.js`、`preload.js`
 
 ### Step 2: Bilibili API 核心
+
 - 实现 WBI 签名工具 (`src/api/sign.js`)
 - 实现 HTTP 客户端 (`src/api/client.js`)
 - 实现搜索 API (`src/api/search.js`)
 - 实现视频+音频流 API (`src/api/video.js`)
 
 ### Step 3: 登录系统
+
 - 实现二维码登录 (`src/api/auth.js`)
 - Cookie 持久化
 - 渲染进程登录面板 UI
 
 ### Step 4: 播放器 UI
+
 - 搜索界面（搜索框 + 结果列表）
 - 播放器控制栏（封面、标题、进度条、控制按钮）
 - 歌词面板
 - 播放列表侧栏
 
 ### Step 5: 收藏功能
+
 - 收藏夹列表展示
 - 从收藏夹添加歌曲
 - 收藏/取消收藏当前歌曲
 
 ### Step 6: 完善与测试
+
 - 播放模式切换
 - 键盘快捷键
 - 错误处理
@@ -155,8 +167,8 @@ BiliMusic/
 2. `bun run dev` 开发模式启动（Vite dev server + Electron）
 3. `bun run build` 构建生产版本
 4. 搜索关键词验证搜索功能
-2. 搜索关键词验证搜索功能
-3. 点击搜索结果验证播放
-4. 验证登录流程
-5. 验证收藏功能
-6. 验证歌词显示
+5. 搜索关键词验证搜索功能
+6. 点击搜索结果验证播放
+7. 验证登录流程
+8. 验证收藏功能
+9. 验证歌词显示

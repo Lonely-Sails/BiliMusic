@@ -11,8 +11,8 @@
             <SelectItem v-for="item in items" :key="item.value" :value="item.value">
               <SelectItemText>{{ item.label }}</SelectItemText>
             </SelectItem>
-            <SelectSeparator class="select-separator" v-if="items.length" />
-            <SelectItem value="__none__" v-if="noneOption">
+            <SelectSeparator v-if="items.length" class="select-separator" />
+            <SelectItem v-if="noneOption" value="__none__">
               <SelectItemText class="text-muted">{{ noneLabel }}</SelectItemText>
             </SelectItem>
           </slot>
@@ -23,18 +23,28 @@
 </template>
 
 <script setup>
-import { SelectRoot, SelectTrigger, SelectValue, SelectPortal, SelectContent, SelectViewport, SelectItem, SelectItemText, SelectSeparator } from 'reka-ui'
-import { Icon } from '@iconify/vue'
+import {
+  SelectRoot,
+  SelectTrigger,
+  SelectValue,
+  SelectPortal,
+  SelectContent,
+  SelectViewport,
+  SelectItem,
+  SelectItemText,
+  SelectSeparator,
+} from 'reka-ui';
+import { Icon } from '@iconify/vue';
 
 defineProps({
   modelValue: { type: String, default: '' },
   items: { type: Array, default: () => [] },
   placeholder: { type: String, default: '选择...' },
   noneOption: { type: Boolean, default: false },
-  noneLabel: { type: String, default: '不使用' }
-})
+  noneLabel: { type: String, default: '不使用' },
+});
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue']);
 </script>
 
 <style>
@@ -94,7 +104,7 @@ const emit = defineEmits(['update:modelValue'])
   background: var(--bg-hover);
 }
 
-.select-content [data-reka-collection-item][data-state="checked"] {
+.select-content [data-reka-collection-item][data-state='checked'] {
   color: var(--accent);
 }
 

@@ -18,20 +18,17 @@ import './utils/icon-init';
 
 // ── 全局错误捕获（用于调试） ──
 window.onerror = (msg, url, line, col, err) => {
-	console.error('[BiliMusic] GLOBAL ERROR:', msg, err?.stack);
-	return true;
+  console.error('[BiliMusic] GLOBAL ERROR:', msg, err?.stack);
+  return true;
 };
 window.addEventListener('unhandledrejection', (e) => {
-	console.error(
-		'[BiliMusic] UNHANDLED REJECTION:',
-		e.reason?.stack || e.reason,
-	);
+  console.error('[BiliMusic] UNHANDLED REJECTION:', e.reason?.stack || e.reason);
 });
 
 const app = createApp(App);
 app.use(createPinia());
 app.use(router);
 app.config.errorHandler = (err, _instance, info) => {
-	console.error('[BiliMusic] VUE ERROR:', err, info);
+  console.error('[BiliMusic] VUE ERROR:', err, info);
 };
 app.mount('#app');

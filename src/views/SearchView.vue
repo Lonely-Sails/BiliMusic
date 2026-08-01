@@ -2,24 +2,28 @@
   <TooltipProvider>
     <div class="search-view">
       <div v-if="loading" class="loading-state">
-        <div class="spinner" /><span>正在搜索...</span>
+        <div class="spinner" />
+        <span>正在搜索...</span>
       </div>
       <div v-else-if="error" class="error-state">
         <Icon icon="mdi:alert-circle-outline" class="error-icon" />
         <p>{{ error }}</p>
-        <button @click="doSearch" class="retry-btn">重试</button>
+        <button class="retry-btn" @click="doSearch">重试</button>
       </div>
       <div v-else-if="results.length > 0" class="search-results">
-        <div class="results-header"><span class="results-count">共 {{ total }} 个结果</span></div>
+        <div class="results-header">
+          <span class="results-count">共 {{ total }} 个结果</span>
+        </div>
         <div class="results-grid">
           <SongCard v-for="item in results" :key="item.bvid" :item="item" />
         </div>
         <div v-if="totalPages > 1" class="pagination">
-          <button :disabled="page <= 1" @click="goToPage(page - 1)" class="page-btn">
+          <button :disabled="page <= 1" class="page-btn" @click="goToPage(page - 1)">
             <Icon icon="mdi:chevron-left" />上一页
           </button>
           <span class="page-info">{{ page }} / {{ totalPages }}</span>
-          <button :disabled="page >= totalPages" @click="goToPage(page + 1)" class="page-btn">下一页
+          <button :disabled="page >= totalPages" class="page-btn" @click="goToPage(page + 1)">
+            下一页
             <Icon icon="mdi:chevron-right" />
           </button>
         </div>
@@ -41,85 +45,122 @@
  * 支持分页翻页。
  */
 
-import { ref, watch, inject } from 'vue'
-import { useRoute } from 'vue-router'
-import { usePlayerStore } from '../../stores/player'
-import { Icon } from '@iconify/vue'
-import TooltipProvider from '../ui/TooltipProvider.vue'
-import SongCard from '../SongCard.vue'
+import { ref, watch, inject } from 'vue';
+import { useRoute } from 'vue-router';
+import { usePlayerStore } from '../stores/player';
+import { Icon } from '@iconify/vue';
+import TooltipProvider from '../components/ui/TooltipProvider.vue';
+import SongCard from '../components/SongCard.vue';
 
-const route = useRoute()
-const player = usePlayerStore()
-const searchKey = inject('searchKey', ref(0))
+const route = useRoute();
+const player = usePlayerStore();
+const searchKey = inject('searchKey', ref(0));
 
-const results = ref([])
-const loading = ref(false)
-const error = ref('')
-const keyword = ref('')
-const page = ref(1)
-const total = ref(0)
-const totalPages = ref(0)
-let searchTimer = null
-let abortController = null
+const results = ref([]);
+const loading = ref(false);
+const error = ref('');
+const keyword = ref('');
+const page = ref(1);
+const total = ref(0);
+const totalPages = ref(0);
+let searchTimer = null;
+let abortController = null;
 
 // 监听路由参数变化自动搜索（300ms 防抖）
-watch(() => route.query.q, (q) => {
-  results.value = []; error.value = ''
-  if (q?.trim()) { keyword.value = q.trim(); debounceSearch() }
-}, { immediate: true })
+watch(
+  () => route.query.q,
+  (q) => {
+    results.value = [];
+    error.value = '';
+    if (q?.trim()) {
+      keyword.value = q.trim();
+      debounceSearch();
+    }
+  },
+  { immediate: true }
+);
 
 // 外部触发重搜（App.vue 的 searchKey）
-watch(searchKey, () => { if (keyword.value) { results.value = []; error.value = ''; debounceSearch() } })
+watch(searchKey, () => {
+  if (keyword.value) {
+    results.value = [];
+    error.value = '';
+    debounceSearch();
+  }
+});
 
 function debounceSearch() {
-  clearTimeout(searchTimer)
-  searchTimer = setTimeout(() => doSearch(), 300)
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => doSearch(), 300);
 }
 
 /** 执行搜索 */
 async function doSearch() {
-  if (!keyword.value) return
+  if (!keyword.value) return;
   // 取消上一次未完成的请求
-  if (abortController) abortController.abort()
-  abortController = new AbortController()
+  if (abortController) abortController.abort();
+  abortController = new AbortController();
 
-  loading.value = true; error.value = ''; page.value = 1
+  loading.value = true;
+  error.value = '';
+  page.value = 1;
   try {
-    const result = await window.electronAPI.searchVideo(keyword.value, page.value, player.searchMusicOnly)
-    if (result.error) { error.value = result.error; results.value = [] }
-    else {
-      results.value = result.videos || []; total.value = result.total || 0; totalPages.value = result.totalPages || 1
-      detectSeasons(results.value)
+    const result = await window.electronAPI.searchVideo(
+      keyword.value,
+      page.value,
+      player.searchMusicOnly
+    );
+    if (result.error) {
+      error.value = result.error;
+      results.value = [];
+    } else {
+      results.value = result.videos || [];
+      total.value = result.total || 0;
+      totalPages.value = result.totalPages || 1;
+      detectSeasons(results.value);
     }
   } catch (e) {
-    if (e.name === 'AbortError') return
-    error.value = '搜索失败: ' + e.message; results.value = []
+    if (e.name === 'AbortError') return;
+    error.value = '搜索失败: ' + e.message;
+    results.value = [];
+  } finally {
+    loading.value = false;
   }
-  finally { loading.value = false }
 }
 
 /** 翻页 */
 async function goToPage(newPage) {
-  if (newPage < 1 || newPage > totalPages.value) return
-  page.value = newPage; loading.value = true
+  if (newPage < 1 || newPage > totalPages.value) return;
+  page.value = newPage;
+  loading.value = true;
   try {
-    const result = await window.electronAPI.searchVideo(keyword.value, page.value, player.searchMusicOnly)
-    results.value = result.error ? [] : (result.videos || [])
-    if (results.value.length) detectSeasons(results.value)
-  } catch { /* ignore */ }
-  loading.value = false
+    const result = await window.electronAPI.searchVideo(
+      keyword.value,
+      page.value,
+      player.searchMusicOnly
+    );
+    results.value = result.error ? [] : result.videos || [];
+    if (results.value.length) detectSeasons(results.value);
+  } catch {
+    /* ignore */
+  }
+  loading.value = false;
 }
 
 /** 批量检测搜索结果中的合集信息 */
 async function detectSeasons(videos) {
-  if (!videos.length) return
+  if (!videos.length) return;
   try {
-    const bvids = videos.map(v => v.bvid)
-    const seasonMap = await window.electronAPI.checkVideoSeasonBatch(bvids)
+    const bvids = videos.map((v) => v.bvid);
+    const seasonMap = await window.electronAPI.checkVideoSeasonBatch(bvids);
     if (seasonMap && !seasonMap.error) {
-      videos.forEach(v => { if (seasonMap[v.bvid]) v.season = seasonMap[v.bvid] })
+      videos.forEach((v) => {
+        if (seasonMap[v.bvid]) v.season = seasonMap[v.bvid];
+      });
     }
-  } catch { /* 静默失败，不影响搜索体验 */ }
+  } catch {
+    /* 静默失败，不影响搜索体验 */
+  }
 }
 </script>
 

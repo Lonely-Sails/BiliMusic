@@ -13,12 +13,12 @@
 </template>
 
 <script setup>
-import { TooltipRoot, TooltipTrigger, TooltipPortal, TooltipContent, TooltipArrow } from 'reka-ui'
+import { TooltipRoot, TooltipTrigger, TooltipPortal, TooltipContent, TooltipArrow } from 'reka-ui';
 
 defineProps({
   text: { type: String, required: true },
-  side: { type: String, default: 'top' }
-})
+  side: { type: String, default: 'top' },
+});
 </script>
 
 <style>

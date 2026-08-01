@@ -10,37 +10,39 @@
  *   DEBUG < INFO < WARN < ERROR
  */
 
-const PREFIX = '[BiliMusic]'
+const PREFIX = '[BiliMusic]';
 
-const Levels = { DEBUG: 0, INFO: 1, WARN: 2, ERROR: 3 }
-let level = Levels.DEBUG
+const Levels = { DEBUG: 0, INFO: 1, WARN: 2, ERROR: 3 };
+let level = Levels.DEBUG;
 
 /** @returns {string} 当前时间 HH:MM:SS */
 function timestamp() {
-  return new Date().toISOString().slice(11, 19)
+  return new Date().toISOString().slice(11, 19);
 }
 
 export const logger = {
   /** 设置日志级别，低于此级别的不输出 */
-  setLevel(l) { level = l },
+  setLevel(l) {
+    level = l;
+  },
 
   debug(...args) {
-    if (level > Levels.DEBUG) return
-    console.log(`${timestamp()} ${PREFIX} [DEBUG]`, ...args)
+    if (level > Levels.DEBUG) return;
+    console.log(`${timestamp()} ${PREFIX} [DEBUG]`, ...args);
   },
 
   info(...args) {
-    if (level > Levels.INFO) return
-    console.log(`${timestamp()} ${PREFIX} [INFO]`, ...args)
+    if (level > Levels.INFO) return;
+    console.log(`${timestamp()} ${PREFIX} [INFO]`, ...args);
   },
 
   warn(...args) {
-    if (level > Levels.WARN) return
-    console.warn(`${timestamp()} ${PREFIX} [WARN]`, ...args)
+    if (level > Levels.WARN) return;
+    console.warn(`${timestamp()} ${PREFIX} [WARN]`, ...args);
   },
 
   error(...args) {
-    if (level > Levels.ERROR) return
-    console.error(`${timestamp()} ${PREFIX} [ERROR]`, ...args)
-  }
-}
+    if (level > Levels.ERROR) return;
+    console.error(`${timestamp()} ${PREFIX} [ERROR]`, ...args);
+  },
+};

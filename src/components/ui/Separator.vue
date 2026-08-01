@@ -3,11 +3,11 @@
 </template>
 
 <script setup>
-import { Separator } from 'reka-ui'
+import { Separator } from 'reka-ui';
 
 defineProps({
-  orientation: { type: String, default: 'horizontal' }
-})
+  orientation: { type: String, default: 'horizontal' },
+});
 </script>
 
 <style>
@@ -17,12 +17,12 @@ defineProps({
   flex-shrink: 0;
 }
 
-.separator[data-orientation="horizontal"] {
+.separator[data-orientation='horizontal'] {
   height: 1px;
   background: var(--border);
 }
 
-.separator[data-orientation="vertical"] {
+.separator[data-orientation='vertical'] {
   width: 1px;
   height: auto;
   align-self: stretch;

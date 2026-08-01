@@ -1,17 +1,17 @@
-const { contextBridge, ipcRenderer } = require('electron')
+const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('desktopLyricsAPI', {
   onLyricsUpdate: (callback) => {
-    ipcRenderer.on('desktop-lyrics:update', (event, data) => callback(data))
+    ipcRenderer.on('desktop-lyrics:update', (event, data) => callback(data));
   },
   onTimeUpdate: (callback) => {
-    ipcRenderer.on('desktop-lyrics:time', (event, time) => callback(time))
+    ipcRenderer.on('desktop-lyrics:time', (event, time) => callback(time));
   },
   onTrackChange: (callback) => {
-    ipcRenderer.on('desktop-lyrics:track', (event, track) => callback(track))
+    ipcRenderer.on('desktop-lyrics:track', (event, track) => callback(track));
   },
   onVisibilityChange: (callback) => {
-    ipcRenderer.on('desktop-lyrics:visibility', (event, visible) => callback(visible))
+    ipcRenderer.on('desktop-lyrics:visibility', (event, visible) => callback(visible));
   },
   setIgnoreEvents: (ignore) => ipcRenderer.send('desktop-lyrics:set-ignore-events', ignore),
   setAlwaysOnTop: (val) => ipcRenderer.send('desktop-lyrics:set-always-on-top', val),
@@ -22,6 +22,6 @@ contextBridge.exposeInMainWorld('desktopLyricsAPI', {
   nextTrack: () => ipcRenderer.send('desktop-lyrics:next'),
   togglePlay: () => ipcRenderer.send('desktop-lyrics:toggle-play'),
   onPlayState: (callback) => {
-    ipcRenderer.on('desktop-lyrics:play-state', (event, playing) => callback(playing))
-  }
-})
+    ipcRenderer.on('desktop-lyrics:play-state', (event, playing) => callback(playing));
+  },
+});

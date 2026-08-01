@@ -1,9 +1,7 @@
 <template>
   <div class="settings-view">
     <div class="settings-header">
-      <h2>
-        <Icon icon="mdi:cog-outline" class="section-icon" />设置
-      </h2>
+      <h2><Icon icon="mdi:cog-outline" class="section-icon" />设置</h2>
     </div>
     <div class="settings-body">
       <div class="setting-card">
@@ -12,18 +10,29 @@
         </div>
         <div class="setting-card-body">
           <div v-if="!user.loggedIn" class="setting-row">
-            <span class="setting-label">登录状态</span><span class="setting-value text-muted">未登录</span>
+            <span class="setting-label">登录状态</span
+            ><span class="setting-value text-muted">未登录</span>
           </div>
           <template v-else>
             <div class="setting-row">
-              <span class="setting-label">登录账号</span><span class="setting-value">{{ user.nickname }}</span>
+              <span class="setting-label">登录账号</span
+              ><span class="setting-value">{{ user.nickname }}</span>
             </div>
             <div class="setting-row">
               <span class="setting-label">歌曲收藏夹</span>
               <div class="setting-control">
-                <Select v-model="selectedFavFolder" :items="selectItems" :placeholder="loadingFolders ? '加载中...' : '选择收藏夹'" @update:model-value="onSelectFavFolder">
+                <Select
+                  v-model="selectedFavFolder"
+                  :items="selectItems"
+                  :placeholder="loadingFolders ? '加载中...' : '选择收藏夹'"
+                  @update:model-value="onSelectFavFolder"
+                >
                   <template #default>
-                    <SelectItem v-for="folder in folders" :key="folder.id" :value="String(folder.id)">
+                    <SelectItem
+                      v-for="folder in folders"
+                      :key="folder.id"
+                      :value="String(folder.id)"
+                    >
                       <SelectItemText>{{ folder.title }}</SelectItemText>
                       <span class="select-item-count">{{ folder.mediaCount }} 项</span>
                     </SelectItem>
@@ -34,7 +43,9 @@
                   </template>
                 </Select>
                 <span v-if="user.favFolderName" class="fav-hint">
-                  <Icon icon="mdi:check-circle" class="hint-icon" />歌曲将收藏到「{{ user.favFolderName }}」
+                  <Icon icon="mdi:check-circle" class="hint-icon" />歌曲将收藏到「{{
+                    user.favFolderName
+                  }}」
                 </span>
               </div>
             </div>
@@ -50,9 +61,9 @@
           <div class="setting-row">
             <span class="setting-label">桌面歌词</span>
             <button class="setting-btn setting-btn-accent" @click="toggleDesktopLyrics">
-              <Icon :icon="desktopLyricsVisible ? 'mdi:eye-off-outline' : 'mdi:music-note-outline'" />{{
-                desktopLyricsVisible
-              ? '隐藏' : '打开' }}
+              <Icon
+                :icon="desktopLyricsVisible ? 'mdi:eye-off-outline' : 'mdi:music-note-outline'"
+              />{{ desktopLyricsVisible ? '隐藏' : '打开' }}
             </button>
           </div>
           <div class="setting-row">
@@ -84,7 +95,10 @@
               </span>
             </span>
             <div class="setting-control-row">
-              <Switch :model-value="player.loudnessEnabled" @update:model-value="onLoudnessToggle" />
+              <Switch
+                :model-value="player.loudnessEnabled"
+                @update:model-value="onLoudnessToggle"
+              />
             </div>
           </div>
         </div>
@@ -104,7 +118,10 @@
               </span>
             </span>
             <div class="setting-control-row">
-              <Switch :model-value="player.searchMusicOnly" @update:model-value="onSearchMusicOnlyChange" />
+              <Switch
+                :model-value="player.searchMusicOnly"
+                @update:model-value="onSearchMusicOnlyChange"
+              />
             </div>
           </div>
         </div>
@@ -123,21 +140,29 @@
           <div class="setting-row">
             <span class="setting-label">API 响应缓存上限</span>
             <div class="setting-control-row">
-              <NumberField :model-value="responseCacheMax" :min="50" :max="5000" :step="50"
-                @update:model-value="onResponseCacheMaxChange" />
-              <span class="setting-hint" v-if="apiCacheLoading">获取中...</span>
-              <span class="setting-hint" v-else>当前 {{ apiCacheSize }} 项</span>
+              <NumberField
+                :model-value="responseCacheMax"
+                :min="50"
+                :max="5000"
+                :step="50"
+                @update:model-value="onResponseCacheMaxChange"
+              />
+              <span v-if="apiCacheLoading" class="setting-hint">获取中...</span>
+              <span v-else class="setting-hint">当前 {{ apiCacheSize }} 项</span>
             </div>
           </div>
           <div class="setting-row">
             <span class="setting-label">音频链接缓存</span>
             <div class="setting-control-row">
-              <span class="setting-hint" v-if="audioCacheInfo">当前 {{ audioCacheInfo.size }} / {{ audioCacheInfo.max }}
-                项</span>
+              <span v-if="audioCacheInfo" class="setting-hint"
+                >当前 {{ audioCacheInfo.size }} / {{ audioCacheInfo.max }} 项</span
+              >
             </div>
           </div>
           <div class="setting-row setting-row-footer">
-            <span class="setting-label">总计 {{ (audioCacheInfo?.size || 0) + apiCacheSize }} 项</span>
+            <span class="setting-label"
+              >总计 {{ (audioCacheInfo?.size || 0) + apiCacheSize }} 项</span
+            >
             <button class="setting-btn" @click="clearAllCache">
               <Icon icon="mdi:delete-outline" />清空所有缓存
             </button>
@@ -149,96 +174,113 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useUserStore } from '../../stores/user'
-import { usePlayerStore } from '../../stores/player'
-import { useToast } from '../../stores/toast'
-import { Icon } from '@iconify/vue'
-import Select from '../../components/ui/Select.vue'
-import SelectItem from '../../components/ui/SelectItem.vue'
-import SelectItemText from '../../components/ui/SelectItemText.vue'
-import SelectSeparator from '../../components/ui/SelectSeparator.vue'
-import Switch from '../../components/ui/Switch.vue'
-import NumberField from '../../components/ui/NumberField.vue'
+import { ref, computed, onMounted } from 'vue';
+import { useUserStore } from '../stores/user';
+import { usePlayerStore } from '../stores/player';
+import { useToast } from '../stores/toast';
+import { Icon } from '@iconify/vue';
+import Select from '../components/ui/Select.vue';
+import SelectItem from '../components/ui/SelectItem.vue';
+import SelectItemText from '../components/ui/SelectItemText.vue';
+import SelectSeparator from '../components/ui/SelectSeparator.vue';
+import Switch from '../components/ui/Switch.vue';
+import NumberField from '../components/ui/NumberField.vue';
 
-const user = useUserStore()
-const player = usePlayerStore()
-const { showToast } = useToast()
-const folders = ref([])
-const selectedFavFolder = ref(user.favFolderId ? String(user.favFolderId) : '__none__')
-const loadingFolders = ref(false)
-const selectItems = computed(() => folders.value.map(f => ({ value: String(f.id), label: f.title })))
-const desktopLyricsVisible = ref(false)
-const audioCacheInfo = ref(null)
-const apiCacheSize = ref(0)
-const responseCacheMax = ref(500)
-const apiCacheLoading = ref(true)
+const user = useUserStore();
+const player = usePlayerStore();
+const { showToast } = useToast();
+const folders = ref([]);
+const selectedFavFolder = ref(user.favFolderId ? String(user.favFolderId) : '__none__');
+const loadingFolders = ref(false);
+const selectItems = computed(() =>
+  folders.value.map((f) => ({ value: String(f.id), label: f.title }))
+);
+const desktopLyricsVisible = ref(false);
+const audioCacheInfo = ref(null);
+const apiCacheSize = ref(0);
+const responseCacheMax = ref(500);
+const apiCacheLoading = ref(true);
 
 async function refreshCacheInfo() {
-  audioCacheInfo.value = player.getAudioCacheInfo()
+  audioCacheInfo.value = player.getAudioCacheInfo();
   if (window.electronAPI?.getResponseCacheStats) {
     try {
-      apiCacheLoading.value = true
-      const stats = await window.electronAPI.getResponseCacheStats()
-      apiCacheSize.value = stats.size; responseCacheMax.value = stats.max
-    } catch { } finally { apiCacheLoading.value = false }
+      apiCacheLoading.value = true;
+      const stats = await window.electronAPI.getResponseCacheStats();
+      apiCacheSize.value = stats.size;
+      responseCacheMax.value = stats.max;
+    } catch {
+    } finally {
+      apiCacheLoading.value = false;
+    }
   }
 }
 
 async function onResponseCacheMaxChange(val) {
-  if (val == null || val < 50) val = 50
-  if (val > 5000) val = 5000
-  responseCacheMax.value = val
-  if (window.electronAPI?.setResponseCacheMax) await window.electronAPI.setResponseCacheMax(val)
-  refreshCacheInfo()
+  if (val == null || val < 50) val = 50;
+  if (val > 5000) val = 5000;
+  responseCacheMax.value = val;
+  if (window.electronAPI?.setResponseCacheMax) await window.electronAPI.setResponseCacheMax(val);
+  refreshCacheInfo();
 }
 
 onMounted(() => {
-  if (user.loggedIn) loadFolders()
-  refreshCacheInfo()
-  window.electronAPI?.onDesktopLyricsVisibility(v => desktopLyricsVisible.value = v)
-})
+  if (user.loggedIn) loadFolders();
+  refreshCacheInfo();
+  window.electronAPI?.onDesktopLyricsVisibility((v) => (desktopLyricsVisible.value = v));
+});
 
 async function loadFolders() {
-  if (!user.loggedIn) return
-  loadingFolders.value = true
+  if (!user.loggedIn) return;
+  loadingFolders.value = true;
   try {
-    const result = await window.electronAPI.listFavFolders(user.uid)
-    if (result && !result.error) folders.value = result
-  } catch (e) { console.error('[BiliMusic] Load folders:', e) }
-  finally { loadingFolders.value = false }
+    const result = await window.electronAPI.listFavFolders(user.uid);
+    if (result && !result.error) folders.value = result;
+  } catch (e) {
+    console.error('[BiliMusic] Load folders:', e);
+  } finally {
+    loadingFolders.value = false;
+  }
 }
 
 function onSelectFavFolder(val) {
-  if (val === '__none__') user.saveFavFolderSetting(null, '')
-  else { const folder = folders.value.find(f => String(f.id) === val); if (folder) user.saveFavFolderSetting(folder.id, folder.title) }
-  selectedFavFolder.value = val
+  if (val === '__none__') user.saveFavFolderSetting(null, '');
+  else {
+    const folder = folders.value.find((f) => String(f.id) === val);
+    if (folder) user.saveFavFolderSetting(folder.id, folder.title);
+  }
+  selectedFavFolder.value = val;
 }
 
 function onLoudnessToggle(val) {
-  player.loudnessEnabled = val
-  showToast(val ? '音量均衡已开启' : '音量均衡已关闭')
+  player.loudnessEnabled = val;
+  showToast(val ? '音量均衡已开启' : '音量均衡已关闭');
 }
 function onSearchMusicOnlyChange(val) {
-  player.searchMusicOnly = val
-  showToast(val ? '已限制搜索到音乐区' : '搜索已取消限制')
+  player.searchMusicOnly = val;
+  showToast(val ? '已限制搜索到音乐区' : '搜索已取消限制');
 }
 
-function toggleDesktopLyrics() { window.electronAPI?.desktopLyricsToggle() }
-function openLyricsFolder() { window.electronAPI?.openLyricsFolder() }
+function toggleDesktopLyrics() {
+  window.electronAPI?.desktopLyricsToggle();
+}
+function openLyricsFolder() {
+  window.electronAPI?.openLyricsFolder();
+}
 
 async function clearLocalLyrics() {
-  if (!window.electronAPI?.clearLocalLyrics) return
-  const result = await window.electronAPI.clearLocalLyrics()
-  if (result?.success) showToast(result.cleared ? `已清理 ${result.cleared} 个本地歌词文件` : '没有本地歌词需要清理')
-  else if (result?.error) showToast('清理失败: ' + result.error, 'error')
+  if (!window.electronAPI?.clearLocalLyrics) return;
+  const result = await window.electronAPI.clearLocalLyrics();
+  if (result?.success)
+    showToast(result.cleared ? `已清理 ${result.cleared} 个本地歌词文件` : '没有本地歌词需要清理');
+  else if (result?.error) showToast('清理失败: ' + result.error, 'error');
 }
 
 async function clearAllCache() {
-  player.clearAudioCache()
-  if (window.electronAPI?.clearResponseCache) await window.electronAPI.clearResponseCache()
-  await refreshCacheInfo()
-  showToast('缓存已清空')
+  player.clearAudioCache();
+  if (window.electronAPI?.clearResponseCache) await window.electronAPI.clearResponseCache();
+  await refreshCacheInfo();
+  showToast('缓存已清空');
 }
 </script>
 
@@ -292,10 +334,7 @@ async function clearAllCache() {
   gap: 16px;
 }
 
-.setting-row+.setting-row {
-  border-top: 1px solid var(--border);
-}
-
+.setting-row + .setting-row,
 .setting-row-footer {
   border-top: 1px solid var(--border);
 }
@@ -411,12 +450,9 @@ async function clearAllCache() {
   white-space: nowrap;
 }
 
-
-
 .select-item-count {
   font-size: 11px;
   color: var(--text-muted);
   flex-shrink: 0;
 }
-
 </style>

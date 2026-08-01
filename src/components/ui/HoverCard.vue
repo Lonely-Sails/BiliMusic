@@ -12,13 +12,13 @@
 </template>
 
 <script setup>
-import { HoverCardRoot, HoverCardTrigger, HoverCardPortal, HoverCardContent } from 'reka-ui'
+import { HoverCardRoot, HoverCardTrigger, HoverCardPortal, HoverCardContent } from 'reka-ui';
 
 defineProps({
   openDelay: { type: Number, default: 0 },
   closeDelay: { type: Number, default: 200 },
-  sideOffset: { type: Number, default: 12 }
-})
+  sideOffset: { type: Number, default: 12 },
+});
 </script>
 
 <style>

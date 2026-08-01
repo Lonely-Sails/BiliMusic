@@ -3,7 +3,7 @@
 </template>
 
 <script setup>
-import { SplitterResizeHandle } from 'reka-ui'
+import { SplitterResizeHandle } from 'reka-ui';
 </script>
 
 <style scoped>

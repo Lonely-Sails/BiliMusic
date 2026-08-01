@@ -5,5 +5,5 @@
 </template>
 
 <script setup>
-import { TooltipProvider } from 'reka-ui'
+import { TooltipProvider } from 'reka-ui';
 </script>

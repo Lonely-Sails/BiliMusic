@@ -5,7 +5,7 @@
 </template>
 
 <script setup>
-import { SplitterGroup } from 'reka-ui'
+import { SplitterGroup } from 'reka-ui';
 </script>
 
 <style scoped>
@@ -15,30 +15,30 @@ import { SplitterGroup } from 'reka-ui'
   width: 100%;
 }
 
-.splitter-group[data-orientation="horizontal"] {
+.splitter-group[data-orientation='horizontal'] {
   flex-direction: row;
 }
 
-.splitter-group[data-orientation="vertical"] {
+.splitter-group[data-orientation='vertical'] {
   flex-direction: column;
 }
 
-.splitter-group[data-orientation="horizontal"] :deep(.splitter-handle) {
+.splitter-group[data-orientation='horizontal'] :deep(.splitter-handle) {
   width: 4px;
   cursor: col-resize;
 }
 
-.splitter-group[data-orientation="vertical"] :deep(.splitter-handle) {
+.splitter-group[data-orientation='vertical'] :deep(.splitter-handle) {
   height: 4px;
   cursor: row-resize;
 }
 
-.splitter-group[data-orientation="horizontal"] :deep(.splitter-handle::after) {
+.splitter-group[data-orientation='horizontal'] :deep(.splitter-handle::after) {
   width: 1px;
   height: 24px;
 }
 
-.splitter-group[data-orientation="vertical"] :deep(.splitter-handle::after) {
+.splitter-group[data-orientation='vertical'] :deep(.splitter-handle::after) {
   height: 1px;
   width: 24px;
 }

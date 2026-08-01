@@ -2,10 +2,8 @@
   <TooltipProvider>
     <div class="fav-view">
       <div class="fav-header">
-        <h2>
-          <Icon icon="mdi:star-outline" class="section-icon" />收藏夹
-        </h2>
-        <div class="fav-header-actions" v-if="resources.length">
+        <h2><Icon icon="mdi:star-outline" class="section-icon" />收藏夹</h2>
+        <div v-if="resources.length" class="fav-header-actions">
           <span class="fav-count">{{ total }} 首</span>
           <Tooltip text="将当前页全部添加到播放列表" side="top">
             <button class="play-all-btn" @click="playAll">
@@ -28,12 +26,13 @@
         </router-link>
       </div>
       <div v-else-if="loading" class="loading-state">
-        <div class="spinner" /><span>加载中...</span>
+        <div class="spinner" />
+        <span>加载中...</span>
       </div>
       <div v-else-if="loadError" class="error-state">
         <Icon icon="mdi:alert-circle-outline" class="error-icon" />
         <p>{{ loadError }}</p>
-        <button @click="loadResources" class="retry-btn">重试</button>
+        <button class="retry-btn" @click="loadResources">重试</button>
       </div>
       <div v-else-if="!resources.length" class="empty-state">
         <Icon icon="mdi:star-outline" class="empty-icon" />
@@ -41,15 +40,21 @@
       </div>
       <div v-else class="fav-content">
         <div class="results-grid">
-          <SongCard v-for="item in resources" :key="item.bvid" :item="item" :show-play-count="false"
-            @fav-change="onFavChange($event, item)" />
+          <SongCard
+            v-for="item in resources"
+            :key="item.bvid"
+            :item="item"
+            :show-play-count="false"
+            @fav-change="onFavChange($event, item)"
+          />
         </div>
         <div v-if="totalPages > 1" class="pagination">
-          <button :disabled="page <= 1" @click="goToPage(page - 1)" class="page-btn">
+          <button :disabled="page <= 1" class="page-btn" @click="goToPage(page - 1)">
             <Icon icon="mdi:chevron-left" />上一页
           </button>
           <span class="page-info">{{ page }} / {{ totalPages }}</span>
-          <button :disabled="page >= totalPages" @click="goToPage(page + 1)" class="page-btn">下一页
+          <button :disabled="page >= totalPages" class="page-btn" @click="goToPage(page + 1)">
+            下一页
             <Icon icon="mdi:chevron-right" />
           </button>
         </div>
@@ -66,65 +71,89 @@
  * 收藏夹 ID 由 user store 管理（在设置页选择）。
  */
 
-import { ref, onMounted, watch } from 'vue'
-import { useUserStore } from '../../stores/user'
-import { usePlayerStore } from '../../stores/player'
-import { Icon } from '@iconify/vue'
-import SongCard from '../SongCard.vue'
-import TooltipProvider from '../ui/TooltipProvider.vue'
-import Tooltip from '../ui/Tooltip.vue'
+import { ref, onMounted, watch } from 'vue';
+import { useUserStore } from '../stores/user';
+import { usePlayerStore } from '../stores/player';
+import { Icon } from '@iconify/vue';
+import SongCard from '../components/SongCard.vue';
+import TooltipProvider from '../components/ui/TooltipProvider.vue';
+import Tooltip from '../components/ui/Tooltip.vue';
 
-const user = useUserStore()
-const player = usePlayerStore()
-const resources = ref([])
-const loading = ref(false)
-const loadError = ref('')
-const page = ref(1)
-const total = ref(0)
-const totalPages = ref(0)
-const PAGE_SIZE = 20
+const user = useUserStore();
+const player = usePlayerStore();
+const resources = ref([]);
+const loading = ref(false);
+const loadError = ref('');
+const page = ref(1);
+const total = ref(0);
+const totalPages = ref(0);
+const PAGE_SIZE = 20;
 
 // 收藏夹切换时自动重载
-watch(() => user.favFolderId, (val) => { if (val && user.loggedIn) { page.value = 1; loadResources() } })
-onMounted(() => { if (user.loggedIn && user.favFolderId) loadResources() })
+watch(
+  () => user.favFolderId,
+  (val) => {
+    if (val && user.loggedIn) {
+      page.value = 1;
+      loadResources();
+    }
+  }
+);
+onMounted(() => {
+  if (user.loggedIn && user.favFolderId) loadResources();
+});
 
 /** 加载收藏夹内容 */
 async function loadResources() {
-  if (!user.loggedIn || !user.favFolderId) return
-  loading.value = true; loadError.value = ''
+  if (!user.loggedIn || !user.favFolderId) return;
+  loading.value = true;
+  loadError.value = '';
   try {
-    const result = await window.electronAPI.listFavResources(user.favFolderId, page.value, PAGE_SIZE)
+    const result = await window.electronAPI.listFavResources(
+      user.favFolderId,
+      page.value,
+      PAGE_SIZE
+    );
     if (result && !result.error) {
-      resources.value = result.resources || []; total.value = result.total || 0
-      totalPages.value = Math.ceil(total.value / PAGE_SIZE) || 1
+      resources.value = result.resources || [];
+      total.value = result.total || 0;
+      totalPages.value = Math.ceil(total.value / PAGE_SIZE) || 1;
       // 每页都增量同步 bvid 到全局收藏状态
-      user.syncFavoritedBvids(resources.value)
-    } else { loadError.value = result?.error || '加载失败'; resources.value = [] }
-  } catch (e) { loadError.value = e.message || '加载失败'; resources.value = [] }
-  finally { loading.value = false }
+      user.syncFavoritedBvids(resources.value);
+    } else {
+      loadError.value = result?.error || '加载失败';
+      resources.value = [];
+    }
+  } catch (e) {
+    loadError.value = e.message || '加载失败';
+    resources.value = [];
+  } finally {
+    loading.value = false;
+  }
 }
 
 /** 翻页 */
 async function goToPage(newPage) {
-  if (newPage < 1 || newPage > totalPages.value) return
-  page.value = newPage; await loadResources()
+  if (newPage < 1 || newPage > totalPages.value) return;
+  page.value = newPage;
+  await loadResources();
 }
 
 /** 取消收藏后从本地列表移除 */
 function onFavChange(result, item) {
   if (result?.success && result.action === 'removed') {
-    resources.value = resources.value.filter(r => r.bvid !== item.bvid)
-    total.value = Math.max(0, total.value - 1)
-    totalPages.value = Math.ceil(total.value / PAGE_SIZE) || 1
+    resources.value = resources.value.filter((r) => r.bvid !== item.bvid);
+    total.value = Math.max(0, total.value - 1);
+    totalPages.value = Math.ceil(total.value / PAGE_SIZE) || 1;
   }
 }
 
 /** 一键播放（全部添加到播放列表） */
 function playAll() {
-  const items = resources.value
-  if (!items.length) return
-  items.forEach(item => player.addToPlaylist(item))
-  player.playTrack(items[0])
+  const items = resources.value;
+  if (!items.length) return;
+  items.forEach((item) => player.addToPlaylist(item));
+  player.playTrack(items[0]);
 }
 </script>
 

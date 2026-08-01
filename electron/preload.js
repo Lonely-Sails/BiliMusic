@@ -1,8 +1,9 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer } from 'electron';
 
 contextBridge.exposeInMainWorld('electronAPI', {
   // Search
-  searchVideo: (keyword, page, musicOnly) => ipcRenderer.invoke('search:video', keyword, page, musicOnly),
+  searchVideo: (keyword, page, musicOnly) =>
+    ipcRenderer.invoke('search:video', keyword, page, musicOnly),
   getSearchSuggest: (term) => ipcRenderer.invoke('search:suggest', term),
   getHotSearch: () => ipcRenderer.invoke('search:hot'),
   getPopular: (pn) => ipcRenderer.invoke('popular:get', pn),
@@ -22,7 +23,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Season / Collection
   checkVideoSeasonBatch: (bvids) => ipcRenderer.invoke('season:check-batch', bvids),
-  getSeasonArchives: (mid, seasonId, pageNum, pageSize) => ipcRenderer.invoke('season:archives', mid, seasonId, pageNum, pageSize),
+  getSeasonArchives: (mid, seasonId, pageNum, pageSize) =>
+    ipcRenderer.invoke('season:archives', mid, seasonId, pageNum, pageSize),
 
   // Auth
   getQrcode: () => ipcRenderer.invoke('auth:get-qrcode'),
@@ -33,14 +35,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Favorites
   listFavFolders: (upMid) => ipcRenderer.invoke('fav:list-folders', upMid),
-  listFavResources: (mediaId, page, upMid) => ipcRenderer.invoke('fav:list-resources', mediaId, page, upMid),
+  listFavResources: (mediaId, page, upMid) =>
+    ipcRenderer.invoke('fav:list-resources', mediaId, page, upMid),
   addFav: (bvid, mediaId) => ipcRenderer.invoke('fav:add', bvid, mediaId),
   removeFav: (bvid, mediaId) => ipcRenderer.invoke('fav:remove', bvid, mediaId),
 
   // Lyrics
   getLyric: (bvid, cid, title) => ipcRenderer.invoke('lyric:get', bvid, cid, title),
   searchLyricCandidates: (title) => ipcRenderer.invoke('lyric:search-candidates', title),
-  searchRankedCandidates: (keyword, videoTitle, author) => ipcRenderer.invoke('lyric:search-ranked', keyword, videoTitle, author),
+  searchRankedCandidates: (keyword, videoTitle, author) =>
+    ipcRenderer.invoke('lyric:search-ranked', keyword, videoTitle, author),
   fetchLyric: (source, id) => ipcRenderer.invoke('lyric:fetch', source, id),
   // getSubtitle: (bvid, cid) => ipcRenderer.invoke('lyric:get-subtitle', bvid, cid),  // B站字幕已禁用
   // alignFirstLine: (lyrics, bvid, cid) => ipcRenderer.invoke('lyric:align-first-line', lyrics, bvid, cid),  // B站字幕已禁用
@@ -59,7 +63,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   closeWindow: () => ipcRenderer.send('window:close-app'),
   isMaximized: () => ipcRenderer.invoke('window:is-maximized'),
   onMaximizeChange: (callback) => {
-    ipcRenderer.on('window:maximize-change', (event, maximized) => callback(maximized))
+    ipcRenderer.on('window:maximize-change', (event, maximized) => callback(maximized));
   },
   getPlatform: () => process.platform,
 
@@ -75,19 +79,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
   desktopLyricsUpdateTrack: (track) => ipcRenderer.send('desktop-lyrics:update-track', track),
   desktopLyricsUpdatePlayState: (playing) => ipcRenderer.send('desktop-lyrics:play-state', playing),
   onDesktopLyricsVisibility: (callback) => {
-    ipcRenderer.on('desktop-lyrics:visibility', (event, visible) => callback(visible))
+    ipcRenderer.on('desktop-lyrics:visibility', (event, visible) => callback(visible));
   },
   onPlayerControl: (callback) => {
-    ipcRenderer.on('player:prev', () => callback('prev'))
-    ipcRenderer.on('player:next', () => callback('next'))
-    ipcRenderer.on('player:toggle-play', () => callback('togglePlay'))
+    ipcRenderer.on('player:prev', () => callback('prev'));
+    ipcRenderer.on('player:next', () => callback('next'));
+    ipcRenderer.on('player:toggle-play', () => callback('togglePlay'));
   },
   onLyricsEditorSaved: (callback) => {
-    ipcRenderer.on('lyrics-editor:saved', () => callback())
+    ipcRenderer.on('lyrics-editor:saved', () => callback());
   },
 
   // Cache
   getResponseCacheStats: () => ipcRenderer.invoke('cache:stats'),
   clearResponseCache: () => ipcRenderer.invoke('cache:clear'),
   setResponseCacheMax: (max) => ipcRenderer.invoke('cache:set-max', max),
-})
+});

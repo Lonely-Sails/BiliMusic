@@ -1,6 +1,14 @@
 <template>
-  <ToastRoot :duration="duration" class="toast-root" :class="'toast-' + type"
-    @update:model-value="(open) => { if (!open) onClose() }">
+  <ToastRoot
+    :duration="duration"
+    class="toast-root"
+    :class="'toast-' + type"
+    @update:model-value="
+      (open) => {
+        if (!open) onClose();
+      }
+    "
+  >
     <div class="toast-content">
       <Icon :icon="type === 'error' ? 'mdi:alert-circle' : 'mdi:check-circle'" class="toast-icon" />
       <ToastDescription class="toast-description">{{ message }}</ToastDescription>
@@ -12,15 +20,15 @@
 </template>
 
 <script setup>
-import { ToastRoot, ToastDescription, ToastClose } from 'reka-ui'
-import { Icon } from '@iconify/vue'
+import { ToastRoot, ToastDescription, ToastClose } from 'reka-ui';
+import { Icon } from '@iconify/vue';
 
 defineProps({
   message: { type: String, required: true },
   type: { type: String, default: 'success' },
   duration: { type: Number, default: 3000 },
-  onClose: { type: Function, default: () => {} }
-})
+  onClose: { type: Function, default: () => {} },
+});
 </script>
 
 <style>

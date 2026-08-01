@@ -2,23 +2,19 @@
   <TooltipProvider>
     <div class="collection-view">
       <!-- 合集头部信息 -->
-      <div class="collection-header" v-if="meta">
+      <div v-if="meta" class="collection-header">
         <div class="collection-cover">
           <img :src="meta.cover" :alt="meta.name" />
         </div>
         <div class="collection-info">
-          <span class="collection-label">
-            <Icon icon="mdi:layers-outline" /> 视频合集
-          </span>
+          <span class="collection-label"> <Icon icon="mdi:layers-outline" /> 视频合集 </span>
           <h2 class="collection-name">{{ meta.name }}</h2>
-          <p class="collection-desc" v-if="meta.description">{{ meta.description }}</p>
+          <p v-if="meta.description" class="collection-desc">{{ meta.description }}</p>
           <div class="collection-meta">
             <span><Icon icon="mdi:video-outline" class="meta-icon" /> {{ meta.total }} 个视频</span>
           </div>
-          <div class="collection-actions" v-if="archives.length">
-            <button class="play-all-btn" @click="playAll">
-              <Icon icon="mdi:play" /> 播放全部
-            </button>
+          <div v-if="archives.length" class="collection-actions">
+            <button class="play-all-btn" @click="playAll"><Icon icon="mdi:play" /> 播放全部</button>
             <button class="add-all-btn" @click="addAll">
               <Icon icon="mdi:playlist-plus" /> 添加全部
             </button>
@@ -28,12 +24,13 @@
 
       <!-- 加载状态 -->
       <div v-if="loading" class="loading-state">
-        <div class="spinner" /><span>加载中...</span>
+        <div class="spinner" />
+        <span>加载中...</span>
       </div>
       <div v-else-if="loadError" class="error-state">
         <Icon icon="mdi:alert-circle-outline" class="error-icon" />
         <p>{{ loadError }}</p>
-        <button @click="loadArchives" class="retry-btn">重试</button>
+        <button class="retry-btn" @click="loadArchives">重试</button>
       </div>
       <div v-else-if="!archives.length" class="empty-state">
         <Icon icon="mdi:layers-off-outline" class="empty-icon" />
@@ -46,11 +43,12 @@
           <SongCard v-for="item in archives" :key="item.bvid" :item="item" />
         </div>
         <div v-if="totalPages > 1" class="pagination">
-          <button :disabled="page <= 1" @click="goToPage(page - 1)" class="page-btn">
+          <button :disabled="page <= 1" class="page-btn" @click="goToPage(page - 1)">
             <Icon icon="mdi:chevron-left" />上一页
           </button>
           <span class="page-info">{{ page }} / {{ totalPages }}</span>
-          <button :disabled="page >= totalPages" @click="goToPage(page + 1)" class="page-btn">下一页
+          <button :disabled="page >= totalPages" class="page-btn" @click="goToPage(page + 1)">
+            下一页
             <Icon icon="mdi:chevron-right" />
           </button>
         </div>
@@ -67,66 +65,88 @@
  * 展示合集元数据 + 视频列表，支持分页、播放全部。
  */
 
-import { ref, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
-import { usePlayerStore } from '../../stores/player'
-import { Icon } from '@iconify/vue'
-import SongCard from '../SongCard.vue'
-import TooltipProvider from '../ui/TooltipProvider.vue'
+import { ref, onMounted, watch } from 'vue';
+import { useRoute } from 'vue-router';
+import { usePlayerStore } from '../stores/player';
+import { Icon } from '@iconify/vue';
+import SongCard from '../components/SongCard.vue';
+import TooltipProvider from '../components/ui/TooltipProvider.vue';
 
-const route = useRoute()
-const player = usePlayerStore()
+const route = useRoute();
+const player = usePlayerStore();
 
-const meta = ref(null)
-const archives = ref([])
-const loading = ref(false)
-const loadError = ref('')
-const page = ref(1)
-const totalPages = ref(1)
-const PAGE_SIZE = 30
+const meta = ref(null);
+const archives = ref([]);
+const loading = ref(false);
+const loadError = ref('');
+const page = ref(1);
+const totalPages = ref(1);
+const PAGE_SIZE = 30;
 
-const mid = () => route.query.mid
-const seasonId = () => route.query.seasonId
+const mid = () => route.query.mid;
+const seasonId = () => route.query.seasonId;
 
-onMounted(() => { if (mid() && seasonId()) loadArchives() })
+onMounted(() => {
+  if (mid() && seasonId()) loadArchives();
+});
 
 // 路由参数变化时重新加载（从不同卡片进入不同合集）
-watch(() => [route.query.mid, route.query.seasonId], ([m, s]) => {
-  if (m && s) { page.value = 1; meta.value = null; archives.value = []; loadArchives() }
-})
+watch(
+  () => [route.query.mid, route.query.seasonId],
+  ([m, s]) => {
+    if (m && s) {
+      page.value = 1;
+      meta.value = null;
+      archives.value = [];
+      loadArchives();
+    }
+  }
+);
 
 /** 加载合集内容 */
 async function loadArchives() {
-  if (!mid() || !seasonId()) return
-  loading.value = true; loadError.value = ''
+  if (!mid() || !seasonId()) return;
+  loading.value = true;
+  loadError.value = '';
   try {
-    const result = await window.electronAPI.getSeasonArchives(mid(), seasonId(), page.value, PAGE_SIZE)
-    if (result?.error) { loadError.value = result.error; return }
-    meta.value = result.meta
-    archives.value = result.archives || []
-    const total = result.page?.total || result.meta?.total || 0
-    totalPages.value = Math.ceil(total / PAGE_SIZE) || 1
-  } catch (e) { loadError.value = e.message || '加载失败' }
-  finally { loading.value = false }
+    const result = await window.electronAPI.getSeasonArchives(
+      mid(),
+      seasonId(),
+      page.value,
+      PAGE_SIZE
+    );
+    if (result?.error) {
+      loadError.value = result.error;
+      return;
+    }
+    meta.value = result.meta;
+    archives.value = result.archives || [];
+    const total = result.page?.total || result.meta?.total || 0;
+    totalPages.value = Math.ceil(total / PAGE_SIZE) || 1;
+  } catch (e) {
+    loadError.value = e.message || '加载失败';
+  } finally {
+    loading.value = false;
+  }
 }
 
 /** 翻页 */
 async function goToPage(newPage) {
-  if (newPage < 1 || newPage > totalPages.value) return
-  page.value = newPage
-  await loadArchives()
+  if (newPage < 1 || newPage > totalPages.value) return;
+  page.value = newPage;
+  await loadArchives();
 }
 
 /** 播放全部 */
 function playAll() {
-  if (!archives.value.length) return
-  archives.value.forEach(item => player.addToPlaylist(item))
-  player.playTrack(archives.value[0])
+  if (!archives.value.length) return;
+  archives.value.forEach((item) => player.addToPlaylist(item));
+  player.playTrack(archives.value[0]);
 }
 
 /** 添加全部到播放列表 */
 function addAll() {
-  archives.value.forEach(item => player.addToPlaylist(item))
+  archives.value.forEach((item) => player.addToPlaylist(item));
 }
 </script>
 
@@ -219,20 +239,24 @@ function addAll() {
   margin-top: 8px;
 }
 
-.play-all-btn {
+.play-all-btn,
+.add-all-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: var(--accent);
-  color: var(--bg-deep);
-  border: none;
   padding: 8px 20px;
   border-radius: var(--radius-xl);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: background var(--transition);
   font-family: inherit;
+}
+
+.play-all-btn {
+  background: var(--accent);
+  color: var(--bg-deep);
+  border: none;
+  transition: background var(--transition);
 }
 
 .play-all-btn:hover {
@@ -240,19 +264,10 @@ function addAll() {
 }
 
 .add-all-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
   background: transparent;
   color: var(--text-primary);
   border: 1px solid var(--border);
-  padding: 8px 20px;
-  border-radius: var(--radius-xl);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
   transition: all var(--transition);
-  font-family: inherit;
 }
 
 .add-all-btn:hover {
@@ -325,8 +340,12 @@ function addAll() {
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .error-icon,

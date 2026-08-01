@@ -1,6 +1,13 @@
 <template>
-  <NumberFieldRoot class="number-field" :model-value="modelValue" :min="min" :max="max" :step="step" v-bind="$attrs"
-    @update:model-value="emit('update:modelValue', $event)">
+  <NumberFieldRoot
+    class="number-field"
+    :model-value="modelValue"
+    :min="min"
+    :max="max"
+    :step="step"
+    v-bind="$attrs"
+    @update:model-value="emit('update:modelValue', $event)"
+  >
     <NumberFieldDecrement class="nf-btn">
       <Icon icon="mdi:minus" />
     </NumberFieldDecrement>
@@ -12,17 +19,22 @@
 </template>
 
 <script setup>
-import { NumberFieldRoot, NumberFieldInput, NumberFieldDecrement, NumberFieldIncrement } from 'reka-ui'
-import { Icon } from '@iconify/vue'
+import {
+  NumberFieldRoot,
+  NumberFieldInput,
+  NumberFieldDecrement,
+  NumberFieldIncrement,
+} from 'reka-ui';
+import { Icon } from '@iconify/vue';
 
 defineProps({
   modelValue: { type: Number, default: 0 },
   min: { type: Number, default: 0 },
   max: { type: Number, default: 100 },
-  step: { type: Number, default: 1 }
-})
+  step: { type: Number, default: 1 },
+});
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue']);
 </script>
 
 <style scoped>

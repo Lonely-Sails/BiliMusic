@@ -9,22 +9,25 @@
             <button class="close" @click="close">
               <Icon icon="mdi:chevron-down" />
             </button>
-            <div class="cover-wrap" v-if="player.currentTrack">
-              <img class="cover" :src="player.currentTrack.cover + '@512w_512h.webp'"
-                :alt="player.currentTrack.title" />
+            <div v-if="player.currentTrack" class="cover-wrap">
+              <img
+                class="cover"
+                :src="player.currentTrack.cover + '@512w_512h.webp'"
+                :alt="player.currentTrack.title"
+              />
             </div>
-            <div class="cover-wrap placeholder" v-else>
+            <div v-else class="cover-wrap placeholder">
               <Icon icon="mdi:music-note" class="cover-placeholder-icon" />
             </div>
-            <div class="meta" v-if="player.currentTrack">
+            <div v-if="player.currentTrack" class="meta">
               <div class="title">{{ player.currentTrack.title }}</div>
               <div class="author">{{ player.currentTrack.author || '未知' }}</div>
             </div>
-            <div class="meta" v-else>
+            <div v-else class="meta">
               <div class="title title-muted">未在播放</div>
               <div class="author author-muted">播放歌曲后将显示歌词</div>
             </div>
-            <div class="controls" v-if="player.currentTrack">
+            <div v-if="player.currentTrack" class="controls">
               <button class="ctrl-btn" @click="player.prevTrack()">
                 <Icon icon="mdi:skip-previous" />
               </button>
@@ -36,18 +39,32 @@
               </button>
             </div>
             <div class="tools">
-              <button class="tool-btn" :class="{ active: player.showTranslation }" @click="player.toggleTranslation()"
-                title="显示翻译">
+              <button
+                class="tool-btn"
+                :class="{ active: player.showTranslation }"
+                title="显示翻译"
+                @click="player.toggleTranslation()"
+              >
                 <Icon icon="mdi:translate" />
               </button>
-              <button class="tool-btn" @click="openLyricsEditor" title="编辑歌词">
+              <button class="tool-btn" title="编辑歌词" @click="openLyricsEditor">
                 <Icon icon="mdi:playlist-edit" />
               </button>
               <span class="tools-divider" />
-              <button class="tool-btn" @click="shiftLyrics(-1)" title="歌词提前1秒" :disabled="!player.currentLyrics.length">
+              <button
+                class="tool-btn"
+                title="歌词提前1秒"
+                :disabled="!player.currentLyrics.length"
+                @click="shiftLyrics(-1)"
+              >
                 <Icon icon="mdi:clock-minus" />
               </button>
-              <button class="tool-btn" @click="shiftLyrics(1)" title="歌词推迟1秒" :disabled="!player.currentLyrics.length">
+              <button
+                class="tool-btn"
+                title="歌词推迟1秒"
+                :disabled="!player.currentLyrics.length"
+                @click="shiftLyrics(1)"
+              >
                 <Icon icon="mdi:clock-plus" />
               </button>
             </div>
@@ -64,11 +81,20 @@
             </div>
             <div v-else ref="lyricsContainer" class="lyrics-scroll">
               <div class="lyrics-list">
-                <div v-for="(line, index) in player.currentLyrics" :key="index" class="line"
-                  :class="{ active: index === activeIndex }" @click="player.seek(line.time)">
+                <div
+                  v-for="(line, index) in player.currentLyrics"
+                  :key="index"
+                  class="line"
+                  :class="{ active: index === activeIndex }"
+                  @click="player.seek(line.time)"
+                >
                   <span class="line-text">{{ line.text || '♫' }}</span>
-                  <span v-if="player.showTranslation && line.trans" class="line-trans"
-                    :class="{ 'active-trans': index === activeIndex }">{{ line.trans }}</span>
+                  <span
+                    v-if="player.showTranslation && line.trans"
+                    class="line-trans"
+                    :class="{ 'active-trans': index === activeIndex }"
+                    >{{ line.trans }}</span
+                  >
                 </div>
               </div>
             </div>
@@ -80,115 +106,149 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
-import { usePlayerStore } from '../stores/player'
-import { Icon } from '@iconify/vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { usePlayerStore } from '../stores/player';
+import { Icon } from '@iconify/vue';
 
-const props = defineProps({ visible: { type: Boolean, default: false } })
-const emit = defineEmits(['close'])
+const props = defineProps({ visible: { type: Boolean, default: false } });
+const emit = defineEmits(['close']);
 
-const player = usePlayerStore()
-const lyricsContainer = ref(null)
-let lastActiveIndex = -1
+const player = usePlayerStore();
+const lyricsContainer = ref(null);
+let lastActiveIndex = -1;
 
 const bgStyle = computed(() => {
-  if (player.currentTrack?.cover) return { backgroundImage: `url(${player.currentTrack.cover}@128w_128h.webp)` }
-  return {}
-})
+  if (player.currentTrack?.cover)
+    return { backgroundImage: `url(${player.currentTrack.cover}@128w_128h.webp)` };
+  return {};
+});
 
-function close() { emit('close') }
+function close() {
+  emit('close');
+}
 
 function openLyricsEditor() {
   if (window.electronAPI?.openLyricsEditor) {
-    const track = player.currentTrack
-    window.electronAPI.openLyricsEditor(track ? { title: track.title || '', bvid: track.bvid || '', cid: track.cid || '' } : null)
+    const track = player.currentTrack;
+    window.electronAPI.openLyricsEditor(
+      track ? { title: track.title || '', bvid: track.bvid || '', cid: track.cid || '' } : null
+    );
   }
 }
 
 async function shiftLyrics(seconds) {
-  const lyrics = player.currentLyrics
-  const track = player.currentTrack
-  if (!lyrics.length || !track) return
-  const shifted = lyrics.map(l => ({ ...l, time: Math.max(0, Math.round((l.time + seconds) * 10) / 10) }))
-  player.currentLyrics = shifted
+  const lyrics = player.currentLyrics;
+  const track = player.currentTrack;
+  if (!lyrics.length || !track) return;
+  const shifted = lyrics.map((line) => ({
+    ...line,
+    time: Math.max(0, Math.round((line.time + seconds) * 10) / 10),
+  }));
+  player.currentLyrics = shifted;
   try {
-    let fileName = player.lyricFileName
-    if (!fileName) fileName = track.title.replace(/[\\/:*?"<>|]/g, '_') + '.lrc'
+    let fileName = player.lyricFileName;
+    if (!fileName) fileName = track.title.replace(/[\\/:*?"<>|]/g, '_') + '.lrc';
     if (window.electronAPI?.saveLocalLyric) {
-      const content = serializeLRC(shifted, track.title, player.lyricSource || '', track.bvid || '')
-      await window.electronAPI.saveLocalLyric(fileName, content)
+      const content = serializeLRC(
+        shifted,
+        track.title,
+        player.lyricSource || '',
+        track.bvid || ''
+      );
+      await window.electronAPI.saveLocalLyric(fileName, content);
     }
-  } catch (e) { console.error('[BiliMusic] Shift lyrics save failed:', e) }
+  } catch (error) {
+    console.error('[BiliMusic] Shift lyrics save failed:', error);
+  }
 }
 
 function serializeLRC(lines, songName, sourceName, bvid) {
-  const header = [`[ti:${songName}]`, '[ar:]', bvid ? `[bvid:${bvid}]` : '', '[by:BiliMusic]', `[source:${sourceName}]`, '[re:本歌词来源自网络搜索，仅供个人学习交流使用]', ''].filter(Boolean)
-  function fmtTime(time) {
-    const m = Math.floor(time / 60); const s = Math.floor(time % 60); const ms = Math.floor((time % 1) * 100)
-    return `[${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${String(ms).padStart(2, '0')}]`
+  const header = [
+    `[ti:${songName}]`,
+    '[ar:]',
+    bvid ? `[bvid:${bvid}]` : '',
+    '[by:BiliMusic]',
+    `[source:${sourceName}]`,
+    '[re:本歌词来源自网络搜索，仅供个人学习交流使用]',
+    '',
+  ].filter(Boolean);
+  function formatTime(time) {
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    const milliseconds = Math.floor((time % 1) * 100);
+    return `[${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(milliseconds).padStart(2, '0')}]`;
   }
-  const body = []
-  for (const l of lines) { body.push(`${fmtTime(l.time)}${l.text}`); if (l.trans) body.push(`${fmtTime(l.time)}${l.trans}`) }
-  return [...header, ...body].join('\n')
+  const body = [];
+  for (const line of lines) {
+    body.push(`${formatTime(line.time)}${line.text}`);
+    if (line.trans) body.push(`${formatTime(line.time)}${line.trans}`);
+  }
+  return [...header, ...body].join('\n');
 }
 
 const activeIndex = computed(() => {
-  const lyrics = player.currentLyrics; const t = player.currentTime
-  if (!lyrics.length) return -1
-  // 从上次索引附近开始搜索（摊销 O(1)）
-  let start = lastActiveIndex >= 0 && lastActiveIndex < lyrics.length ? lastActiveIndex : 0
-  // 向前或向后搜索
-  if (start > 0 && t < lyrics[start].time) {
-    for (let i = start - 1; i >= 0; i--) {
-      const next = lyrics[i + 1]
-      if (t >= lyrics[i].time && (!next || t < next.time)) return i
+  const lyrics = player.currentLyrics;
+  const currentTime = player.currentTime;
+  if (!lyrics.length) return -1;
+  let start = lastActiveIndex >= 0 && lastActiveIndex < lyrics.length ? lastActiveIndex : 0;
+  if (start > 0 && currentTime < lyrics[start].time) {
+    for (let index = start - 1; index >= 0; index--) {
+      const next = lyrics[index + 1];
+      if (currentTime >= lyrics[index].time && (!next || currentTime < next.time)) return index;
     }
-    return -1
+    return -1;
   }
-  for (let i = start; i < lyrics.length; i++) {
-    const line = lyrics[i]; const next = lyrics[i + 1]
-    if (!line) continue
-    if (!next) { if (t >= line.time) return i }
-    else if (t >= line.time && t < next.time) return i
+  for (let index = start; index < lyrics.length; index++) {
+    const line = lyrics[index];
+    const next = lyrics[index + 1];
+    if (!line) continue;
+    if (!next) {
+      if (currentTime >= line.time) return index;
+    } else if (currentTime >= line.time && currentTime < next.time) return index;
   }
-  return -1
-})
+  return -1;
+});
 
-function scrollToActive(idx) {
-  const container = lyricsContainer.value
-  if (!container || idx < 0) return
-  const el = container.querySelector(`.line:nth-child(${idx + 1})`)
-  if (!el) return
-  const offset = el.offsetTop - container.offsetTop
-  const target = offset - (container.clientHeight / 2) + (el.clientHeight / 2)
-  container.scrollTo({ top: Math.max(0, target), behavior: 'smooth' })
+function scrollToActive(index) {
+  const container = lyricsContainer.value;
+  if (!container || index < 0) return;
+  const element = container.querySelector(`.line:nth-child(${index + 1})`);
+  if (!element) return;
+  const offset = element.offsetTop - container.offsetTop;
+  const target = offset - container.clientHeight / 2 + element.clientHeight / 2;
+  container.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
 }
 
-watch(activeIndex, (idx) => {
-  if (idx < 0 || idx === lastActiveIndex) return
-  lastActiveIndex = idx
-  scrollToActive(idx)
-})
+watch(activeIndex, (index) => {
+  if (index < 0 || index === lastActiveIndex) return;
+  lastActiveIndex = index;
+  scrollToActive(index);
+});
 
-function onKeydown(e) { if (e.key === 'Escape' && props.visible) close() }
+function onKeydown(event) {
+  if (event.key === 'Escape' && props.visible) close();
+}
 
-watch(() => player.currentLyrics, () => {
-  lastActiveIndex = -1
-  if (lyricsContainer.value) lyricsContainer.value.scrollTop = 0
-})
+watch(
+  () => player.currentLyrics,
+  () => {
+    lastActiveIndex = -1;
+    if (lyricsContainer.value) lyricsContainer.value.scrollTop = 0;
+  }
+);
 
 function onEditorSaved() {
-  const track = player.currentTrack
-  if (track?.bvid) player.loadLyrics(track.bvid, track.cid || '', track.title)
+  const track = player.currentTrack;
+  if (track?.bvid) player.loadLyrics(track.bvid, track.cid || '', track.title);
 }
 
 onMounted(() => {
-  document.addEventListener('keydown', onKeydown)
-  window.electronAPI?.onLyricsEditorSaved?.(onEditorSaved)
-})
+  document.addEventListener('keydown', onKeydown);
+  window.electronAPI?.onLyricsEditorSaved?.(onEditorSaved);
+});
 onUnmounted(() => {
-  document.removeEventListener('keydown', onKeydown)
-})
+  document.removeEventListener('keydown', onKeydown);
+});
 </script>
 
 <style scoped>
@@ -219,7 +279,12 @@ onUnmounted(() => {
   position: absolute;
   inset: 0;
   z-index: 1;
-  background: linear-gradient(135deg, rgba(10, 10, 20, 0.6) 0%, rgba(10, 10, 20, 0.35) 50%, rgba(10, 10, 20, 0.55) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(10, 10, 20, 0.6) 0%,
+    rgba(10, 10, 20, 0.35) 50%,
+    rgba(10, 10, 20, 0.55) 100%
+  );
 }
 
 .lyrics-body {
@@ -243,15 +308,13 @@ onUnmounted(() => {
   padding: 24px 20px;
 }
 
-.lyrics-left>.cover-wrap {
+.lyrics-left > .cover-wrap {
   margin-bottom: 28px;
 }
-
-.lyrics-left>.meta {
+.lyrics-left > .meta {
   margin-bottom: 24px;
 }
-
-.lyrics-left>.controls {
+.lyrics-left > .controls {
   margin-bottom: 24px;
 }
 
@@ -290,7 +353,9 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.04);
 }
 
-.cover-wrap.placeholder {
+.cover-wrap.placeholder,
+.ctrl-btn,
+.tool-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -300,44 +365,39 @@ onUnmounted(() => {
   font-size: 64px;
   color: rgba(255, 255, 255, 0.15);
 }
-
 .cover {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
-
 .meta {
   text-align: center;
   max-width: 260px;
+}
+
+.title,
+.author {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .title {
   font-size: 18px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.92);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
-
 .title-muted {
   color: rgba(255, 255, 255, 0.35);
 }
-
 .author {
   font-size: 13px;
   color: rgba(255, 255, 255, 0.45);
   margin-top: 4px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
-
 .author-muted {
   color: rgba(255, 255, 255, 0.25);
 }
-
 .controls {
   display: flex;
   align-items: center;
@@ -352,21 +412,19 @@ onUnmounted(() => {
   cursor: pointer;
   padding: 8px;
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   transition: all 0.2s;
 }
 
-.ctrl-btn:hover {
+.ctrl-btn:hover,
+.tool-btn:hover {
   background: rgba(255, 255, 255, 0.1);
+}
+.ctrl-btn:hover {
   color: #fff;
 }
-
 .play-btn {
   font-size: 44px;
 }
-
 .tools {
   display: flex;
   align-items: center;
@@ -382,28 +440,19 @@ onUnmounted(() => {
   cursor: pointer;
   padding: 6px;
   border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   transition: all 0.2s;
 }
 
 .tool-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
   color: rgba(255, 255, 255, 0.8);
 }
-
 .tool-btn.active {
   color: var(--accent);
 }
-
-
-
 .tool-btn:disabled {
   opacity: 0.2;
   cursor: default;
 }
-
 .tools-divider {
   width: 1px;
   height: 16px;
@@ -432,12 +481,10 @@ onUnmounted(() => {
 .empty-icon {
   font-size: 40px;
 }
-
 .empty-title {
   font-size: 16px;
   font-weight: 600;
 }
-
 .empty-hint {
   font-size: 13px;
 }
@@ -453,12 +500,10 @@ onUnmounted(() => {
 .lyrics-scroll::-webkit-scrollbar {
   width: 4px;
 }
-
 .lyrics-scroll::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.15);
   border-radius: 2px;
 }
-
 .lyrics-list {
   display: flex;
   flex-direction: column;
@@ -475,7 +520,6 @@ onUnmounted(() => {
 .line:hover {
   background: rgba(255, 255, 255, 0.03);
 }
-
 .line.active {
   background: rgba(251, 114, 153, 0.1);
 }
@@ -506,35 +550,23 @@ onUnmounted(() => {
 .line.active .line-trans.active-trans {
   color: var(--accent);
 }
-
 .lyrics-overlay-enter-active {
   transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
-
 .lyrics-overlay-leave-active {
   transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
-
 .lyrics-overlay-enter-active .lyrics-body {
   transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
-
 .lyrics-overlay-leave-active .lyrics-body {
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
-
-.lyrics-overlay-enter-from {
-  opacity: 0;
-}
-
+.lyrics-overlay-enter-from,
 .lyrics-overlay-leave-to {
   opacity: 0;
 }
-
-.lyrics-overlay-enter-from .lyrics-body {
-  transform: translateY(100%);
-}
-
+.lyrics-overlay-enter-from .lyrics-body,
 .lyrics-overlay-leave-to .lyrics-body {
   transform: translateY(100%);
 }

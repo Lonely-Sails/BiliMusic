@@ -1,66 +1,26 @@
 <template>
   <div class="app-container">
-    <header class="app-header" :class="{ 'is-mac': isMac }">
-      <div class="window-controls" v-if="!isMac">
-        <button class="win-btn win-btn-minimize" @click="minimizeWindow" title="最小化">
-          <Icon icon="mdi:window-minimize" />
-        </button>
-        <button class="win-btn win-btn-maximize" @click="maximizeWindow" :title="isMaxed ? '还原' : '最大化'">
-          <Icon :icon="isMaxed ? 'mdi:window-restore' : 'mdi:window-maximize'" />
-        </button>
-        <button class="win-btn win-btn-close" @click="closeWindow" title="关闭">
-          <Icon icon="mdi:close" />
-        </button>
-      </div>
-
-      <div class="header-left drag-region">
-        <div class="logo">
-          <Icon icon="mdi:music-note" class="logo-icon" />
-          <span class="logo-text">BiliMusic</span>
-        </div>
-      </div>
-
-      <div class="drag-region header-center search-wrapper">
-        <Autocomplete v-model="searchQuery" v-model:open="showDropdown" placeholder="搜索B站音乐..."
-          :groups="autocompleteGroups" @update:model-value="onInput" @keyup.enter="doSearch"
-          @select="selectSuggestion" @clear-history="clearHistory" />
-      </div>
-
-      <div class="header-right">
-        <LoginPanel />
-      </div>
-    </header>
+    <AppHeader
+      v-model:search-query="searchQuery"
+      v-model:search-open="showDropdown"
+      :is-mac="isMac"
+      :is-maximized="isMaxed"
+      :autocomplete-groups="autocompleteGroups"
+      @search-input="onInput"
+      @search="doSearch"
+      @select-suggestion="selectSuggestion"
+      @clear-history="clearHistory"
+      @minimize="minimizeWindow"
+      @maximize="maximizeWindow"
+      @close="closeWindow"
+    />
 
     <div class="app-body">
-      <aside class="sidebar">
-        <button class="nav-back" :disabled="!canGoBack" @click="goBack" title="返回">
-          <Icon icon="mdi:chevron-left" />
-        </button>
-        <nav class="sidebar-nav">
-          <router-link to="/home" class="nav-item" active-class="active">
-            <Icon icon="mdi:fire" class="nav-icon" />
-            <span class="nav-text">推荐</span>
-          </router-link>
-          <router-link to="/playlist" class="nav-item" active-class="active">
-            <Icon icon="mdi:playlist-music" class="nav-icon" />
-            <span class="nav-text">播放列表</span>
-            <span class="nav-badge" v-if="player.playlist.length">{{
-              player.playlist.length
-              }}</span>
-          </router-link>
-          <router-link to="/fav" class="nav-item" active-class="active">
-            <Icon icon="mdi:star-outline" class="nav-icon" />
-            <span class="nav-text">收藏夹</span>
-          </router-link>
-        </nav>
-        <div class="sidebar-spacer" />
-        <nav class="sidebar-nav sidebar-nav-bottom">
-          <router-link to="/settings" class="nav-item" active-class="active">
-            <Icon icon="mdi:cog-outline" class="nav-icon" />
-            <span class="nav-text">设置</span>
-          </router-link>
-        </nav>
-      </aside>
+      <AppSidebar
+        :can-go-back="canGoBack"
+        :playlist-count="player.playlist.length"
+        @go-back="goBack"
+      />
 
       <main class="main-content">
         <ScrollArea>
@@ -75,11 +35,24 @@
       <LyricsOverlay :visible="showLyricsOverlay" @close="showLyricsOverlay = false" />
     </KeepAlive>
 
-    <audio ref="audioRef" crossorigin="anonymous" @timeupdate="player.updateTime($event.target.currentTime)" @ended="player.onEnded()"
-      @loadedmetadata="player.setDuration($event.target.duration)" @error="player.isPlaying = false" preload="auto" />
+    <audio
+      ref="audioRef"
+      crossorigin="anonymous"
+      preload="auto"
+      @timeupdate="player.updateTime($event.target.currentTime)"
+      @ended="player.onEnded()"
+      @loadedmetadata="player.setDuration($event.target.duration)"
+      @error="player.isPlaying = false"
+    />
 
     <ToastProvider>
-      <Toast v-for="toast in toasts" :key="toast.id" :message="toast.message" :type="toast.type" :on-close="() => removeToast(toast.id)" />
+      <Toast
+        v-for="toast in toasts"
+        :key="toast.id"
+        :message="toast.message"
+        :type="toast.type"
+        :on-close="() => removeToast(toast.id)"
+      />
     </ToastProvider>
   </div>
 </template>
@@ -100,83 +73,54 @@
  * 额外：歌词弹层 (LyricsOverlay)、Toast 通知
  */
 
-import { ref, computed, watch, onMounted, onUnmounted, provide, defineAsyncComponent } from "vue";
-import { useRouter, useRoute } from "vue-router";
-import { usePlayerStore } from "./stores/player";
-import { useUserStore } from "./stores/user";
-import { useToast } from "./stores/toast";
-import { Icon } from "@iconify/vue";
-import PlayerBar from "./components/PlayerBar.vue";
-import LoginPanel from "./components/LoginPanel.vue";
-import ScrollArea from "./components/ui/ScrollArea.vue";
-import Autocomplete from "./components/ui/Autocomplete.vue";
-import ToastProvider from "./components/ui/ToastProvider.vue";
-import Toast from "./components/ui/Toast.vue";
+import { ref, computed, watch, onMounted, provide, defineAsyncComponent } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
+import { usePlayerStore } from './stores/player';
+import { useToast } from './stores/toast';
+import { useSearch } from './composables/use_search';
+import PlayerBar from './components/PlayerBar.vue';
+import AppHeader from './components/AppHeader.vue';
+import AppSidebar from './components/AppSidebar.vue';
+import ScrollArea from './components/ui/ScrollArea.vue';
+import ToastProvider from './components/ui/ToastProvider.vue';
+import Toast from './components/ui/Toast.vue';
 
 // ── 常量 ──
-const HISTORY_KEY = "bilimusic_search_history";
-const MAX_HISTORY = 20;
-const isMac = navigator.platform.startsWith("Mac"); // 编译时确定，无需响应式
+const isMac = navigator.platform.startsWith('Mac'); // 编译时确定，无需响应式
 
 // ── 异步组件（懒加载） ──
-const LyricsOverlay = defineAsyncComponent(() => import("./components/LyricsOverlay.vue"));
+const LyricsOverlay = defineAsyncComponent(() => import('./components/LyricsOverlay.vue'));
 
 // ── Store / Router ──
 const router = useRouter();
 const route = useRoute();
 const player = usePlayerStore();
-const user = useUserStore();
 const { toasts } = useToast();
 
 function removeToast(id) {
-  toasts.value = toasts.value.filter(t => t.id !== id)
+  toasts.value = toasts.value.filter((t) => t.id !== id);
 }
 
 // ── 响应式状态 ──
-const searchQuery = ref(""); // 搜索框输入
 const audioRef = ref(null); // <audio> 元素引用
 const searchKey = ref(0); // 强制重搜时递增
 const showLyricsOverlay = ref(false); // 歌词弹层可见性
+const {
+  searchQuery,
+  showDropdown,
+  autocompleteGroups,
+  loadHistory,
+  clearHistory,
+  onInput,
+  selectSuggestion,
+  doSearch,
+} = useSearch(router, searchKey);
 
 // 向下提供（给子组件使用）
-provide("searchKey", searchKey);
-provide("toggleLyricsOverlay", () => {
+provide('searchKey', searchKey);
+provide('toggleLyricsOverlay', () => {
   showLyricsOverlay.value = !showLyricsOverlay.value;
 });
-
-// 搜索下拉面板
-const showDropdown = ref(false);
-const suggestions = ref([]); // 搜索建议列表
-const hotSearch = ref([]); // 热搜列表
-const history = ref([]); // 搜索历史
-const suggestTimer = ref(null); // 输入防抖定时器（ref 确保组件卸载时清理）
-
-// Autocomplete 分组数据
-const autocompleteGroups = computed(() => {
-  const groups = []
-  if (searchQuery.value && suggestions.value.length) {
-    groups.push({
-      label: '搜索建议',
-      items: suggestions.value.map(s => ({ value: s.value, label: s.name, icon: 'mdi:magnify' }))
-    })
-  }
-  if (!searchQuery.value) {
-    if (history.value.length) {
-      groups.push({
-        label: '搜索历史',
-        clearable: true,
-        items: history.value.map(h => ({ value: h, label: h, icon: 'mdi:history' }))
-      })
-    }
-    if (hotSearch.value.length) {
-      groups.push({
-        label: 'B站热搜',
-        items: hotSearch.value.map((hot, i) => ({ value: hot.keyword, label: hot.showName, rank: i + 1 }))
-      })
-    }
-  }
-  return groups
-})
 
 // 窗口相关
 const isMaxed = ref(false); // 窗口是否最大化
@@ -192,103 +136,26 @@ function closeWindow() {
   window.electronAPI?.closeWindow();
 }
 
-// ── 搜索历史管理 ──
-
-/** 从 localStorage 加载搜索历史 */
-function loadHistory() {
-  try {
-    history.value = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
-  } catch {
-    history.value = [];
-  }
-}
-
-/** 保存关键词到搜索历史（去重、上限 MAX_HISTORY） */
-function saveHistoryItem(keyword) {
-  loadHistory();
-  const idx = history.value.indexOf(keyword);
-  if (idx >= 0) history.value.splice(idx, 1);
-  history.value.unshift(keyword);
-  if (history.value.length > MAX_HISTORY)
-    history.value = history.value.slice(0, MAX_HISTORY);
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(history.value));
-}
-
-/** 清空搜索历史 */
-function clearHistory() {
-  history.value = [];
-  localStorage.removeItem(HISTORY_KEY);
-}
-
-// ── 搜索建议 & 热搜 ──
-
-/** 获取 B站热搜词 */
-async function fetchHotSearch() {
-  try {
-    const result = await window.electronAPI.getHotSearch();
-    if (Array.isArray(result)) hotSearch.value = result;
-    else if (result.error) console.error("[BiliMusic] Hot search error:", result.error);
-  } catch (e) {
-    console.error("[BiliMusic] Failed to fetch hot search:", e);
-  }
-}
-
-/** 获取搜索建议（200ms 防抖） */
-async function fetchSuggestions(term) {
-  try {
-    const result = await window.electronAPI.getSearchSuggest(term);
-    suggestions.value = Array.isArray(result) ? result : [];
-  } catch {
-    suggestions.value = [];
-  }
-}
-
-/** 搜索框输入事件 — 空时显示历史+热搜，非空时请求建议 */
-function onInput() {
-  clearTimeout(suggestTimer.value);
-  if (!searchQuery.value) {
-    suggestions.value = [];
-    loadHistory();
-    fetchHotSearch();
-    return;
-  }
-  suggestTimer.value = setTimeout(() => fetchSuggestions(searchQuery.value), 200);
-}
-
-/** 选中下拉建议项 → 保存历史 + 跳转搜索页 */
-function selectSuggestion(value) {
-  showDropdown.value = false;
-  saveHistoryItem(value);
-  router.push({ path: "/search", query: { q: value } }).catch(() => searchKey.value++);
-}
-
 /** 侧边栏返回按钮 — 跟踪路由深度，无历史时置灰 */
-const historyDepth = ref(0)
-const canGoBack = computed(() => historyDepth.value > 0)
-let isBackNav = false
-watch(() => route.fullPath, () => {
-  if (isBackNav) { isBackNav = false; return }
-  historyDepth.value++
-})
+const historyDepth = ref(0);
+const canGoBack = computed(() => historyDepth.value > 0);
+let isBackNav = false;
+watch(
+  () => route.fullPath,
+  () => {
+    if (isBackNav) {
+      isBackNav = false;
+      return;
+    }
+    historyDepth.value++;
+  }
+);
 
 function goBack() {
-  if (!historyDepth.value) return
-  isBackNav = true
-  historyDepth.value--
-  router.back()
-}
-
-/** 按回车搜索 */
-async function doSearch() {
-  if (!searchQuery.value.trim()) return;
-  const q = searchQuery.value.trim();
-  showDropdown.value = false;
-  saveHistoryItem(q);
-  try {
-    await router.push({ path: "/search", query: { q } });
-  } catch {
-    searchKey.value++;
-  }
+  if (!historyDepth.value) return;
+  isBackNav = true;
+  historyDepth.value--;
+  router.back();
 }
 
 // ── 生命周期 ──
@@ -300,7 +167,7 @@ onMounted(() => {
   if (window.electronAPI?.onLyricsEditorSaved) {
     window.electronAPI.onLyricsEditorSaved(() => {
       const track = player.currentTrack.value;
-      if (track?.bvid) player.loadLyrics(track.bvid, track.cid || "", track.title);
+      if (track?.bvid) player.loadLyrics(track.bvid, track.cid || '', track.title);
     });
   }
 
@@ -309,13 +176,7 @@ onMounted(() => {
   // 窗口最大化状态同步
   window.electronAPI?.isMaximized().then((v) => (isMaxed.value = v));
   window.electronAPI?.onMaximizeChange((v) => (isMaxed.value = v));
-  window.electronAPI
-    ?.ensureSession()
-    .catch((e) => console.warn("[BiliMusic] Session init:", e));
-});
-
-onUnmounted(() => {
-  clearTimeout(suggestTimer.value);
+  window.electronAPI?.ensureSession().catch((e) => console.warn('[BiliMusic] Session init:', e));
 });
 </script>
 
@@ -324,121 +185,12 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: linear-gradient(135deg,
-      var(--bg-deep) 0%,
-      var(--bg-primary) 50%,
-      var(--bg-deep) 100%);
-}
-
-.app-header {
-  display: flex;
-  align-items: center;
-  height: var(--header-height);
-  padding: 0 20px;
-  background: rgba(22, 22, 42, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--border);
-  gap: 20px;
-  flex-shrink: 0;
-  z-index: 10;
-  -webkit-app-region: drag;
-}
-
-.app-header.is-mac {
-  padding-left: 80px;
-}
-
-.drag-region {
-  -webkit-app-region: drag;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  min-width: 140px;
-  padding-left: 16px;
-}
-
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.logo-icon {
-  font-size: 26px;
-  color: var(--accent);
-}
-
-.logo-text {
-  font-size: 18px;
-  font-weight: 800;
-  letter-spacing: 1.5px;
-  background: linear-gradient(135deg, var(--accent) 0%, #00a1d6 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.header-center {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  -webkit-app-region: no-drag;
-}
-
-.header-right {
-  min-width: 140px;
-  display: flex;
-  justify-content: flex-end;
-  -webkit-app-region: no-drag;
-}
-
-.window-controls {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  flex-shrink: 0;
-  -webkit-app-region: no-drag;
-  margin-left: -20px;
-  height: var(--header-height);
-}
-
-.win-btn {
-  width: 46px;
-  height: 100%;
-  border: none;
-  background: transparent;
-  color: var(--text-secondary);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  transition: background 0.15s, color 0.15s;
-  -webkit-app-region: no-drag;
-}
-
-.win-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--text-primary);
-}
-
-.win-btn-close:hover {
-  background: #e81123;
-  color: #fff;
-}
-
-.win-btn svg {
-  display: block;
-  width: 14px;
-  height: 14px;
-}
-
-.win-btn-minimize svg {
-  width: 12px;
-  height: 12px;
+  background: linear-gradient(
+    135deg,
+    var(--bg-deep) 0%,
+    var(--bg-primary) 50%,
+    var(--bg-deep) 100%
+  );
 }
 
 .app-body {
@@ -451,127 +203,5 @@ onUnmounted(() => {
   flex: 1;
   overflow: hidden;
   background: transparent;
-}
-
-.sidebar {
-  width: var(--sidebar-width);
-  background: rgba(15, 15, 26, 0.6);
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-  padding: 12px 0;
-  align-items: center;
-}
-
-.nav-back {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  margin: 0 0 10px;
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  border-radius: var(--radius-md);
-  transition: all var(--transition);
-  font-size: 28px;
-  flex-shrink: 0;
-}
-
-.nav-back:hover:not(:disabled) {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-}
-
-.nav-back:active:not(:disabled) {
-  transform: scale(0.9);
-}
-
-.nav-back:disabled {
-  opacity: 0.25;
-  cursor: default;
-}
-
-.sidebar-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  width: 100%;
-  padding: 0 8px;
-}
-
-.sidebar-spacer {
-  flex: 1;
-}
-
-.nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 10px 4px;
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  border-radius: var(--radius-md);
-  transition: all var(--transition);
-  font-size: 10px;
-  text-decoration: none;
-  position: relative;
-}
-
-.nav-item:hover {
-  background: var(--bg-hover);
-  color: var(--text-secondary);
-}
-
-.nav-item.active {
-  background: var(--accent-dim);
-  color: var(--accent);
-}
-
-.nav-item.active::before {
-  content: "";
-  position: absolute;
-  left: -8px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 3px;
-  height: 20px;
-  background: var(--accent);
-  border-radius: 0 3px 3px 0;
-}
-
-.nav-icon {
-  font-size: 20px;
-  line-height: 1;
-}
-
-.nav-text {
-  font-size: 10px;
-  line-height: 1;
-  font-weight: 500;
-}
-
-.nav-badge {
-  position: absolute;
-  top: 2px;
-  right: 6px;
-  background: var(--accent);
-  color: var(--bg-deep);
-  font-size: 9px;
-  font-weight: 700;
-  min-width: 16px;
-  height: 14px;
-  border-radius: 7px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 4px;
-  line-height: 1;
 }
 </style>

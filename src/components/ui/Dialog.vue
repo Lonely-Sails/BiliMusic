@@ -10,8 +10,10 @@
           </slot>
         </DialogClose>
         <div class="dialog-body">
-          <DialogTitle class="dialog-title" v-if="title">{{ title }}</DialogTitle>
-          <DialogDescription class="dialog-desc" v-if="description">{{ description }}</DialogDescription>
+          <DialogTitle v-if="title" class="dialog-title">{{ title }}</DialogTitle>
+          <DialogDescription v-if="description" class="dialog-desc">{{
+            description
+          }}</DialogDescription>
           <slot />
         </div>
       </DialogContent>
@@ -20,16 +22,24 @@
 </template>
 
 <script setup>
-import { DialogRoot, DialogPortal, DialogOverlay, DialogContent, DialogClose, DialogTitle, DialogDescription } from 'reka-ui'
-import { Icon } from '@iconify/vue'
+import {
+  DialogRoot,
+  DialogPortal,
+  DialogOverlay,
+  DialogContent,
+  DialogClose,
+  DialogTitle,
+  DialogDescription,
+} from 'reka-ui';
+import { Icon } from '@iconify/vue';
 
 defineProps({
   modelValue: { type: Boolean, default: false },
   title: { type: String, default: '' },
-  description: { type: String, default: '' }
-})
+  description: { type: String, default: '' },
+});
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue']);
 </script>
 
 <style>
@@ -100,8 +110,12 @@ const emit = defineEmits(['update:modelValue'])
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes dialogIn {

@@ -1,32 +1,27 @@
 <template>
   <div class="home-view">
     <div v-if="loading && !toplist.length" class="loading-state">
-      <div class="spinner" /><span>正在加载音乐数据...</span>
+      <div class="spinner" />
+      <span>正在加载音乐数据...</span>
     </div>
     <div v-else-if="error" class="error-state">
       <Icon icon="mdi:alert-circle-outline" class="error-icon" />
       <p>{{ error }}</p>
-      <button @click="loadAll" class="retry-btn">重试</button>
+      <button class="retry-btn" @click="loadAll">重试</button>
     </div>
     <template v-else>
-      <section class="hero-section" v-if="hero">
+      <section v-if="hero" class="hero-section">
         <div class="hero-bg" :style="{ backgroundImage: `url(${hero.mv_cover})` }" />
         <div class="hero-overlay" />
         <div class="hero-content">
-          <div class="hero-badge">
-            <Icon icon="mdi:trophy" />本周热歌榜
-          </div>
+          <div class="hero-badge"><Icon icon="mdi:trophy" />本周热歌榜</div>
           <div class="hero-rank">#{{ hero.rank }}</div>
           <h1 class="hero-title">{{ hero.music_title }}</h1>
           <p class="hero-artist">{{ hero.singer }}</p>
           <div class="hero-meta">
-            <span class="hero-tag" v-if="hero.is_new">
-              <Icon icon="mdi:flash" />新上榜
-            </span>
-            <span class="hero-heat">
-              <Icon icon="mdi:fire" /> {{ formatHeat(hero.heat) }}
-            </span>
-            <span class="hero-recommend" v-if="hero.recommendation">
+            <span v-if="hero.is_new" class="hero-tag"> <Icon icon="mdi:flash" />新上榜 </span>
+            <span class="hero-heat"> <Icon icon="mdi:fire" /> {{ formatHeat(hero.heat) }} </span>
+            <span v-if="hero.recommendation" class="hero-recommend">
               <Icon icon="mdi:music-note" /> {{ hero.recommendation }}
             </span>
           </div>
@@ -41,7 +36,7 @@
         </div>
       </section>
 
-      <section class="section" v-if="toplist.length > 0">
+      <section v-if="toplist.length > 0" class="section">
         <div class="section-header">
           <h2 class="section-title">
             <Icon icon="mdi:chart-bar" class="section-icon" />热歌 TOP 5
@@ -49,46 +44,68 @@
           <span class="section-subtitle">B站本周最热音乐排行</span>
         </div>
         <div class="toplist">
-          <div v-for="(item, index) in toplist.slice(0, 10)" :key="item.music_id" class="toplist-item"
-            :class="{ 'top-three': index < 3 }" @click="playToplist(item)">
+          <div
+            v-for="(item, index) in toplist.slice(0, 10)"
+            :key="item.music_id"
+            class="toplist-item"
+            :class="{ 'top-three': index < 3 }"
+            @click="playToplist(item)"
+          >
             <div class="toplist-rank">
-              <span class="rank-num" v-if="index < 3">{{ index + 1 }}</span>
-              <span class="rank-num-lg" v-else>{{ index + 1 }}</span>
-              <div class="rank-change" v-if="item.rank_changes !== undefined">
+              <span v-if="index < 3" class="rank-num">{{ index + 1 }}</span>
+              <span v-else class="rank-num-lg">{{ index + 1 }}</span>
+              <div v-if="item.rank_changes !== undefined" class="rank-change">
                 <Icon v-if="item.rank_changes > 0" icon="mdi:arrow-up-bold" class="change-up" />
-                <Icon v-else-if="item.rank_changes < 0" icon="mdi:arrow-down-bold" class="change-down" />
+                <Icon
+                  v-else-if="item.rank_changes < 0"
+                  icon="mdi:arrow-down-bold"
+                  class="change-down"
+                />
                 <Icon v-else icon="mdi:minus" class="change-equal" />
-                <span v-if="item.rank_changes !== 0" class="change-num">{{ Math.abs(item.rank_changes) }}</span>
+                <span v-if="item.rank_changes !== 0" class="change-num">{{
+                  Math.abs(item.rank_changes)
+                }}</span>
               </div>
               <div v-else-if="item.is_new" class="rank-new">NEW</div>
             </div>
-            <div class="toplist-cover" v-if="item.mv_cover">
-              <img :src="item.mv_cover + '@160w_160h.webp'" :alt="item.music_title" loading="lazy" />
+            <div v-if="item.mv_cover" class="toplist-cover">
+              <img
+                :src="item.mv_cover + '@160w_160h.webp'"
+                :alt="item.music_title"
+                loading="lazy"
+              />
             </div>
             <div class="toplist-info">
               <h4 class="toplist-title">{{ item.music_title }}</h4>
               <p class="toplist-artist">{{ item.singer }}</p>
             </div>
             <div class="toplist-heat">
-              <Progress :model-value="item.heat / maxHeat * 100" :max="100" root-class="heat-bar" indicator-class="heat-fill" />
+              <Progress
+                :model-value="(item.heat / maxHeat) * 100"
+                :max="100"
+                root-class="heat-bar"
+                indicator-class="heat-fill"
+              />
               <span class="heat-text">{{ formatHeat(item.heat) }}</span>
             </div>
             <button class="toplist-play-btn" @click.stop="playToplist(item)">
               <Icon icon="mdi:play-circle-outline" />
             </button>
-            <button v-if="user.loggedIn && user.favFolderId" class="toplist-fav-btn"
-              :class="{ favorited: user.isFavorited(item.mv_bvid) }" @click.stop="toggleToplistFav(item)">
+            <button
+              v-if="user.loggedIn && user.favFolderId"
+              class="toplist-fav-btn"
+              :class="{ favorited: user.isFavorited(item.mv_bvid) }"
+              @click.stop="toggleToplistFav(item)"
+            >
               <Icon :icon="user.isFavorited(item.mv_bvid) ? 'mdi:heart' : 'mdi:heart-outline'" />
             </button>
           </div>
         </div>
       </section>
 
-      <section class="section" v-if="hotRank.length > 0">
+      <section v-if="hotRank.length > 0" class="section">
         <div class="section-header">
-          <h2 class="section-title">
-            <Icon icon="mdi:fire" class="section-icon" />热门推荐
-          </h2>
+          <h2 class="section-title"><Icon icon="mdi:fire" class="section-icon" />热门推荐</h2>
           <span class="section-subtitle">累计播放量最高的音乐</span>
         </div>
         <div class="hot-grid">
@@ -96,7 +113,7 @@
         </div>
       </section>
 
-      <section class="section" v-if="newMusic.length > 0">
+      <section v-if="newMusic.length > 0" class="section">
         <div class="section-header">
           <h2 class="section-title">
             <Icon icon="mdi:music-box-multiple" class="section-icon" />新歌首发
@@ -105,13 +122,18 @@
         </div>
         <ScrollArea orientation="horizontal">
           <div class="new-music-track">
-            <div v-for="item in newMusic" :key="item.music_id" class="new-music-card" @click="playNewMusic(item)">
+            <div
+              v-for="item in newMusic"
+              :key="item.music_id"
+              class="new-music-card"
+              @click="playNewMusic(item)"
+            >
               <div class="nm-card-cover">
                 <img :src="item.cover + '@400w_400h.webp'" :alt="item.music_title" loading="lazy" />
                 <div class="nm-card-overlay">
                   <Icon icon="mdi:play-circle" class="nm-play-icon" />
                 </div>
-                <span class="nm-card-corner" v-if="item.music_corner">{{ item.music_corner }}</span>
+                <span v-if="item.music_corner" class="nm-card-corner">{{ item.music_corner }}</span>
               </div>
               <div class="nm-card-info">
                 <h4 class="nm-card-title">{{ item.music_title }}</h4>
@@ -138,106 +160,105 @@
  * 数据来源：musicCenter API（getHotToplist / getHotRank / getNewMusic）
  */
 
-import { ref, onMounted, computed } from 'vue'
-import { Icon } from '@iconify/vue'
-import SongCard from '../SongCard.vue'
-import { usePlayerStore } from '../../stores/player'
-import { useUserStore } from '../../stores/user'
-import Progress from '../../components/ui/Progress.vue'
-import ScrollArea from '../../components/ui/ScrollArea.vue'
+import { onMounted, computed } from 'vue';
+import { storeToRefs } from 'pinia';
+import { Icon } from '@iconify/vue';
+import SongCard from '../components/SongCard.vue';
+import { useHomeStore } from '../stores/home';
+import { usePlayerStore } from '../stores/player';
+import { useUserStore } from '../stores/user';
+import Progress from '../components/ui/Progress.vue';
+import ScrollArea from '../components/ui/ScrollArea.vue';
 
-const player = usePlayerStore()
-const user = useUserStore()
-const loading = ref(true)
-const error = ref('')
-const durationCache = new Map()  // bvid → duration 缓存
-
-const banner = ref(null)
-const toplist = ref([])    // 热歌 TOP10 列表
-const hotRank = ref([])    // 热门推荐列表
-const newMusic = ref([])   // 新歌列表
+const player = usePlayerStore();
+const user = useUserStore();
+const home = useHomeStore();
+const { loading, error, toplist, hotRank, newMusic } = storeToRefs(home);
+const { loadAll } = home;
 
 /** Hero 区域数据 — 取 TOP10 第一名 */
 const hero = computed(() => {
-  if (!toplist.value.length) return null
-  const top = toplist.value[0]
-  return { ...top, mv_cover: top.mv_cover || '' }
-})
+  if (!toplist.value.length) return null;
+  const top = toplist.value[0];
+  return { ...top, mv_cover: top.mv_cover || '' };
+});
 
 /** TOP10 中最大热度值（用于归一化热度条） */
 const maxHeat = computed(() => {
-  if (!toplist.value.length) return 1
-  return Math.max(...toplist.value.map(t => t.heat || 0))
-})
+  if (!toplist.value.length) return 1;
+  return Math.max(...toplist.value.map((t) => t.heat || 0));
+});
 
-onMounted(() => loadAll())
-
-/** 加载所有首页数据 */
-async function loadAll() {
-  loading.value = true; error.value = ''
-  await safeCall(() => window.electronAPI.ensureSession())
-  try {
-    const [toplistData, hotRankData, newMusicData] = await Promise.all([
-      safeCall(() => window.electronAPI.getHotToplist()),
-      safeCall(() => window.electronAPI.getHotRank()),
-      safeCall(() => window.electronAPI.getNewMusic()),
-    ])
-    if (toplistData?.list) toplist.value = toplistData.list
-    if (hotRankData?.list) hotRank.value = hotRankData.list.slice(0, 20)
-    if (newMusicData?.list) newMusic.value = newMusicData.list.slice(0, 12)
-
-    // 惰性补齐缺失的歌曲时长
-    const allItems = [...(hotRank.value || []), ...(newMusic.value || [])]
-    for (const item of allItems) {
-      if (!item.duration) fetchMissingDuration(item).catch(() => { })
-    }
-    if (!toplistData && !hotRankData && !newMusicData) error.value = '暂时无法获取音乐数据'
-  } catch (e) { error.value = '加载失败: ' + e.message }
-  finally { loading.value = false }
-}
-
-/** 安全调用 API（忽略业务错误，仅返回 null） */
-async function safeCall(fn) {
-  try {
-    const result = await fn()
-    if (result?.error) { console.warn('[BiliMusic] API:', result.error); return null }
-    return result
-  } catch (e) { console.warn('[BiliMusic] API error:', e); return null }
-}
-
-/** 通过 API 补齐歌曲时长（惰性加载 + Map 缓存） */
-async function fetchMissingDuration(item) {
-  if (!item.bvid || item.duration > 0) return
-  if (durationCache.has(item.bvid)) { item.duration = durationCache.get(item.bvid); return }
-  try {
-    const info = await window.electronAPI.getVideoInfo(item.bvid, item.aid || 0)
-    if (info?.duration) { item.duration = info.duration; durationCache.set(item.bvid, info.duration) }
-  } catch { }
-}
+onMounted(() => loadAll());
 
 function mapHotRankItem(item) {
-  return { bvid: item.bvid || '', aid: item.aid || 0, title: item.music_title, cover: item.cover || '', duration: item.duration || 0, author: item.author || '', play: item.total_vv || 0, cid: item.cid || null }
+  return {
+    bvid: item.bvid || '',
+    aid: item.aid || 0,
+    title: item.music_title,
+    cover: item.cover || '',
+    duration: item.duration || 0,
+    author: item.author || '',
+    play: item.total_vv || 0,
+    cid: item.cid || null,
+  };
 }
 
 function mapToplistItem(item) {
-  return { bvid: item.mv_bvid || '', aid: item.mv_aid || 0, title: item.music_title, cover: item.mv_cover || '', duration: item.duration || 0, author: item.singer || '', play: item.heat || 0, cid: null }
+  return {
+    bvid: item.mv_bvid || '',
+    aid: item.mv_aid || 0,
+    title: item.music_title,
+    cover: item.mv_cover || '',
+    duration: item.duration || 0,
+    author: item.singer || '',
+    play: item.heat || 0,
+    cid: null,
+  };
 }
 
 function mapNewMusicItem(item) {
-  return { bvid: item.bvid || '', aid: item.aid || 0, title: item.music_title, cover: item.cover || '', duration: item.duration || 0, author: item.author || '', play: item.wish_count || 0, cid: item.cid || null }
+  return {
+    bvid: item.bvid || '',
+    aid: item.aid || 0,
+    title: item.music_title,
+    cover: item.cover || '',
+    duration: item.duration || 0,
+    author: item.author || '',
+    play: item.wish_count || 0,
+    cid: item.cid || null,
+  };
 }
 
-function playToplist(item) { const track = mapToplistItem(item); if (track.bvid || track.aid) player.playTrack(track) }
-async function toggleToplistFav(item) { const fi = { bvid: item.mv_bvid || '', aid: item.mv_aid || 0 }; if (fi.bvid || fi.aid) await user.toggleFav(fi) }
-function playHero() { playToplist(toplist.value[0]) }
-function addHeroToPlaylist() { const item = toplist.value[0]; if (item) player.addToPlaylist(mapToplistItem(item)) }
-function playNewMusic(item) { const track = mapNewMusicItem(item); if (track.bvid || track.aid) player.playTrack(track) }
+function playToplist(item) {
+  const track = mapToplistItem(item);
+  if (track.bvid || track.aid) player.playTrack(track);
+}
+
+async function toggleToplistFav(item) {
+  const fi = { bvid: item.mv_bvid || '', aid: item.mv_aid || 0 };
+  if (fi.bvid || fi.aid) await user.toggleFav(fi);
+}
+
+function playHero() {
+  playToplist(toplist.value[0]);
+}
+
+function addHeroToPlaylist() {
+  const item = toplist.value[0];
+  if (item) player.addToPlaylist(mapToplistItem(item));
+}
+
+function playNewMusic(item) {
+  const track = mapNewMusicItem(item);
+  if (track.bvid || track.aid) player.playTrack(track);
+}
 
 function formatHeat(heat) {
-  if (!heat) return '0'
-  if (heat >= 100000000) return (heat / 100000000).toFixed(1) + '亿'
-  if (heat >= 10000) return (heat / 10000).toFixed(1) + '万'
-  return String(heat)
+  if (!heat) return '0';
+  if (heat >= 100000000) return (heat / 100000000).toFixed(1) + '亿';
+  if (heat >= 10000) return (heat / 10000).toFixed(1) + '万';
+  return String(heat);
 }
 </script>
 
@@ -335,6 +356,7 @@ function formatHeat(heat) {
   color: var(--accent);
 }
 
+/* ── Hero ── */
 .hero-section {
   position: relative;
   height: 340px;
@@ -357,7 +379,12 @@ function formatHeat(heat) {
 .hero-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(10, 10, 20, 0.8) 0%, rgba(10, 10, 20, 0.2) 60%, transparent 100%);
+  background: linear-gradient(
+    to top,
+    rgba(10, 10, 20, 0.8) 0%,
+    rgba(10, 10, 20, 0.2) 60%,
+    transparent 100%
+  );
 }
 
 .hero-content {
@@ -456,6 +483,7 @@ function formatHeat(heat) {
   background: rgba(255, 255, 255, 0.2);
 }
 
+/* ── Toplist ── */
 .toplist {
   display: flex;
   flex-direction: column;
@@ -615,11 +643,7 @@ function formatHeat(heat) {
   display: flex;
 }
 
-.toplist-play-btn:hover {
-  color: var(--accent);
-  background: var(--accent-dim);
-}
-
+.toplist-play-btn:hover,
 .toplist-fav-btn:hover {
   color: var(--accent);
   background: var(--accent-dim);
@@ -629,6 +653,7 @@ function formatHeat(heat) {
   color: var(--accent);
 }
 
+/* ── Discovery ── */
 .hot-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -722,6 +747,4 @@ function formatHeat(heat) {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
-
 </style>

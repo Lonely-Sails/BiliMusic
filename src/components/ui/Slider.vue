@@ -1,7 +1,13 @@
 <template>
-  <SliderRoot :model-value="modelValue" :max="max" :step="step" :disabled="disabled"
-    :orientation="orientation" :class="['slider-root', rootClass]"
-    @update:model-value="emit('update:modelValue', $event)">
+  <SliderRoot
+    :model-value="modelValue"
+    :max="max"
+    :step="step"
+    :disabled="disabled"
+    :orientation="orientation"
+    :class="['slider-root', rootClass]"
+    @update:model-value="emit('update:modelValue', $event)"
+  >
     <SliderTrack :class="['slider-track', trackClass]">
       <SliderRange :class="['slider-range', rangeClass]" />
     </SliderTrack>
@@ -10,7 +16,7 @@
 </template>
 
 <script setup>
-import { SliderRoot, SliderTrack, SliderRange, SliderThumb } from 'reka-ui'
+import { SliderRoot, SliderTrack, SliderRange, SliderThumb } from 'reka-ui';
 
 defineProps({
   modelValue: { type: Array, default: () => [0] },
@@ -21,10 +27,10 @@ defineProps({
   rootClass: { type: String, default: '' },
   trackClass: { type: String, default: '' },
   rangeClass: { type: String, default: '' },
-  thumbClass: { type: String, default: '' }
-})
+  thumbClass: { type: String, default: '' },
+});
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue']);
 </script>
 
 <style scoped>
@@ -37,12 +43,12 @@ const emit = defineEmits(['update:modelValue'])
   user-select: none;
 }
 
-.slider-root[data-orientation="horizontal"] {
+.slider-root[data-orientation='horizontal'] {
   width: 100%;
   height: 20px;
 }
 
-.slider-root[data-orientation="vertical"] {
+.slider-root[data-orientation='vertical'] {
   flex-direction: column;
   width: 20px;
   height: 100%;
@@ -55,11 +61,11 @@ const emit = defineEmits(['update:modelValue'])
   border-radius: 4px;
 }
 
-.slider-track[data-orientation="horizontal"] {
+.slider-track[data-orientation='horizontal'] {
   height: 4px;
 }
 
-.slider-track[data-orientation="vertical"] {
+.slider-track[data-orientation='vertical'] {
   width: 4px;
 }
 
@@ -69,11 +75,11 @@ const emit = defineEmits(['update:modelValue'])
   border-radius: 4px;
 }
 
-.slider-range[data-orientation="horizontal"] {
+.slider-range[data-orientation='horizontal'] {
   height: 100%;
 }
 
-.slider-range[data-orientation="vertical"] {
+.slider-range[data-orientation='vertical'] {
   width: 100%;
 }
 

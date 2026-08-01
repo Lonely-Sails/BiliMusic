@@ -19,9 +19,18 @@
               <Icon icon="mdi:plus" />
             </button>
           </Tooltip>
-          <Tooltip v-if="user.loggedIn && user.favFolderId" :text="user.isFavorited(item.bvid) ? '取消收藏' : '收藏到「' + user.favFolderName + '」'" side="top">
-            <button class="action-btn fav-btn" :class="{ favorited: user.isFavorited(item.bvid) }"
-              @click.stop="toggleFav">
+          <Tooltip
+            v-if="user.loggedIn && user.favFolderId"
+            :text="
+              user.isFavorited(item.bvid) ? '取消收藏' : '收藏到「' + user.favFolderName + '」'
+            "
+            side="top"
+          >
+            <button
+              class="action-btn fav-btn"
+              :class="{ favorited: user.isFavorited(item.bvid) }"
+              @click.stop="toggleFav"
+            >
               <Icon :icon="user.isFavorited(item.bvid) ? 'mdi:heart' : 'mdi:heart-outline'" />
             </button>
           </Tooltip>
@@ -32,7 +41,7 @@
         <p class="card-author">
           <Icon icon="mdi:account-outline" class="meta-icon" /> {{ item.author }}
         </p>
-        <p class="card-stats" v-if="showPlayCount">
+        <p v-if="showPlayCount" class="card-stats">
           <Icon icon="mdi:play-circle-outline" class="meta-icon" /> {{ formatNumber(item.play) }}
         </p>
       </div>
@@ -41,44 +50,49 @@
 </template>
 
 <script setup>
-import { useRouter } from 'vue-router'
-import { usePlayerStore } from '../stores/player'
-import { useUserStore } from '../stores/user'
-import { Icon } from '@iconify/vue'
-import TooltipProvider from './ui/TooltipProvider.vue'
-import Tooltip from './ui/Tooltip.vue'
+import { useRouter } from 'vue-router';
+import { usePlayerStore } from '../stores/player';
+import { useUserStore } from '../stores/user';
+import { Icon } from '@iconify/vue';
+import TooltipProvider from './ui/TooltipProvider.vue';
+import Tooltip from './ui/Tooltip.vue';
 
 const props = defineProps({
   item: { type: Object, required: true },
-  showPlayCount: { type: Boolean, default: true }
-})
+  showPlayCount: { type: Boolean, default: true },
+});
 
-const emit = defineEmits(['fav-change'])
+const emit = defineEmits(['fav-change']);
 
-const router = useRouter()
-const player = usePlayerStore()
-const user = useUserStore()
+const router = useRouter();
+const player = usePlayerStore();
+const user = useUserStore();
 
-function play() { player.playTrack(props.item) }
-function addToPlaylist() { player.addToPlaylist(props.item) }
+function play() {
+  player.playTrack(props.item);
+}
+function addToPlaylist() {
+  player.addToPlaylist(props.item);
+}
 function openSeason() {
-  const s = props.item.season
-  if (s) router.push({ name: 'collection', query: { mid: s.mid, seasonId: s.seasonId, name: s.title } })
+  const s = props.item.season;
+  if (s)
+    router.push({ name: 'collection', query: { mid: s.mid, seasonId: s.seasonId, name: s.title } });
 }
 async function toggleFav() {
-  const result = await user.toggleFav(props.item)
-  if (result) emit('fav-change', result)
+  const result = await user.toggleFav(props.item);
+  if (result) emit('fav-change', result);
 }
 function formatDuration(duration) {
-  if (!duration) return '--:--'
-  if (typeof duration === 'string' && duration.includes(':')) return duration
-  const m = Math.floor(duration / 60)
-  const s = duration % 60
-  return `${m}:${String(s).padStart(2, '0')}`
+  if (!duration) return '--:--';
+  if (typeof duration === 'string' && duration.includes(':')) return duration;
+  const m = Math.floor(duration / 60);
+  const s = duration % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
 }
 function formatNumber(num) {
-  if (!num) return '0'
-  return num >= 10000 ? (num / 10000).toFixed(1) + '万' : String(num)
+  if (!num) return '0';
+  return num >= 10000 ? (num / 10000).toFixed(1) + '万' : String(num);
 }
 </script>
 
@@ -119,7 +133,12 @@ function formatNumber(num) {
 .card-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.1) 50%, transparent 100%);
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.5) 0%,
+    rgba(0, 0, 0, 0.1) 50%,
+    transparent 100%
+  );
   display: flex;
   align-items: center;
   justify-content: center;
