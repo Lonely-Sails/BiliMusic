@@ -15,6 +15,20 @@ import App from './App.vue';
 import router from './router';
 import './styles/main.css';
 import './utils/icon-init';
+import { applyTheme } from './composables/use_theme';
+
+// 在应用挂载前应用主题，避免页面闪烁
+applyTheme(
+  (() => {
+    try {
+      const stored = localStorage.getItem('bilimusic:theme');
+      if (stored === 'light' || stored === 'dark') return stored;
+    } catch {
+      /* ignore */
+    }
+    return 'dark';
+  })()
+);
 
 // ── 全局错误捕获（用于调试） ──
 window.onerror = (msg, url, line, col, err) => {

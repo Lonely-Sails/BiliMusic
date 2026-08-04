@@ -231,7 +231,7 @@ function formatTime(seconds) {
   align-items: center;
   height: var(--player-height);
   padding: 0 20px;
-  background: rgba(15, 15, 26, 0.95);
+  background: var(--bg-secondary);
   border-top: 1px solid var(--border);
   gap: 20px;
   flex-shrink: 0;

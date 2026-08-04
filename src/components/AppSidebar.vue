@@ -42,7 +42,7 @@ const emit = defineEmits(['go-back']);
 <style scoped>
 .sidebar {
   width: var(--sidebar-width);
-  background: rgba(15, 15, 26, 0.6);
+  background: var(--bg-secondary);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;

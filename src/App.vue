@@ -39,7 +39,7 @@
       ref="audioRef"
       crossorigin="anonymous"
       preload="auto"
-      @timeupdate="player.updateTime($event.target.currentTime)"
+      @timeupdate="onTimeUpdate($event.target.currentTime)"
       @ended="player.onEnded()"
       @loadedmetadata="player.setDuration($event.target.duration)"
       @error="player.isPlaying = false"
@@ -73,7 +73,7 @@
  * 额外：歌词弹层 (LyricsOverlay)、Toast 通知
  */
 
-import { ref, computed, watch, onMounted, provide, defineAsyncComponent } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted, provide, defineAsyncComponent } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { usePlayerStore } from './stores/player';
 import { useToast } from './stores/toast';
@@ -158,6 +158,25 @@ function goBack() {
   router.back();
 }
 
+// ── 时间更新节流（降低渲染开销） ──
+// timeupdate 事件约 4 次/秒是够的，但为了进度条平滑，用 rAF 合并到 ~20fps，
+// 避免每次事件都触发 currentTime 响应式更新（歌词行/进度条/桌面歌词）。
+let timeRaf = null;
+let lastUiTime = 0;
+function onTimeUpdate(time) {
+  const now = performance.now();
+  if (now - lastUiTime < 50) return; // 最多 ~20 次/秒
+  lastUiTime = now;
+  if (timeRaf) cancelAnimationFrame(timeRaf);
+  timeRaf = requestAnimationFrame(() => {
+    timeRaf = null;
+    player.updateTime(time);
+  });
+}
+onUnmounted(() => {
+  if (timeRaf) cancelAnimationFrame(timeRaf);
+});
+
 // ── 生命周期 ──
 onMounted(() => {
   // 关联 <audio> 元素到 player store
@@ -185,12 +204,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: linear-gradient(
-    135deg,
-    var(--bg-deep) 0%,
-    var(--bg-primary) 50%,
-    var(--bg-deep) 100%
-  );
+  background: var(--bg-primary);
 }
 
 .app-body {

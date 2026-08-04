@@ -131,4 +131,5 @@ dist
 
 # 文档
 .**/
-.**.**
+AGENTS.md
+.todo.txt

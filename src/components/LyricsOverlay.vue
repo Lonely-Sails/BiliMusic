@@ -84,6 +84,7 @@
                 <div
                   v-for="(line, index) in player.currentLyrics"
                   :key="index"
+                  :ref="(el) => setLineRef(index, el)"
                   class="line"
                   :class="{ active: index === activeIndex }"
                   @click="player.seek(line.time)"
@@ -116,6 +117,14 @@ const emit = defineEmits(['close']);
 const player = usePlayerStore();
 const lyricsContainer = ref(null);
 let lastActiveIndex = -1;
+// 缓存每行歌词的 DOM 元素，避免 scrollToActive 反复 querySelector
+const lineElements = new Map();
+let scrollRaf = null;
+
+function setLineRef(index, el) {
+  if (el) lineElements.set(index, el);
+  else lineElements.delete(index);
+}
 
 const bgStyle = computed(() => {
   if (player.currentTrack?.cover)
@@ -187,6 +196,8 @@ function serializeLRC(lines, songName, sourceName, bvid) {
 }
 
 const activeIndex = computed(() => {
+  // overlay 不可见时无需计算/高亮，直接返回 -1，避免随 currentTime 高频重算
+  if (!props.visible) return -1;
   const lyrics = player.currentLyrics;
   const currentTime = player.currentTime;
   if (!lyrics.length) return -1;
@@ -209,14 +220,24 @@ const activeIndex = computed(() => {
   return -1;
 });
 
+let pendingScrollIndex = -1;
 function scrollToActive(index) {
-  const container = lyricsContainer.value;
-  if (!container || index < 0) return;
-  const element = container.querySelector(`.line:nth-child(${index + 1})`);
-  if (!element) return;
-  const offset = element.offsetTop - container.offsetTop;
-  const target = offset - container.clientHeight / 2 + element.clientHeight / 2;
-  container.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
+  // 用 rAF 合并滚动，同一帧内多次切换只滚动一次，但始终记住最新 index
+  pendingScrollIndex = index;
+  if (scrollRaf) return;
+  scrollRaf = requestAnimationFrame(() => {
+    scrollRaf = null;
+    const targetIndex = pendingScrollIndex;
+    pendingScrollIndex = -1;
+    const container = lyricsContainer.value;
+    if (!container || targetIndex < 0) return;
+    const element = lineElements.get(targetIndex);
+    if (!element) return;
+    const offset = element.offsetTop - container.offsetTop;
+    const target = offset - container.clientHeight / 2 + element.clientHeight / 2;
+    // 高频切换时用 auto，避免 smooth 动画叠加导致卡顿
+    container.scrollTo({ top: Math.max(0, target), behavior: 'auto' });
+  });
 }
 
 watch(activeIndex, (index) => {
@@ -233,6 +254,12 @@ watch(
   () => player.currentLyrics,
   () => {
     lastActiveIndex = -1;
+    pendingScrollIndex = -1;
+    lineElements.clear();
+    if (scrollRaf) {
+      cancelAnimationFrame(scrollRaf);
+      scrollRaf = null;
+    }
     if (lyricsContainer.value) lyricsContainer.value.scrollTop = 0;
   }
 );
@@ -248,6 +275,12 @@ onMounted(() => {
 });
 onUnmounted(() => {
   document.removeEventListener('keydown', onKeydown);
+  pendingScrollIndex = -1;
+  if (scrollRaf) {
+    cancelAnimationFrame(scrollRaf);
+    scrollRaf = null;
+  }
+  lineElements.clear();
 });
 </script>
 
@@ -495,6 +528,7 @@ onUnmounted(() => {
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
   padding: 20px 0;
+  scroll-behavior: smooth;
 }
 
 .lyrics-scroll::-webkit-scrollbar {

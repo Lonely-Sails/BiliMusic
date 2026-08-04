@@ -6,6 +6,26 @@
     <div class="settings-body">
       <div class="setting-card">
         <div class="setting-card-header">
+          <Icon icon="mdi:palette-outline" class="card-icon" /><span>外观</span>
+        </div>
+        <div class="setting-card-body">
+          <div class="setting-row">
+            <span class="setting-label">
+              <span>亮色模式</span>
+              <span class="inline-hint">
+                <Icon icon="mdi:information-outline" class="desc-icon" />
+                切换浅色 / 深色界面主题
+              </span>
+            </span>
+            <div class="setting-control-row">
+              <Switch :model-value="isLightMode" @update:model-value="onThemeToggle" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="setting-card">
+        <div class="setting-card-header">
           <Icon icon="mdi:account-circle-outline" class="card-icon" /><span>账号</span>
         </div>
         <div class="setting-card-body">
@@ -178,6 +198,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useUserStore } from '../stores/user';
 import { usePlayerStore } from '../stores/player';
 import { useToast } from '../stores/toast';
+import { useTheme } from '../composables/use_theme';
 import { Icon } from '@iconify/vue';
 import Select from '../components/ui/Select.vue';
 import SelectItem from '../components/ui/SelectItem.vue';
@@ -189,6 +210,13 @@ import NumberField from '../components/ui/NumberField.vue';
 const user = useUserStore();
 const player = usePlayerStore();
 const { showToast } = useToast();
+const { theme, setTheme } = useTheme();
+const isLightMode = computed(() => theme.value === 'light');
+
+function onThemeToggle(val) {
+  setTheme(val ? 'light' : 'dark');
+  showToast(val ? '已切换到亮色模式' : '已切换到深色模式');
+}
 const folders = ref([]);
 const selectedFavFolder = ref(user.favFolderId ? String(user.favFolderId) : '__none__');
 const loadingFolders = ref(false);
@@ -314,7 +342,7 @@ async function clearAllCache() {
   font-size: 15px;
   font-weight: 600;
   border-bottom: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--bg-elevated);
 }
 
 .card-icon {

@@ -80,7 +80,7 @@ function handleSearchInput(value) {
   align-items: center;
   height: var(--header-height);
   padding: 0 20px;
-  background: rgba(22, 22, 42, 0.85);
+  background: var(--bg-elevated);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
@@ -167,7 +167,7 @@ function handleSearchInput(value) {
 }
 
 .window-button:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--bg-hover);
   color: var(--text-primary);
 }
 
