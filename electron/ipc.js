@@ -34,6 +34,7 @@ import {
   getNewMusic,
   getComprehensiveRank,
 } from './api/music.js';
+import { getUserInfo, getUserRelationStat, getUserArchives } from './api/user.js';
 import { resolveVideoInfo, resolveAudioUrl, fetchAudioBuffer } from './services/player.js';
 import { ensureBiliSession } from './services/session.js';
 import { registerDesktopLyricsIPC } from './ipc/desktop-lyrics.js';
@@ -131,6 +132,32 @@ export function setupIPC(wm, currentLyricsData, currentTrackInfo) {
   ipcMain.handle('season:archives', async (_, mid, seasonId, pageNum, pageSize) => {
     try {
       return await getSeasonArchives(mid, seasonId, pageNum || 1, pageSize || 30);
+    } catch (e) {
+      return { error: e.message };
+    }
+  });
+
+  // ══════════════════════════════════════════
+  //  用户 — UP主信息 / 关系统计 / 投稿列表
+  // ══════════════════════════════════════════
+
+  ipcMain.handle('user:info', async (_, mid) => {
+    try {
+      return await getUserInfo(mid);
+    } catch (e) {
+      return { error: e.message };
+    }
+  });
+  ipcMain.handle('user:relation-stat', async (_, mid) => {
+    try {
+      return await getUserRelationStat(mid);
+    } catch (e) {
+      return { error: e.message };
+    }
+  });
+  ipcMain.handle('user:archives', async (_, mid, pageNum, pageSize, keyword) => {
+    try {
+      return await getUserArchives(mid, pageNum || 1, pageSize || 30, keyword || '');
     } catch (e) {
       return { error: e.message };
     }

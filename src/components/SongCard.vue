@@ -38,7 +38,15 @@
       </div>
       <div class="card-info">
         <h4 class="card-title" :title="item.title">{{ item.title }}</h4>
-        <p class="card-author">
+        <button
+          v-if="showAuthor && item.mid"
+          class="card-author"
+          :title="'查看UP主 ' + item.author"
+          @click.stop="openAuthor"
+        >
+          <Icon icon="mdi:account-outline" class="meta-icon" /> {{ item.author }}
+        </button>
+        <p v-else-if="showAuthor" class="card-author">
           <Icon icon="mdi:account-outline" class="meta-icon" /> {{ item.author }}
         </p>
         <p v-if="showPlayCount" class="card-stats">
@@ -60,6 +68,7 @@ import Tooltip from './ui/Tooltip.vue';
 const props = defineProps({
   item: { type: Object, required: true },
   showPlayCount: { type: Boolean, default: true },
+  showAuthor: { type: Boolean, default: true },
 });
 
 const emit = defineEmits(['fav-change']);
@@ -78,6 +87,10 @@ function openSeason() {
   const s = props.item.season;
   if (s)
     router.push({ name: 'collection', query: { mid: s.mid, seasonId: s.seasonId, name: s.title } });
+}
+function openAuthor() {
+  if (props.item.mid)
+    router.push({ name: 'up', query: { mid: props.item.mid, name: props.item.author } });
 }
 async function toggleFav() {
   const result = await user.toggleFav(props.item);
@@ -218,6 +231,19 @@ function formatNumber(num) {
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+.card-author {
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  cursor: pointer;
+  transition: color var(--transition);
+}
+
+.card-author:hover {
+  color: var(--accent);
 }
 
 .meta-icon {

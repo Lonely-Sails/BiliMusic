@@ -26,6 +26,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getSeasonArchives: (mid, seasonId, pageNum, pageSize) =>
     ipcRenderer.invoke('season:archives', mid, seasonId, pageNum, pageSize),
 
+  // User / UP主
+  getUserInfo: (mid) => ipcRenderer.invoke('user:info', mid),
+  getUserRelationStat: (mid) => ipcRenderer.invoke('user:relation-stat', mid),
+  getUserArchives: (mid, pageNum, pageSize, keyword) =>
+    ipcRenderer.invoke('user:archives', mid, pageNum, pageSize, keyword),
+
   // Auth
   getQrcode: () => ipcRenderer.invoke('auth:get-qrcode'),
   pollLogin: (qrcodeKey) => ipcRenderer.invoke('auth:poll-login', qrcodeKey),

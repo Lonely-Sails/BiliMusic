@@ -1,19 +1,29 @@
 <template>
   <TooltipProvider>
-    <div class="collection-view">
-      <!-- 合集头部信息 -->
-      <div v-if="meta" class="collection-header">
-        <div class="collection-cover">
-          <img :src="meta.cover" :alt="meta.name" />
+    <div class="up-view">
+      <!-- UP主头部信息 -->
+      <div v-if="userInfo" class="up-header">
+        <div class="up-avatar">
+          <img :src="userInfo.face" :alt="userInfo.name" />
         </div>
-        <div class="collection-info">
-          <span class="collection-label"> <Icon icon="mdi:layers-outline" /> 视频合集 </span>
-          <h2 class="collection-name">{{ meta.name }}</h2>
-          <p v-if="meta.description" class="collection-desc">{{ meta.description }}</p>
-          <div class="collection-meta">
-            <span><Icon icon="mdi:video-outline" class="meta-icon" /> {{ meta.total }} 个视频</span>
+        <div class="up-info">
+          <div class="up-name-row">
+            <h2 class="up-name">{{ userInfo.name }}</h2>
+            <Icon v-if="userInfo.vip?.status" icon="mdi:crown" class="up-vip" />
           </div>
-          <div v-if="archives.length" class="collection-actions">
+          <p v-if="userInfo.sign" class="up-sign">{{ userInfo.sign }}</p>
+          <div class="up-meta">
+            <span
+              ><Icon icon="mdi:account-check-outline" class="meta-icon" /> 关注
+              {{ formatNumber(relation.following) }}</span
+            >
+            <span
+              ><Icon icon="mdi:account-multiple-outline" class="meta-icon" /> 粉丝
+              {{ formatNumber(relation.follower) }}</span
+            >
+            <span><Icon icon="mdi:video-outline" class="meta-icon" /> {{ total }} 个视频</span>
+          </div>
+          <div v-if="archives.length" class="up-actions">
             <button class="play-all-btn" @click="playAll"><Icon icon="mdi:play" /> 播放全部</button>
             <button class="add-all-btn" @click="addAll">
               <Icon icon="mdi:playlist-plus" /> 添加全部
@@ -45,15 +55,15 @@
       <div v-else-if="loadError" class="error-state">
         <Icon icon="mdi:alert-circle-outline" class="error-icon" />
         <p>{{ loadError }}</p>
-        <button class="retry-btn" @click="loadArchives">重试</button>
+        <button class="retry-btn" @click="loadAll">重试</button>
       </div>
       <div v-else-if="!archives.length" class="empty-state">
         <Icon icon="mdi:magnify-close" class="empty-icon" />
-        <p>{{ keyword ? '未找到相关视频' : '合集暂无内容' }}</p>
+        <p>{{ keyword ? '未找到相关视频' : '该UP主暂无投稿' }}</p>
       </div>
 
-      <!-- 合集视频列表 -->
-      <div v-else class="collection-content">
+      <!-- UP主视频列表 -->
+      <div v-else class="up-content">
         <div class="results-grid">
           <SongCard v-for="item in archives" :key="item.bvid" :item="item" :show-author="false" />
         </div>
@@ -67,10 +77,10 @@
 
 <script setup>
 /**
- * CollectionView.vue — 视频合集页
+ * UpView.vue — UP主（用户）页面
  *
- * 通过路由 query 参数 mid / seasonId 获取合集信息，
- * 展示合集元数据 + 视频列表，支持分页、播放全部。
+ * 通过路由 query 参数 mid 获取UP主信息与投稿列表，
+ * 展示UP主头像、简介、关注/粉丝数 + 视频列表，支持分页、播放全部。
  */
 
 import { ref, onMounted, watch } from 'vue';
@@ -84,7 +94,8 @@ import Pagination from '../components/ui/Pagination.vue';
 const route = useRoute();
 const player = usePlayerStore();
 
-const meta = ref(null);
+const userInfo = ref(null);
+const relation = ref({ following: 0, follower: 0 });
 const archives = ref([]);
 const total = ref(0);
 const loading = ref(false);
@@ -95,30 +106,64 @@ const keyword = ref('');
 const PAGE_SIZE = 30;
 
 const mid = () => route.query.mid;
-const seasonId = () => route.query.seasonId;
 
 onMounted(() => {
-  if (mid() && seasonId()) loadArchives();
+  if (mid()) loadAll();
 });
 
-// 路由参数变化时重新加载（从不同卡片进入不同合集）
+// 路由参数变化时重新加载（从不同卡片进入不同UP主）
 watch(
-  () => [route.query.mid, route.query.seasonId],
-  ([m, s]) => {
-    if (m && s) {
+  () => route.query.mid,
+  (m) => {
+    if (m) {
       page.value = 1;
       keyword.value = '';
-      meta.value = null;
+      userInfo.value = null;
+      relation.value = { following: 0, follower: 0 };
       archives.value = [];
-      loadArchives();
+      total.value = 0;
+      loadAll();
     }
   }
 );
 
-/** 触发搜索（回车） */
+/** 加载UP主信息 + 投稿列表 */
+async function loadAll() {
+  if (!mid()) return;
+  loading.value = true;
+  loadError.value = '';
+  try {
+    const [infoResult, statResult, archiveResult] = await Promise.all([
+      window.electronAPI.getUserInfo(mid()),
+      window.electronAPI.getUserRelationStat(mid()),
+      window.electronAPI.getUserArchives(mid(), page.value, PAGE_SIZE, keyword.value),
+    ]);
+    if (infoResult?.error) {
+      loadError.value = infoResult.error;
+      return;
+    }
+    userInfo.value = infoResult;
+    if (statResult && !statResult.error) {
+      relation.value = statResult;
+    }
+    if (archiveResult?.error) {
+      loadError.value = archiveResult.error;
+      return;
+    }
+    archives.value = archiveResult.archives || [];
+    total.value = archiveResult.count || 0;
+    totalPages.value = Math.ceil(total.value / PAGE_SIZE) || 1;
+  } catch (e) {
+    loadError.value = e.message || '加载失败';
+  } finally {
+    loading.value = false;
+  }
+}
+
+/** 按关键词搜索投稿 */
 function onSearch() {
   page.value = 1;
-  loadArchives();
+  loadAll();
 }
 
 /** 清空搜索 */
@@ -127,54 +172,11 @@ function clearSearch() {
   onSearch();
 }
 
-/**
- * 加载合集内容
- * - 无关键词：调用合集接口获取合集内视频
- * - 有关键词：B站合集接口不支持关键词，改为后端调用 arc/search 搜索该 UP 主的视频
- */
-async function loadArchives() {
-  if (!mid() || !seasonId()) return;
-  loading.value = true;
-  loadError.value = '';
-  try {
-    const kw = keyword.value.trim();
-    if (kw) {
-      const result = await window.electronAPI.getUserArchives(mid(), page.value, PAGE_SIZE, kw);
-      if (result?.error) {
-        loadError.value = result.error;
-        return;
-      }
-      archives.value = result.archives || [];
-      total.value = result.count || 0;
-      totalPages.value = Math.ceil(total.value / PAGE_SIZE) || 1;
-    } else {
-      const result = await window.electronAPI.getSeasonArchives(
-        mid(),
-        seasonId(),
-        page.value,
-        PAGE_SIZE
-      );
-      if (result?.error) {
-        loadError.value = result.error;
-        return;
-      }
-      meta.value = result.meta;
-      archives.value = result.archives || [];
-      total.value = result.page?.total || result.meta?.total || 0;
-      totalPages.value = Math.ceil(total.value / PAGE_SIZE) || 1;
-    }
-  } catch (e) {
-    loadError.value = e.message || '加载失败';
-  } finally {
-    loading.value = false;
-  }
-}
-
 /** 翻页 */
 async function goToPage(newPage) {
   if (newPage < 1 || newPage > totalPages.value) return;
   page.value = newPage;
-  await loadArchives();
+  await loadAll();
 }
 
 /** 播放全部 */
@@ -188,26 +190,31 @@ function playAll() {
 function addAll() {
   archives.value.forEach((item) => player.addToPlaylist(item));
 }
+
+function formatNumber(num) {
+  if (!num) return '0';
+  return num >= 10000 ? (num / 10000).toFixed(1) + '万' : String(num);
+}
 </script>
 
 <style scoped>
-.collection-view {
+.up-view {
   display: flex;
   flex-direction: column;
   gap: 24px;
   padding: 28px 32px;
 }
 
-.collection-header {
+.up-header {
   display: flex;
   gap: 24px;
   align-items: flex-start;
 }
 
-.collection-cover {
-  width: 180px;
-  height: 180px;
-  border-radius: var(--radius-lg);
+.up-avatar {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
   overflow: hidden;
   flex-shrink: 0;
   background: var(--bg-tertiary);
@@ -215,37 +222,37 @@ function addAll() {
   box-shadow: 0 8px 24px var(--shadow);
 }
 
-.collection-cover img {
+.up-avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.collection-info {
+.up-info {
   display: flex;
   flex-direction: column;
   gap: 8px;
   padding-top: 4px;
 }
 
-.collection-label {
-  display: inline-flex;
+.up-name-row {
+  display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  color: var(--accent);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  gap: 8px;
 }
 
-.collection-name {
+.up-name {
   font-size: 22px;
   font-weight: 700;
   line-height: 1.3;
 }
 
-.collection-desc {
+.up-vip {
+  font-size: 18px;
+  color: var(--accent);
+}
+
+.up-sign {
   font-size: 13px;
   color: var(--text-secondary);
   line-height: 1.5;
@@ -256,7 +263,7 @@ function addAll() {
   overflow: hidden;
 }
 
-.collection-meta {
+.up-meta {
   display: flex;
   align-items: center;
   gap: 16px;
@@ -264,7 +271,7 @@ function addAll() {
   color: var(--text-secondary);
 }
 
-.collection-meta span {
+.up-meta span {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -274,7 +281,7 @@ function addAll() {
   font-size: 14px;
 }
 
-.collection-actions {
+.up-actions {
   display: flex;
   gap: 10px;
   margin-top: 8px;
@@ -314,6 +321,12 @@ function addAll() {
 .add-all-btn:hover {
   border-color: var(--accent);
   color: var(--accent);
+}
+
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
 }
 
 .search-bar {
@@ -382,12 +395,6 @@ function addAll() {
   flex-shrink: 0;
   padding-left: 8px;
   border-left: 1px solid var(--border);
-}
-
-.results-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 16px;
 }
 
 .pagination-wrap {

@@ -11,6 +11,11 @@ const routes = [
     name: 'collection',
     component: () => import('../views/CollectionView.vue'),
   },
+  {
+    path: '/up',
+    name: 'up',
+    component: () => import('../views/UpView.vue'),
+  },
   { path: '/settings', name: 'settings', component: () => import('../views/SettingsView.vue') },
 ];
 
