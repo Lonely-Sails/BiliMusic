@@ -79,7 +79,7 @@
               <p class="empty-title">暂无歌词</p>
               <p class="empty-hint">该视频没有可用歌词</p>
             </div>
-            <div v-else ref="lyricsContainer" class="lyrics-scroll">
+            <div v-else ref="lyricsContainer" class="lyrics-scroll" @scroll="onUserScroll">
               <div class="lyrics-list">
                 <div
                   v-for="(line, index) in player.currentLyrics"
@@ -96,6 +96,7 @@
                     :class="{ 'active-trans': index === activeIndex }"
                     >{{ line.trans }}</span
                   >
+                  <span class="line-time">{{ formatLineTime(line.time) }}</span>
                 </div>
               </div>
             </div>
@@ -120,6 +121,28 @@ let lastActiveIndex = -1;
 // 缓存每行歌词的 DOM 元素，避免 scrollToActive 反复 querySelector
 const lineElements = new Map();
 let scrollRaf = null;
+// 用户手动滚动后，暂停自动跟随；5s 无操作后恢复
+let userScrollTimer = null;
+// 是否允许自动跟随滚动（用户滚动时置 false）
+let autoFollow = true;
+
+/** 格式化秒数为 m:ss */
+function formatLineTime(seconds) {
+  if (!seconds || isNaN(seconds)) return '0:00';
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+/** 用户滚动歌词时暂停自动跟随，5s 无操作后恢复 */
+function onUserScroll() {
+  autoFollow = false;
+  if (userScrollTimer) clearTimeout(userScrollTimer);
+  userScrollTimer = setTimeout(() => {
+    autoFollow = true;
+    scrollToActive(lastActiveIndex);
+  }, 5000);
+}
 
 function setLineRef(index, el) {
   if (el) lineElements.set(index, el);
@@ -243,7 +266,8 @@ function scrollToActive(index) {
 watch(activeIndex, (index) => {
   if (index < 0 || index === lastActiveIndex) return;
   lastActiveIndex = index;
-  scrollToActive(index);
+  // 用户手动滚动期间暂停自动跟随
+  if (autoFollow) scrollToActive(index);
 });
 
 function onKeydown(event) {
@@ -256,6 +280,11 @@ watch(
     lastActiveIndex = -1;
     pendingScrollIndex = -1;
     lineElements.clear();
+    autoFollow = true;
+    if (userScrollTimer) {
+      clearTimeout(userScrollTimer);
+      userScrollTimer = null;
+    }
     if (scrollRaf) {
       cancelAnimationFrame(scrollRaf);
       scrollRaf = null;
@@ -280,6 +309,7 @@ onUnmounted(() => {
     cancelAnimationFrame(scrollRaf);
     scrollRaf = null;
   }
+  if (userScrollTimer) clearTimeout(userScrollTimer);
   lineElements.clear();
 });
 </script>
@@ -294,6 +324,8 @@ onUnmounted(() => {
   justify-content: center;
   overflow: hidden;
   will-change: opacity, transform;
+  /* 覆盖标题栏的拖动区域，确保内部按钮可点击 */
+  -webkit-app-region: no-drag;
 }
 
 .lyrics-bg {
@@ -410,15 +442,17 @@ onUnmounted(() => {
 
 .title,
 .author {
-  white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .title {
   font-size: 18px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.92);
+  /* 标题支持换行，不截断 */
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.4;
 }
 .title-muted {
   color: rgba(255, 255, 255, 0.35);
@@ -427,6 +461,9 @@ onUnmounted(() => {
   font-size: 13px;
   color: rgba(255, 255, 255, 0.45);
   margin-top: 4px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  max-width: 260px;
 }
 .author-muted {
   color: rgba(255, 255, 255, 0.25);
@@ -525,19 +562,16 @@ onUnmounted(() => {
 .lyrics-scroll {
   flex: 1;
   overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+  scrollbar-width: none;
   padding: 20px 0;
   scroll-behavior: smooth;
 }
 
+/* 隐藏滚动条（WebKit） */
 .lyrics-scroll::-webkit-scrollbar {
-  width: 4px;
+  display: none;
 }
-.lyrics-scroll::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 2px;
-}
+
 .lyrics-list {
   display: flex;
   flex-direction: column;
@@ -545,6 +579,7 @@ onUnmounted(() => {
 }
 
 .line {
+  position: relative;
   padding: 8px 16px;
   border-radius: 8px;
   transition: all 0.3s;
@@ -556,6 +591,24 @@ onUnmounted(() => {
 }
 .line.active {
   background: rgba(251, 114, 153, 0.1);
+}
+
+/* 悬浮时右侧浮现歌词时间 */
+.line-time {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+.line:hover .line-time {
+  opacity: 1;
 }
 
 .line-text {

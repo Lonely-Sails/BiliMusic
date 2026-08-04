@@ -1,30 +1,34 @@
 <template>
   <div class="player-bar">
-    <div
-      class="player-track-info"
-      :style="{ cursor: player.currentTrack ? 'pointer' : 'default' }"
-      :title="player.currentTrack ? '点击打开歌词' : ''"
-      @click="openLyricsOverlay"
-    >
-      <div v-if="player.currentTrack" class="player-cover">
-        <img
-          :src="player.currentTrack.cover + '@160w_160h.webp'"
-          :alt="player.currentTrack.title"
-        />
-        <div class="player-cover-overlay">
-          <Icon icon="mdi:arrow-expand-all" class="cover-expand-icon" />
+    <div class="player-side player-side-left">
+      <div
+        class="player-track-info"
+        :style="{ cursor: player.currentTrack ? 'pointer' : 'default' }"
+        :title="player.currentTrack ? '点击打开歌词' : ''"
+        @click="openLyricsOverlay"
+      >
+        <div v-if="player.currentTrack" class="player-cover">
+          <img
+            :src="player.currentTrack.cover + '@160w_160h.webp'"
+            :alt="player.currentTrack.title"
+          />
+          <div class="player-cover-overlay">
+            <Icon icon="mdi:arrow-expand-all" class="cover-expand-icon" />
+          </div>
         </div>
-      </div>
-      <div v-else class="player-cover placeholder">
-        <Icon icon="mdi:music-note" class="placeholder-icon" />
-      </div>
-      <div v-if="player.currentTrack" class="player-meta">
-        <div class="player-title">{{ player.currentTrack.title }}</div>
-        <div class="player-author">{{ player.currentTrack.author || '未知' }}</div>
-      </div>
-      <div v-else class="player-meta placeholder-text">
-        <div class="player-title">未在播放</div>
-        <div class="player-author">搜索歌曲开始播放</div>
+        <div v-else class="player-cover placeholder">
+          <Icon icon="mdi:music-note" class="placeholder-icon" />
+        </div>
+        <div v-if="player.currentTrack" class="player-meta marquee-wrap">
+          <div ref="titleRef" class="marquee-track" :class="{ playing: titleOverflow }">
+            <span class="marquee-text">{{ player.currentTrack.title }}</span>
+          </div>
+          <div class="player-author">{{ player.currentTrack.author || '未知' }}</div>
+        </div>
+        <div v-else class="player-meta placeholder-text">
+          <div class="player-title">未在播放</div>
+          <div class="player-author">搜索歌曲开始播放</div>
+        </div>
       </div>
     </div>
 
@@ -125,11 +129,13 @@
           track-class="slider-track"
           range-class="slider-range"
           thumb-class="slider-thumb"
-          @update:model-value="([val]) => player.seek(val)"
+          @value-commit="([val]) => player.seek(val)"
         />
         <span class="time total">{{ formatDuration }}</span>
       </div>
     </div>
+
+    <div class="player-side player-side-right"></div>
   </div>
 </template>
 
@@ -141,7 +147,7 @@
  * 使用 Reka UI Slider 实现进度条和音量滑块，Tooltip 实现按钮提示。
  */
 
-import { computed, ref, onMounted, inject } from 'vue';
+import { computed, ref, onMounted, onUnmounted, inject, nextTick, watch } from 'vue';
 import { usePlayerStore } from '../stores/player';
 import { useUserStore } from '../stores/user';
 import { useToast } from '../stores/toast';
@@ -157,9 +163,32 @@ const { showToast } = useToast();
 const muted = ref(false); // 是否静音
 const prevVolume = ref(0.7); // 静音前的音量
 const desktopLyricsOpen = ref(false);
+const titleOverflow = ref(false); // 标题是否溢出（触发跑马灯）
+const titleRef = ref(null); // 标题元素引用
 const toggleLyricsOverlay = inject('toggleLyricsOverlay', () => {});
 
+/** 检测标题是否溢出，决定是否启用跑马灯 */
+function checkTitleOverflow() {
+  nextTick(() => {
+    const el = titleRef.value;
+    if (!el) return;
+    const overflow = el.scrollWidth - el.clientWidth;
+    titleOverflow.value = overflow > 1;
+    // 设置动画偏移量（溢出量），用于来回滚动
+    el.style.setProperty('--marquee-offset', `${overflow}px`);
+  });
+}
+
+// 曲目变化时重新检测溢出
+watch(
+  () => player.currentTrack?.title,
+  () => checkTitleOverflow()
+);
+
 onMounted(() => {
+  checkTitleOverflow();
+  // 窗口尺寸变化时重新检测
+  window.addEventListener('resize', checkTitleOverflow);
   // 监听桌面歌词可见性变化
   window.electronAPI?.onDesktopLyricsVisibility((v) => (desktopLyricsOpen.value = v));
   // 监听桌面歌词窗口的播放控制
@@ -168,6 +197,10 @@ onMounted(() => {
     else if (action === 'next') player.nextTrack();
     else if (action === 'togglePlay') player.togglePlay();
   });
+});
+
+onUnmounted(() => {
+  window.removeEventListener('resize', checkTitleOverflow);
 });
 
 /** 打开歌词弹层 */
@@ -227,7 +260,8 @@ function formatTime(seconds) {
 
 <style scoped>
 .player-bar {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
   align-items: center;
   height: var(--player-height);
   padding: 0 20px;
@@ -238,12 +272,26 @@ function formatTime(seconds) {
   z-index: 10;
 }
 
+.player-side {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.player-side-left {
+  justify-content: flex-start;
+}
+
+.player-side-right {
+  justify-content: flex-end;
+}
+
 .player-track-info {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-width: 220px;
-  max-width: 280px;
+  min-width: 0;
+  max-width: 80%;
 }
 
 .player-cover {
@@ -295,6 +343,42 @@ function formatTime(seconds) {
 
 .player-meta {
   overflow: hidden;
+  min-width: 0;
+}
+
+/* ── 标题跑马灯（溢出时来回滚动） ── */
+.marquee-wrap {
+  overflow: hidden;
+}
+
+.marquee-track {
+  display: inline-block;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.marquee-text {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.marquee-track.playing {
+  animation: marquee-scroll 12s ease-in-out infinite;
+}
+
+.marquee-track.playing:hover {
+  animation-play-state: paused;
+}
+
+@keyframes marquee-scroll {
+  0%,
+  15% {
+    transform: translateX(0);
+  }
+  85%,
+  100% {
+    transform: translateX(calc(-1 * var(--marquee-offset, 0px)));
+  }
 }
 
 .player-title {
@@ -323,17 +407,17 @@ function formatTime(seconds) {
 }
 
 .player-controls {
-  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 2px;
+  min-width: 0;
 }
 
 .controls-buttons {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
 }
 
 .ctrl-btn {
@@ -342,7 +426,8 @@ function formatTime(seconds) {
   color: var(--text-secondary);
   font-size: 20px;
   cursor: pointer;
-  padding: 6px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -363,6 +448,7 @@ function formatTime(seconds) {
 
 .ctrl-btn.active {
   color: var(--accent);
+  background: var(--accent-dim);
 }
 
 .fav-btn.active {
@@ -374,13 +460,19 @@ function formatTime(seconds) {
 }
 
 .play-btn {
-  font-size: 32px;
+  font-size: 30px;
+  width: 40px;
+  height: 40px;
   color: var(--text-primary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-light);
+  box-shadow: 0 2px 8px var(--shadow);
 }
 
 .play-btn:hover {
   color: var(--accent);
   background: var(--accent-dim);
+  border-color: var(--accent);
 }
 
 .progress-area {
@@ -388,7 +480,7 @@ function formatTime(seconds) {
   align-items: center;
   gap: 10px;
   width: 100%;
-  max-width: 500px;
+  max-width: 460px;
 }
 
 .time {

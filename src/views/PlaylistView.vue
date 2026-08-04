@@ -2,7 +2,10 @@
   <TooltipProvider>
     <div class="playlist-view">
       <div class="playlist-header">
-        <h2><Icon icon="mdi:playlist-music" class="section-icon" />播放列表</h2>
+        <h2 class="page-title">
+          <span class="title-icon"><Icon icon="mdi:playlist-music" /></span>
+          播放列表
+        </h2>
         <div v-if="player.playlist.length" class="playlist-actions">
           <span class="playlist-count">{{ player.playlist.length }} 首</span>
           <Separator orientation="vertical" />
@@ -109,13 +112,6 @@ function formatDuration(seconds) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-}
-
-.playlist-header h2 {
-  font-size: 20px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
 }
 
 .playlist-actions {

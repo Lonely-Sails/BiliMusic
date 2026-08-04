@@ -130,6 +130,11 @@ function handleSearchInput(value) {
   flex: 1;
   display: flex;
   justify-content: center;
+  -webkit-app-region: drag;
+}
+
+/* 搜索栏本体不可拖动（可交互），但两侧空白保留可拖动 */
+:deep(.autocomplete-root) {
   -webkit-app-region: no-drag;
 }
 

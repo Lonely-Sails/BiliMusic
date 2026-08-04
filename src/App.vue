@@ -159,23 +159,15 @@ function goBack() {
 }
 
 // ── 时间更新节流（降低渲染开销） ──
-// timeupdate 事件约 4 次/秒是够的，但为了进度条平滑，用 rAF 合并到 ~20fps，
-// 避免每次事件都触发 currentTime 响应式更新（歌词行/进度条/桌面歌词）。
-let timeRaf = null;
+// 用时间戳节流而非 rAF：窗口失焦时 Chromium 会暂停 rAF，导致桌面歌词同步卡死。
+// timeupdate 事件约 4 次/秒，足够桌面歌词与进度条使用。
 let lastUiTime = 0;
 function onTimeUpdate(time) {
   const now = performance.now();
   if (now - lastUiTime < 50) return; // 最多 ~20 次/秒
   lastUiTime = now;
-  if (timeRaf) cancelAnimationFrame(timeRaf);
-  timeRaf = requestAnimationFrame(() => {
-    timeRaf = null;
-    player.updateTime(time);
-  });
+  player.updateTime(time);
 }
-onUnmounted(() => {
-  if (timeRaf) cancelAnimationFrame(timeRaf);
-});
 
 // ── 生命周期 ──
 onMounted(() => {

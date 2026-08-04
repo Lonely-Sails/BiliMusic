@@ -2,7 +2,10 @@
   <TooltipProvider>
     <div class="fav-view">
       <div class="fav-header">
-        <h2><Icon icon="mdi:star-outline" class="section-icon" />收藏夹</h2>
+        <h2 class="page-title">
+          <span class="title-icon"><Icon icon="mdi:star-four-points" /></span>
+          收藏夹
+        </h2>
         <div v-if="resources.length" class="fav-header-actions">
           <span class="fav-count">{{ total }} 首</span>
           <Tooltip text="将当前页全部添加到播放列表" side="top">
@@ -169,13 +172,6 @@ function playAll() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-}
-
-.fav-header h2 {
-  font-size: 20px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
 }
 
 .fav-header-actions {

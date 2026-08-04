@@ -1,7 +1,10 @@
 <template>
   <div class="settings-view">
     <div class="settings-header">
-      <h2><Icon icon="mdi:cog-outline" class="section-icon" />设置</h2>
+      <h2 class="page-title">
+        <span class="title-icon"><Icon icon="mdi:cog-outline" /></span>
+        设置
+      </h2>
     </div>
     <div class="settings-body">
       <div class="setting-card">
@@ -11,14 +14,25 @@
         <div class="setting-card-body">
           <div class="setting-row">
             <span class="setting-label">
-              <span>亮色模式</span>
+              <span>主题模式</span>
               <span class="inline-hint">
                 <Icon icon="mdi:information-outline" class="desc-icon" />
-                切换浅色 / 深色界面主题
+                选择亮色、深色或跟随系统自动切换
               </span>
             </span>
             <div class="setting-control-row">
-              <Switch :model-value="isLightMode" @update:model-value="onThemeToggle" />
+              <Select
+                :model-value="theme"
+                :items="themeItems"
+                :placeholder="'选择主题'"
+                @update:model-value="onThemeChange"
+              >
+                <template #default>
+                  <SelectItem v-for="item in themeItems" :key="item.value" :value="item.value">
+                    <SelectItemText>{{ item.label }}</SelectItemText>
+                  </SelectItem>
+                </template>
+              </Select>
             </div>
           </div>
         </div>
@@ -211,11 +225,17 @@ const user = useUserStore();
 const player = usePlayerStore();
 const { showToast } = useToast();
 const { theme, setTheme } = useTheme();
-const isLightMode = computed(() => theme.value === 'light');
 
-function onThemeToggle(val) {
-  setTheme(val ? 'light' : 'dark');
-  showToast(val ? '已切换到亮色模式' : '已切换到深色模式');
+const themeItems = [
+  { value: 'light', label: '亮色' },
+  { value: 'dark', label: '深色' },
+  { value: 'system', label: '跟随系统' },
+];
+
+function onThemeChange(val) {
+  setTheme(val);
+  const label = themeItems.find((i) => i.value === val)?.label || val;
+  showToast(`主题已切换为「${label}」`);
 }
 const folders = ref([]);
 const selectedFavFolder = ref(user.favFolderId ? String(user.favFolderId) : '__none__');

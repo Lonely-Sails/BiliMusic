@@ -7,6 +7,7 @@
     :orientation="orientation"
     :class="['slider-root', rootClass]"
     @update:model-value="emit('update:modelValue', $event)"
+    @value-commit="emit('valueCommit', $event)"
   >
     <SliderTrack :class="['slider-track', trackClass]">
       <SliderRange :class="['slider-range', rangeClass]" />
@@ -30,7 +31,7 @@ defineProps({
   thumbClass: { type: String, default: '' },
 });
 
-const emit = defineEmits(['update:modelValue']);
+const emit = defineEmits(['update:modelValue', 'valueCommit']);
 </script>
 
 <style scoped>

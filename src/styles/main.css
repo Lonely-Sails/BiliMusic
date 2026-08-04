@@ -116,6 +116,33 @@ body {
   height: 100%;
 }
 
+/* ── 页面标题（各视图统一使用） ── */
+.page-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.title-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, var(--accent-dim), rgba(0, 161, 214, 0.1));
+  color: var(--accent);
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.title-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
 ::-webkit-scrollbar {
   width: 4px;
 }
