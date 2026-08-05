@@ -5,6 +5,7 @@
         <span class="title-icon"><Icon icon="mdi:cog-outline" /></span>
         设置
       </h2>
+      <p class="settings-subtitle">个性化你的 BiliMusic 体验</p>
     </div>
     <div class="settings-body">
       <div class="setting-card">
@@ -334,17 +335,25 @@ async function clearAllCache() {
 
 <style scoped>
 .settings-view {
-  padding: 28px 32px;
+  padding: 32px 40px;
+  max-width: 860px;
+  margin: 0 auto;
 }
 
 .settings-header {
-  margin-bottom: 28px;
+  margin-bottom: 32px;
+}
+
+.settings-subtitle {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
 }
 
 .settings-body {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
 .setting-card {
@@ -352,6 +361,11 @@ async function clearAllCache() {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   overflow: hidden;
+  transition: border-color var(--transition);
+}
+
+.setting-card:hover {
+  border-color: var(--border-light);
 }
 
 .setting-card-header {
@@ -359,19 +373,19 @@ async function clearAllCache() {
   align-items: center;
   gap: 10px;
   padding: 16px 20px;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
+  letter-spacing: 0.2px;
   border-bottom: 1px solid var(--border);
-  background: var(--bg-elevated);
 }
 
 .card-icon {
-  font-size: 20px;
+  font-size: 18px;
   color: var(--accent);
 }
 
 .setting-card-body {
-  padding: 8px 0;
+  padding: 4px 0;
 }
 
 .setting-row {
@@ -387,12 +401,18 @@ async function clearAllCache() {
   border-top: 1px solid var(--border);
 }
 
+.setting-row:hover {
+  background: var(--bg-elevated);
+}
+
 .setting-label {
   display: inline-flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
   font-size: 14px;
-  color: var(--text-secondary);
+  color: var(--text-primary);
+  font-weight: 500;
   flex-shrink: 0;
 }
 
@@ -421,16 +441,18 @@ async function clearAllCache() {
   border: 1px solid var(--border);
   color: var(--text-secondary);
   padding: 6px 14px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   font-size: 12px;
   cursor: pointer;
   transition: all var(--transition);
   font-family: inherit;
+  white-space: nowrap;
 }
 
 .setting-btn:hover {
   border-color: var(--text-muted);
   color: var(--text-primary);
+  background: var(--bg-elevated);
 }
 
 .setting-btn-accent {
@@ -440,7 +462,7 @@ async function clearAllCache() {
 
 .setting-btn-accent:hover {
   border-color: var(--accent);
-  background: rgba(99, 102, 241, 0.08);
+  background: var(--accent-dim);
 }
 
 .setting-btn-danger {
@@ -449,6 +471,7 @@ async function clearAllCache() {
 
 .setting-btn-danger:hover {
   border-color: var(--danger);
+  background: rgba(255, 71, 87, 0.08);
 }
 
 .fav-hint {
@@ -467,6 +490,7 @@ async function clearAllCache() {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .setting-hint {
@@ -495,7 +519,6 @@ async function clearAllCache() {
   font-size: 11px;
   font-weight: 400;
   color: var(--text-muted);
-  white-space: nowrap;
 }
 
 .select-item-count {

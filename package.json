@@ -35,7 +35,8 @@
     "files": [
       "dist/**/*",
       "dist-electron/**/*",
-      "icons/tray_icon.png"
+      "icons/tray_icon.png",
+      "icons/tray_icon@2x.png"
     ],
     "mac": {
       "icon": "icons/app/macos/icon.icns",

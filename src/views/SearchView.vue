@@ -17,16 +17,13 @@
         <div class="results-grid">
           <SongCard v-for="item in results" :key="item.bvid" :item="item" />
         </div>
-        <div v-if="totalPages > 1" class="pagination">
-          <button :disabled="page <= 1" class="page-btn" @click="goToPage(page - 1)">
-            <Icon icon="mdi:chevron-left" />上一页
-          </button>
-          <span class="page-info">{{ page }} / {{ totalPages }}</span>
-          <button :disabled="page >= totalPages" class="page-btn" @click="goToPage(page + 1)">
-            下一页
-            <Icon icon="mdi:chevron-right" />
-          </button>
-        </div>
+        <Pagination
+          v-if="totalPages > 1"
+          :page="page"
+          :total="total"
+          :page-size="Math.max(1, Math.round(total / totalPages))"
+          @update:page="goToPage"
+        />
       </div>
       <div v-else class="empty-state">
         <Icon icon="mdi:music-note-off" class="empty-icon" />
@@ -50,6 +47,7 @@ import { useRoute } from 'vue-router';
 import { usePlayerStore } from '../stores/player';
 import { Icon } from '@iconify/vue';
 import TooltipProvider from '../components/ui/TooltipProvider.vue';
+import Pagination from '../components/ui/Pagination.vue';
 import SongCard from '../components/SongCard.vue';
 
 const route = useRoute();
@@ -185,44 +183,6 @@ async function detectSeasons(videos) {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 16px;
-}
-
-.pagination {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  margin-top: 32px;
-}
-
-.page-btn {
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border);
-  color: var(--text-primary);
-  padding: 8px 18px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  font-size: 13px;
-  transition: all var(--transition);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-family: inherit;
-}
-
-.page-btn:hover:not(:disabled) {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.page-btn:disabled {
-  opacity: 0.3;
-  cursor: default;
-}
-
-.page-info {
-  font-size: 13px;
-  color: var(--text-secondary);
 }
 
 .loading-state,

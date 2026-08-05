@@ -120,7 +120,7 @@
           </h2>
           <span class="section-subtitle">最新上架的优质音乐</span>
         </div>
-        <ScrollArea orientation="horizontal">
+        <div class="new-music-track-scroll">
           <div class="new-music-track">
             <div
               v-for="item in newMusic"
@@ -141,7 +141,7 @@
               </div>
             </div>
           </div>
-        </ScrollArea>
+        </div>
       </section>
     </template>
   </div>
@@ -168,7 +168,6 @@ import { useHomeStore } from '../stores/home';
 import { usePlayerStore } from '../stores/player';
 import { useUserStore } from '../stores/user';
 import Progress from '../components/ui/Progress.vue';
-import ScrollArea from '../components/ui/ScrollArea.vue';
 
 const player = usePlayerStore();
 const user = useUserStore();
@@ -660,10 +659,16 @@ function formatHeat(heat) {
   gap: 16px;
 }
 
+.new-music-track-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 8px;
+}
+
 .new-music-track {
   display: flex;
   gap: 16px;
-  padding-bottom: 12px;
+  padding-bottom: 4px;
 }
 
 .new-music-card {

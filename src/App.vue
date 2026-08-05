@@ -23,9 +23,7 @@
       />
 
       <main class="main-content">
-        <ScrollArea>
-          <router-view :key="$route.name" />
-        </ScrollArea>
+        <router-view :key="$route.name" />
       </main>
     </div>
 
@@ -65,7 +63,7 @@
  * ┌──────────────────────────────────────┐
  * │ Header: 窗口控制 | Logo | 搜索 | 登录 │
  * ├────────┬─────────────────────────────┤
- * │ Sidebar│  Main (ScrollArea + router) │
+ * │ Sidebar│  Main (router)             │
  * ├────────┴─────────────────────────────┤
  * │ PlayerBar                            │
  * └──────────────────────────────────────┘
@@ -81,7 +79,6 @@ import { useSearch } from './composables/use_search';
 import PlayerBar from './components/PlayerBar.vue';
 import AppHeader from './components/AppHeader.vue';
 import AppSidebar from './components/AppSidebar.vue';
-import ScrollArea from './components/ui/ScrollArea.vue';
 import ToastProvider from './components/ui/ToastProvider.vue';
 import Toast from './components/ui/Toast.vue';
 
@@ -207,7 +204,8 @@ onMounted(() => {
 
 .main-content {
   flex: 1;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   background: transparent;
 }
 </style>

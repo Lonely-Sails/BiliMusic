@@ -30,17 +30,17 @@
 
 ## 🛠️ 技术栈
 
-| 层级        | 技术                                                                                                              |
-| ----------- | ----------------------------------------------------------------------------------------------------------------- |
-| 🏗️ 桌面框架 | [Electron 33+](https://www.electronjs.org/) — 主进程 + 渲染进程隔离                                               |
-| 🎨 前端框架 | [Vue 3](https://vuejs.org/) + [Vue Router 4](https://router.vuejs.org/)（Hash History）                           |
-| 📦 状态管理 | [Pinia 3](https://pinia.vuejs.org/) — 三个 Store（player / user / toast）                                         |
-| 🧩 UI 组件  | [Reka UI 2](https://reka-ui.com/) — Autocomplete, Slider, Dialog, Select, Tooltip, Toast, ScrollArea, NumberField |
-| 🎭 图标     | [Iconify](https://iconify.design/)（`@iconify/vue`）— Material Design Icons                                       |
-| ⚡ 构建工具 | [Vite 6](https://vitejs.dev/) + [`vite-plugin-electron`](https://github.com/electron-vite/vite-plugin-electron)   |
-| 📦 包管理   | [Bun](https://bun.sh/)                                                                                            |
-| 🔲 二维码   | [`qrcode`](https://www.npmjs.com/package/qrcode) — 登录二维码生成                                                 |
-| 🎵 歌词源   | 视频自带字幕 + 第三方歌词 API（QQ 音乐 / 网易云）                                                                 |
+| 层级        | 技术                                                                                                            |
+| ----------- | --------------------------------------------------------------------------------------------------------------- |
+| 🏗️ 桌面框架 | [Electron 33+](https://www.electronjs.org/) — 主进程 + 渲染进程隔离                                             |
+| 🎨 前端框架 | [Vue 3](https://vuejs.org/) + [Vue Router 4](https://router.vuejs.org/)（Hash History）                         |
+| 📦 状态管理 | [Pinia 3](https://pinia.vuejs.org/) — 三个 Store（player / user / toast）                                       |
+| 🧩 UI 组件  | [Reka UI 2](https://reka-ui.com/) — Autocomplete, Slider, Dialog, Select, Tooltip, Toast, NumberField           |
+| 🎭 图标     | [Iconify](https://iconify.design/)（`@iconify/vue`）— Material Design Icons                                     |
+| ⚡ 构建工具 | [Vite 6](https://vitejs.dev/) + [`vite-plugin-electron`](https://github.com/electron-vite/vite-plugin-electron) |
+| 📦 包管理   | [Bun](https://bun.sh/)                                                                                          |
+| 🔲 二维码   | [`qrcode`](https://www.npmjs.com/package/qrcode) — 登录二维码生成                                               |
+| 🎵 歌词源   | 视频自带字幕 + 第三方歌词 API（QQ 音乐 / 网易云）                                                               |
 
 ## 🗺️ 项目结构
 

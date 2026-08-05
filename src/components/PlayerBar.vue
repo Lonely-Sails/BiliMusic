@@ -122,13 +122,14 @@
         <span class="time current">{{ formatCurrentTime }}</span>
         <Slider
           class="progress-bar"
-          :model-value="[player.currentTime]"
+          :model-value="[seekPreview ?? player.currentTime]"
           :max="player.duration || 1"
           :step="1"
           :disabled="!player.currentTrack"
           track-class="slider-track"
           range-class="slider-range"
           thumb-class="slider-thumb"
+          @update:model-value="([val]) => (seekPreview = val)"
           @value-commit="([val]) => player.seek(val)"
         />
         <span class="time total">{{ formatDuration }}</span>
@@ -165,6 +166,7 @@ const prevVolume = ref(0.7); // 静音前的音量
 const desktopLyricsOpen = ref(false);
 const titleOverflow = ref(false); // 标题是否溢出（触发跑马灯）
 const titleRef = ref(null); // 标题元素引用
+const seekPreview = ref(null); // 拖动进度条时的预览值（null = 跟随播放）
 const toggleLyricsOverlay = inject('toggleLyricsOverlay', () => {});
 
 /** 检测标题是否溢出，决定是否启用跑马灯 */
@@ -183,6 +185,15 @@ function checkTitleOverflow() {
 watch(
   () => player.currentTrack?.title,
   () => checkTitleOverflow()
+);
+
+// 拖动/点击 seek 后，等 currentTime 追上来再清除预览值，避免滑块弹回
+watch(
+  () => player.currentTime,
+  () => {
+    if (seekPreview.value == null) return;
+    if (Math.abs(player.currentTime - seekPreview.value) < 1) seekPreview.value = null;
+  }
 );
 
 onMounted(() => {

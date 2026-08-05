@@ -144,7 +144,8 @@ body {
 }
 
 ::-webkit-scrollbar {
-  width: 4px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -153,11 +154,15 @@ body {
 
 ::-webkit-scrollbar-thumb {
   background: var(--border);
-  border-radius: 2px;
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 /* 亮色主题下滚动条更浅 */

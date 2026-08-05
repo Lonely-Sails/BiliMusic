@@ -34,7 +34,7 @@
           </button>
         </div>
 
-        <ScrollArea>
+        <div class="le-list-scroll">
           <div class="le-list">
             <div v-if="localLyrics.length > 0" class="le-section">
               <div class="le-section-title"><Icon icon="mdi:harddisk" /> 本地已保存</div>
@@ -119,7 +119,7 @@
               <p>搜索中...</p>
             </div>
           </div>
-        </ScrollArea>
+        </div>
       </SplitterPanel>
 
       <SplitterHandle class="splitter-handle" />
@@ -189,7 +189,7 @@
           </div>
         </div>
 
-        <ScrollArea>
+        <div class="le-lyrics-scroll">
           <div v-if="lyricLines.length === 0" class="le-lyrics-empty">
             <Icon icon="mdi:playlist-edit" class="le-empty-icon" />
             <p>选择歌词开始编辑</p>
@@ -235,7 +235,7 @@
               </button>
             </div>
           </div>
-        </ScrollArea>
+        </div>
       </SplitterPanel>
     </Splitter>
   </div>
@@ -246,7 +246,6 @@ import { Icon } from '@iconify/vue';
 import Splitter from '../../src/components/ui/Splitter.vue';
 import SplitterPanel from '../../src/components/ui/SplitterPanel.vue';
 import SplitterHandle from '../../src/components/ui/SplitterHandle.vue';
-import ScrollArea from '../../src/components/ui/ScrollArea.vue';
 import NumberField from '../../src/components/ui/NumberField.vue';
 
 const api = window.lyricsEditorAPI;
@@ -661,6 +660,15 @@ onMounted(() => {
 }
 .le-left {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.le-list-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .le-search-bar {
@@ -866,6 +874,15 @@ onMounted(() => {
 
 .le-right {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.le-lyrics-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 .le-toolbar {
   display: flex;
