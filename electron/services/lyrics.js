@@ -7,7 +7,12 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, unlink
 import { basename, join } from 'path';
 import { getVideoInfo } from '../api/video.js';
 import { parseLRC, mergeTranslations } from '../api/lyricUtils.js';
-import { searchCandidates, fetchLyric, searchRankedCandidates } from '../api/lyricSources.js';
+import {
+  searchCandidates,
+  fetchLyric,
+  searchRankedCandidates,
+  pickCandidateByOrder,
+} from '../api/lyricSources.js';
 
 function getLyricsDir() {
   const directory = join(app.getPath('userData'), 'lyrics');
@@ -84,33 +89,32 @@ async function getLyrics(bvid, cid, title) {
     }
   }
 
-  const keyword = extractSearchKeyword(videoInfo, title);
-  if (keyword || bvid) {
-    const localLyrics = findLocalLyric(keyword, bvid);
+  const localKeyword = extractSearchKeyword(videoInfo, title);
+  if (localKeyword || bvid) {
+    const localLyrics = findLocalLyric(localKeyword, bvid);
     if (localLyrics) return { source: 'local', lyrics: localLyrics };
   }
 
-  if (!keyword) return { source: 'none', lyrics: [] };
+  // 直接把整个标题拿去搜索
+  const fullTitle = videoInfo?.title?.trim() || title?.trim() || '';
+  if (!fullTitle) return { source: 'none', lyrics: [] };
 
-  const ranked = await searchRankedCandidates(
-    keyword,
-    videoInfo?.title || keyword,
-    videoInfo?.author
-  );
-  const successful = [];
-  for (const candidate of ranked) {
+  const candidates = await searchCandidates(fullTitle);
+  if (!candidates.length) return { source: 'none', lyrics: [] };
+
+  // 拿 B站识别到的音乐名按接口返回顺序（QQ → 网易）对比歌名，相近则直接选用
+  const bgmTitle = videoInfo?.bgm_info?.music_title;
+  const picked = pickCandidateByOrder(candidates, bgmTitle);
+  if (!picked) return { source: 'none', lyrics: [] };
+
+  // 从选中的候选开始按顺序尝试拉取歌词（QQ 优先）
+  for (const candidate of candidates.slice(candidates.indexOf(picked))) {
     const result = await fetchLyric(candidate.source, candidate.id);
     if (!result) continue;
     if (result.trans?.length) result.lyrics = mergeTranslations(result.lyrics, result.trans);
-    successful.push({ ...result, candidate });
+    return { ...result, candidate };
   }
-
-  successful.sort((left, right) => {
-    const scoreDifference = (right.candidate?.score || 0) - (left.candidate?.score || 0);
-    if (scoreDifference !== 0) return scoreDifference;
-    return (right.trans?.length > 0 ? 1 : 0) - (left.trans?.length > 0 ? 1 : 0);
-  });
-  return successful[0] || { source: 'none', lyrics: [] };
+  return { source: 'none', lyrics: [] };
 }
 
 async function fetchMergedLyric(source, id) {

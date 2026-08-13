@@ -40,7 +40,7 @@ import { Icon } from '@iconify/vue';
 const props = defineProps({
   locked: Boolean,
   playing: Boolean,
-  trackTitle: String,
+  trackTitle: { type: String, default: '' },
 });
 
 defineEmits(['toggleLock', 'dragstart']);

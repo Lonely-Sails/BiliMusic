@@ -539,7 +539,9 @@ async function saveLyrics() {
         );
       }
     }
-  } catch {}
+  } catch {
+    /* ignore */
+  }
 }
 
 function closeWindow() {

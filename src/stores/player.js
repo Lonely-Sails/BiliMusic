@@ -234,7 +234,8 @@ export const usePlayerStore = defineStore('player', () => {
     const track = currentTrack.value;
     if (!track || !audioElement.value) return;
 
-    await fadeOut();
+    // 仅当正在播放时才做淡出过渡（首次播放/已暂停时跳过，避免多余的等待）
+    if (!audioElement.value.paused) await fadeOut();
 
     clearCurrentState();
 
@@ -247,18 +248,21 @@ export const usePlayerStore = defineStore('player', () => {
       if (seq !== _loadSeq) return;
 
       if (source.audioData?.url) {
-        const proxyUrl = 'bili://audio/' + encodeURIComponent(source.audioData.url);
-        audioElement.value.src = proxyUrl;
-        await audioElement.value.play();
-        if (seq !== _loadSeq) {
-          audioElement.value.pause();
-          audioElement.value.src = '';
-          return;
-        }
+        // 直接加载 CDN 流地址（Referer/CORS 由主进程 webRequest 拦截注入）
+        // <audio> 本身边下载边播放：不阻塞等待首帧，立即进入播放态
+        audioElement.value.src = source.audioData.url;
         isPlaying.value = true;
+        audioElement.value.play().catch(() => {
+          if (seq === _loadSeq) {
+            console.error('[BiliMusic] Failed to start playback');
+            isPlaying.value = false;
+          }
+        });
 
-        await normalizeTrack(source.cacheKey);
-
+        // 以下为出声后的后台任务，不阻塞播放
+        normalizeTrack(source.cacheKey).catch((e) =>
+          console.error('[BiliMusic] Loudness normalize failed:', e)
+        );
         loadLyrics(track.bvid, source.cid, track.title);
         syncTrack(track);
       }
@@ -398,7 +402,9 @@ function loadFromStorage(key, fallback) {
 function saveToStorage(key, val) {
   try {
     localStorage.setItem(key, JSON.stringify(val));
-  } catch {}
+  } catch {
+    /* ignore */
+  }
 }
 
 function toPlainObject(value) {

@@ -259,6 +259,7 @@ async function refreshCacheInfo() {
       apiCacheSize.value = stats.size;
       responseCacheMax.value = stats.max;
     } catch {
+      /* ignore */
     } finally {
       apiCacheLoading.value = false;
     }

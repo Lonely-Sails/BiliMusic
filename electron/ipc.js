@@ -11,7 +11,6 @@
  */
 
 import { ipcMain } from 'electron';
-import { join } from 'path';
 import { logger } from './utils/logger.js';
 import { getResponseCacheStats, clearResponseCache, setResponseCacheMax } from './api/cache.js';
 import { searchVideo, getSearchSuggest, getHotSearch } from './api/search.js';
@@ -247,7 +246,7 @@ export function setupIPC(wm, currentLyricsData, currentTrackInfo) {
   //  歌词获取 — 编排式获取（本地LRC → 在线搜索）
   //  优先级：
   //    1. 本地已保存的 LRC 文件
-  //    2. 第三方源（QQ/网易云），按相似度排序取最优
+  //    2. 整个标题搜索 + B站识别音乐名按接口顺序（QQ→网易）匹配
   //    （B站 AI 字幕已禁用）
   // ══════════════════════════════════════════
 

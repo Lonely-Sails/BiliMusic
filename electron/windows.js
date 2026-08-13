@@ -17,6 +17,26 @@ import { logger } from './utils/logger.js';
 // 项目根目录（dev: electron/../ → 项目根; prod: dist-electron/../ → 项目根）
 const PROJECT_ROOT = join(__dirname, '..');
 
+/**
+ * B站 CDN 请求拦截 — 图片/音频资源直连所需的请求头注入
+ *
+ * 图片 CDN（hdslb/biliimg）与音频 CDN（bilivideo/akamaized）统一在这里处理：
+ * - onBeforeSendHeaders：注入 Referer/Origin，绕过 B站 CDN 的防盗链校验
+ * - onHeadersReceived：注入 Access-Control-Allow-Origin，
+ *   使 <audio crossOrigin="anonymous"> 与 Web Audio（响度均衡）拿到 CORS-clean 资源
+ *
+ * 替代原 bili:// 自定义协议代理方案：音频流不再经主进程转发，
+ * 由渲染进程网络栈直接加载 CDN 流，减少一次进程间传输。
+ */
+const CDN_URL_PATTERNS = [
+  '*://*.hdslb.com/*',
+  '*://*.hdslb.net/*',
+  '*://*.biliimg.com/*',
+  '*://*.bilivideo.com/*',
+  '*://*.bilivideo.cn/*',
+  '*://*.akamaized.net/*',
+];
+
 export function createWindowManager() {
   let mainWindow = null;
   let desktopLyricsWindow = null;
@@ -52,8 +72,9 @@ export function createWindowManager() {
     mainWindow.on('maximize', () => mainWindow.webContents.send('window:maximize-change', true));
     mainWindow.on('unmaximize', () => mainWindow.webContents.send('window:maximize-change', false));
 
+    // 请求头注入：Referer/Origin（防盗链）+ CORS 响应头（Web Audio 需要 CORS-clean 音频）
     mainWindow.webContents.session.webRequest.onBeforeSendHeaders(
-      { urls: ['*://*.hdslb.com/*', '*://*.hdslb.net/*', '*://*.biliimg.com/*'] },
+      { urls: CDN_URL_PATTERNS },
       (details, callback) => {
         callback({
           requestHeaders: {
@@ -62,6 +83,20 @@ export function createWindowManager() {
             Origin: 'https://www.bilibili.com',
           },
         });
+      }
+    );
+    mainWindow.webContents.session.webRequest.onHeadersReceived(
+      { urls: CDN_URL_PATTERNS },
+      (details, callback) => {
+        // B站 CDN 会按请求的 Origin 回显自身的 ACAO（如 https://www.bilibili.com），
+        // 与页面实际 origin（localhost/file://）不匹配；统一覆盖为 *。
+        // 必须先移除原有值（HTTP 头名大小写不敏感），否则会出现多个 ACAO 头导致 CORS 失败。
+        const responseHeaders = { ...details.responseHeaders };
+        for (const key of Object.keys(responseHeaders)) {
+          if (/^access-control-allow-origin$/i.test(key)) delete responseHeaders[key];
+        }
+        responseHeaders['Access-Control-Allow-Origin'] = ['*'];
+        callback({ responseHeaders });
       }
     );
 

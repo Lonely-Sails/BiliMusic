@@ -3,7 +3,9 @@
  */
 
 const DEFAULT_MAX_ENTRIES = 200;
-const DEFAULT_TTL = 10 * 60 * 1000;
+// B站 playurl 有效期可能随服务端调整，缓存保守取 5 分钟，
+// 超时后重新解析，避免拿到已失效的签名 URL 导致播放失败
+const DEFAULT_TTL = 5 * 60 * 1000;
 
 export function createAudioUrlCache({ maxEntries = DEFAULT_MAX_ENTRIES, ttl = DEFAULT_TTL } = {}) {
   const entries = new Map();

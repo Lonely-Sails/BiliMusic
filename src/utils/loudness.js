@@ -129,7 +129,9 @@ export class LoudnessNormalizer {
       this.compressor?.disconnect();
       this.analyser?.disconnect();
       this.ctx?.close();
-    } catch {}
+    } catch {
+      /* ignore */
+    }
     this.gainNode = null;
     this.compressor = null;
     this.analyser = null;

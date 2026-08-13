@@ -136,12 +136,47 @@ function normalize(str) {
   return cleaned.replace(/live/g, '').replace(/mv/g, '').trim();
 }
 
+/** 歌名相近判定阈值（textSimilarity 得分下限） */
+const SONG_NAME_SIMILARITY_THRESHOLD = 0.6;
+
+/**
+ * 按接口返回顺序挑选歌词候选（QQ音乐 → 网易云音乐）
+ *
+ * 以 B站识别到的音乐名（bgmTitle）为参照，从头到尾逐个候选对比歌名，
+ * 歌名相近（去噪后相等 / 互相包含 / 相似度达阈值）即直接选用；
+ * 无参照名或全部不匹配时，退回按接口顺序取第一个候选（QQ 优先）。
+ *
+ * @param {Array} candidates - searchCandidates 的结果（已按来源优先级排列）
+ * @param {string} [bgmTitle] - B站识别到的音乐名
+ * @returns {Object|null} 选中的候选
+ */
+function pickCandidateByOrder(candidates, bgmTitle) {
+  if (!candidates?.length) return null;
+
+  const reference = normalize((bgmTitle || '').replace(/^发现/, ''));
+  if (reference) {
+    const matched = candidates.find((candidate) => {
+      const song = normalize(candidate.song || '');
+      if (!song) return false;
+      if (song === reference) return true;
+      if (song.includes(reference) || reference.includes(song)) return true;
+      return textSimilarity(song, reference) >= SONG_NAME_SIMILARITY_THRESHOLD;
+    });
+    if (matched) return matched;
+  }
+
+  // 没有 B站识别名或没有相近歌名：按接口返回顺序取第一个（QQ 优先）
+  return candidates[0] || null;
+}
+
 /**
  * 为歌词搜索候选按与视频标题+作者的匹配度排序
  *
  * 策略：
  * 1. 歌名和歌手名都出现在「标题+作者」中 → 直接给高分 (0.9)
  * 2. 否则用相似度兜底
+ *
+ * 仅用于歌词编辑器的手动搜索；自动获取歌词不再使用打分。
  *
  * @param {Array} candidates - searchCandidates 的结果
  * @param {string} videoTitle - 视频标题
@@ -192,4 +227,10 @@ async function searchRankedCandidates(title, videoTitle, author) {
   return rankCandidates(candidates, videoTitle || title, author);
 }
 
-export { searchCandidates, fetchLyric, rankCandidates, searchRankedCandidates };
+export {
+  searchCandidates,
+  fetchLyric,
+  rankCandidates,
+  searchRankedCandidates,
+  pickCandidateByOrder,
+};

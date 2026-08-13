@@ -71,7 +71,7 @@
  * 额外：歌词弹层 (LyricsOverlay)、Toast 通知
  */
 
-import { ref, computed, watch, onMounted, onUnmounted, provide, defineAsyncComponent } from 'vue';
+import { ref, computed, watch, onMounted, provide, defineAsyncComponent } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { usePlayerStore } from './stores/player';
 import { useToast } from './stores/toast';

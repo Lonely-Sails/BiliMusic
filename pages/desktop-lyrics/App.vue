@@ -162,7 +162,9 @@ function saveSettings() {
         locked: locked.value,
       })
     );
-  } catch (_) {}
+  } catch {
+    /* ignore */
+  }
 }
 
 function loadSettings() {
@@ -170,25 +172,23 @@ function loadSettings() {
     const s = JSON.parse(localStorage.getItem('desktopLyricsSettings'));
     if (!s) return;
     locked.value = s.locked ?? false;
-  } catch (_) {}
+  } catch {
+    /* ignore */
+  }
 }
 
 /* =========================
    工具栏 — 鼠标进入窗口显示，离开窗口隐藏
    ========================= */
 function showToolbar() {
-  clearTimeout(toolbarTimer);
   document.body.classList.add('hover');
   if (!locked.value) document.body.style.setProperty('--bg-alpha', '0.3');
 }
 
 function hideToolbar() {
-  clearTimeout(toolbarTimer);
   document.body.classList.remove('hover');
   document.body.style.setProperty('--bg-alpha', '0');
 }
-
-let toolbarTimer;
 
 /* =========================
    锁定 — 点击穿透

@@ -2,13 +2,15 @@
  * BiliMusic — Electron 主进程入口
  *
  * 职责：
- * 1. 注册自定义协议 `bili://` 用于音频流代理（绕过 CORS）
- * 2. 从磁盘加载持久化 Session（B站登录态）
- * 3. 创建窗口管理器、IPC 处理器、托盘
- * 4. 统一管理应用生命周期（窗口关闭 → 隐藏到托盘）
+ * 1. 从磁盘加载持久化 Session（B站登录态）
+ * 2. 创建窗口管理器、IPC 处理器、托盘
+ * 3. 统一管理应用生命周期（窗口关闭 → 隐藏到托盘）
+ *
+ * 注：B站 CDN（图片/音频）请求头注入由 windows.js 的 webRequest 拦截完成，
+ * 不再使用自定义协议代理音频流。
  */
 
-import { app, protocol, net } from 'electron';
+import { app } from 'electron';
 import { join } from 'path';
 import { existsSync, readFileSync } from 'fs';
 import { logger } from './utils/logger.js';
@@ -16,24 +18,6 @@ import { createWindowManager } from './windows.js';
 import { createTrayManager } from './tray.js';
 import { setupIPC } from './ipc.js';
 import { loadSession } from './api/client.js';
-
-// ══════════════════════════════════════════
-//  注册 bili:// 为特权协议（必须在 app.whenReady 之前）
-// ══════════════════════════════════════════
-// 用途：允许前端通过 createMediaElementSource / captureStream 处理音频
-// 需要：standard + corsEnabled 让 Chromium 把 bili:// 视为支持 CORS 的标准协议
-protocol.registerSchemesAsPrivileged([
-  {
-    scheme: 'bili',
-    privileges: {
-      standard: true,
-      secure: true,
-      corsEnabled: true,
-      stream: true,
-      supportFetchAPI: true,
-    },
-  },
-]);
 
 // ── 全局共享状态 ──
 // SESSION_PATH: 由 app.whenReady 设置，供 IPC 模块持久化 session
@@ -44,35 +28,6 @@ const currentTrackInfo = { value: null };
 
 app.whenReady().then(() => {
   global.__SESSION_PATH = join(app.getPath('userData'), 'session.json');
-
-  /**
-   * 注册自定义协议 bili://
-   * Bilibili 的音频 CDN 有严格的 Referer/Origin 校验，
-   * 直接在前端 fetch 会触发 CORS 错误。
-   * 通过 Electron 的 protocol.handle 代理请求，
-   * 在服务端附加 B站要求的请求头后转发。
-   */
-  protocol.handle('bili', async (request) => {
-    // URL 格式: bili://audio/<encoded-url>（standard scheme 需要合法 host）
-    const url = request.url.slice('bili://audio/'.length);
-    const decodedUrl = decodeURIComponent(url);
-    logger.debug('Audio proxy:', decodedUrl.slice(0, 80) + '...');
-    const response = await net.fetch(decodedUrl, {
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        Referer: 'https://www.bilibili.com',
-      },
-    });
-    // 添加 CORS 头，允许前端 createMediaElementSource/captureStream
-    const headers = new Headers(response.headers);
-    headers.set('Access-Control-Allow-Origin', '*');
-    return new Response(response.body, {
-      status: response.status,
-      statusText: response.statusText,
-      headers,
-    });
-  });
 
   // ── 从磁盘加载持久化的 B站登录态 ──
   try {
