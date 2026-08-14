@@ -1,15 +1,11 @@
 /**
- * 播放器服务 — 编排视频信息、音频流地址与音频缓冲获取
+ * 播放器服务 — 编排视频信息与音频流地址获取
+ *
+ * 音频流由渲染进程 <audio> 直接加载 CDN 地址，
+ * Referer/CORS 请求头由 windows.js 的 webRequest 拦截注入。
  */
 
-import { net } from 'electron';
 import { getVideoInfo, getAudioUrl } from '../api/video.js';
-
-const AUDIO_REQUEST_HEADERS = {
-  'User-Agent':
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-  Referer: 'https://www.bilibili.com',
-};
 
 async function resolveVideoInfo(bvid, aid) {
   if (!bvid && !aid) throw new Error('bvid or aid required');
@@ -21,13 +17,4 @@ async function resolveAudioUrl(bvid, cid) {
   return getAudioUrl(bvid, cid);
 }
 
-async function fetchAudioBuffer(url) {
-  if (!url || typeof url !== 'string') throw new Error('audio url required');
-
-  const response = await net.fetch(url, { headers: AUDIO_REQUEST_HEADERS });
-  if (!response.ok) throw new Error(`Audio request failed: ${response.status}`);
-
-  return Buffer.from(await response.arrayBuffer());
-}
-
-export { resolveVideoInfo, resolveAudioUrl, fetchAudioBuffer };
+export { resolveVideoInfo, resolveAudioUrl };

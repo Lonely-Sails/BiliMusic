@@ -34,7 +34,7 @@ import {
   getComprehensiveRank,
 } from './api/music.js';
 import { getUserInfo, getUserRelationStat, getUserArchives } from './api/user.js';
-import { resolveVideoInfo, resolveAudioUrl, fetchAudioBuffer } from './services/player.js';
+import { resolveVideoInfo, resolveAudioUrl } from './services/player.js';
 import { ensureBiliSession } from './services/session.js';
 import { registerDesktopLyricsIPC } from './ipc/desktop-lyrics.js';
 import {
@@ -105,13 +105,6 @@ export function setupIPC(wm, currentLyricsData, currentTrackInfo) {
   ipcMain.handle('player:get-audio-url', async (_, bvid, cid) => {
     try {
       return await resolveAudioUrl(bvid, cid);
-    } catch (e) {
-      return { error: e.message };
-    }
-  });
-  ipcMain.handle('player:get-audio-buffer', async (_, url) => {
-    try {
-      return await fetchAudioBuffer(url);
     } catch (e) {
       return { error: e.message };
     }

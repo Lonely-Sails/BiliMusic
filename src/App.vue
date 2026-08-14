@@ -40,7 +40,7 @@
       @timeupdate="onTimeUpdate($event.target.currentTime)"
       @ended="player.onEnded()"
       @loadedmetadata="player.setDuration($event.target.duration)"
-      @error="player.isPlaying = false"
+      @error="player.handleAudioError()"
     />
 
     <ToastProvider>
@@ -76,6 +76,7 @@ import { useRouter, useRoute } from 'vue-router';
 import { usePlayerStore } from './stores/player';
 import { useToast } from './stores/toast';
 import { useSearch } from './composables/use_search';
+import { useMediaSession } from './composables/use_media_session';
 import PlayerBar from './components/PlayerBar.vue';
 import AppHeader from './components/AppHeader.vue';
 import AppSidebar from './components/AppSidebar.vue';
@@ -185,6 +186,12 @@ onMounted(() => {
   window.electronAPI?.isMaximized().then((v) => (isMaxed.value = v));
   window.electronAPI?.onMaximizeChange((v) => (isMaxed.value = v));
   window.electronAPI?.ensureSession().catch((e) => console.warn('[BiliMusic] Session init:', e));
+
+  // 系统级媒体控制（macOS 锁屏/控制中心、Windows SMTC）与全局媒体键
+  useMediaSession();
+
+  // 音频流 403（登录过期/权限不足）→ 触发一次登录态检测
+  window.electronAPI?.onAudioForbidden?.(() => player.handleAuthFailure());
 });
 </script>
 

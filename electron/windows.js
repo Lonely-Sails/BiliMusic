@@ -88,6 +88,13 @@ export function createWindowManager() {
     mainWindow.webContents.session.webRequest.onHeadersReceived(
       { urls: CDN_URL_PATTERNS },
       (details, callback) => {
+        // 音频流 403（登录过期/权限不足）→ 通知渲染进程触发一次登录态检测
+        if (details.resourceType === 'media' && details.statusCode === 403) {
+          mainWindow.webContents.send('player:audio-forbidden', {
+            url: details.url,
+            status: details.statusCode,
+          });
+        }
         // B站 CDN 会按请求的 Origin 回显自身的 ACAO（如 https://www.bilibili.com），
         // 与页面实际 origin（localhost/file://）不匹配；统一覆盖为 *。
         // 必须先移除原有值（HTTP 头名大小写不敏感），否则会出现多个 ACAO 头导致 CORS 失败。

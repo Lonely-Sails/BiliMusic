@@ -1,13 +1,12 @@
-import fs from 'fs';
 import { apiGet, apiPost, apiFetch, getSession, parseSetCookie, clearCookies } from './client.js';
+import { saveSessionFile } from '../utils/session-store.js';
 
 let sessionPath = null;
 
 function saveSession(filePath) {
   sessionPath = filePath;
   try {
-    const session = getSession();
-    fs.writeFileSync(filePath, JSON.stringify(session, null, 2));
+    saveSessionFile(filePath, getSession());
   } catch (e) {
     console.error('Failed to save session:', e);
   }
@@ -139,7 +138,7 @@ function clearAuth() {
   clearCookies();
   if (sessionPath) {
     try {
-      fs.writeFileSync(sessionPath, JSON.stringify({ cookies: [] }));
+      saveSessionFile(sessionPath, { cookies: [] });
     } catch (e) {
       console.error('Failed to clear session:', e);
     }

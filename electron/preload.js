@@ -19,7 +19,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Player
   getVideoInfo: (bvid, aid) => ipcRenderer.invoke('player:get-video-info', bvid, aid),
   getAudioUrl: (bvid, cid) => ipcRenderer.invoke('player:get-audio-url', bvid, cid),
-  getAudioBuffer: (url) => ipcRenderer.invoke('player:get-audio-buffer', url),
 
   // Season / Collection
   checkVideoSeasonBatch: (bvids) => ipcRenderer.invoke('season:check-batch', bvids),
@@ -91,6 +90,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('player:prev', () => callback('prev'));
     ipcRenderer.on('player:next', () => callback('next'));
     ipcRenderer.on('player:toggle-play', () => callback('togglePlay'));
+  },
+  onAudioForbidden: (callback) => {
+    ipcRenderer.on('player:audio-forbidden', (event, data) => callback(data));
   },
   onLyricsEditorSaved: (callback) => {
     ipcRenderer.on('lyrics-editor:saved', () => callback());

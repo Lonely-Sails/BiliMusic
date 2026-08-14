@@ -40,5 +40,10 @@ export function createAudioUrlCache({ maxEntries = DEFAULT_MAX_ENTRIES, ttl = DE
     entries.clear();
   }
 
-  return { get, set, getInfo, clear };
+  /** 失效单个条目（播放失败重试时强制重新解析） */
+  function invalidate(key) {
+    entries.delete(key);
+  }
+
+  return { get, set, getInfo, clear, invalidate };
 }
